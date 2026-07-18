@@ -1,0 +1,166 @@
+# =============================================================================
+# AI Assistant — 五服务容器化总装
+#
+# 服务拓扑:
+#   frontend (Nginx :80)
+#       └─ /api → backend (FastAPI :8000)
+#                     ├─ /embed → embedding_service (bge-m3 :8001)
+#                     ├─ db_pg (PostgreSQL+pgvector :5432)
+#                     └─ db_qdrant (Qdrant :6333)
+#
+# 启动:  docker compose up -d
+# 停止:  docker compose down
+# 重建:  docker compose up -d --build
+# =============================================================================
+
+services:
+  # ═══════════════════════════════════════════════════════════════
+  # 1. 前端 — Nginx 静态文件 + API 反向代理
+  # ═══════════════════════════════════════════════════════════════
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    ports:
+      - "0.0.0.0:3000:80"
+    depends_on:
+      - backend
+    networks:
+      - ai_net
+
+  # ═══════════════════════════════════════════════════════════════
+  # 2. 后端 — FastAPI + LangGraph Agent 引擎
+  # ═══════════════════════════════════════════════════════════════
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: always
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      # 数据库 — 全部使用容器名（非 localhost）
+      PG_HOST: db_pg
+      PG_PORT: "5432"
+      PG_USER: admin
+      PG_PASSWORD: ${POSTGRES_PASSWORD}
+      PG_DATABASE: ai_assistant
+
+      QDRANT_URL: http://db_qdrant:6333
+      EMBED_URL: http://embedding_service:8001/embed
+
+      # Embedding 服务
+      EMBEDDING_URL: http://embedding_service:8001
+
+      # LLM
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN}
+      MAIN_MODEL: deepseek-v4-flash
+
+      # Reranker
+      RERANKER_MODEL: ${RERANKER_MODEL}
+      RERANKER_API_URL: ${RERANKER_API_URL}
+      RERANKER_API_KEY: ${RERANKER_API_KEY}
+    depends_on:
+      db_pg:
+        condition: service_healthy
+      db_qdrant:
+        condition: service_started
+    networks:
+      - ai_net
+    volumes:
+      - /root/my-ai-research/.env:/app/.env:ro
+      - /root/my-ai-research/evaluation:/app/evaluation:ro
+      - /root/my-ai-research/data:/app/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 2G
+
+  # ═══════════════════════════════════════════════════════════════
+  # 3. Embedding 服务 — bge-m3 CPU 推理
+  # ═══════════════════════════════════════════════════════════════
+  embedding_service:
+    build: ./backend/embedding_service
+    container_name: embedding_service
+    restart: always
+    ports:
+      - "127.0.0.1:8001:8001"
+    environment:
+      BGE_M3_MODEL_PATH: /app/models/bge-m3
+      EMBEDDING_CPU_THREADS: "2"
+      EMBEDDING_MAX_CONCURRENT: "1"
+    volumes:
+      # 模型只读挂载 — 宿主机下载一次，所有重建的容器共享
+      - /root/my-ai-research/models/bge-m3:/app/models/bge-m3:ro
+    networks:
+      - ai_net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 6G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ═══════════════════════════════════════════════════════════════
+  # 4. PostgreSQL + pgvector — 业务数据 + LangGraph Checkpointer
+  # ═══════════════════════════════════════════════════════════════
+  db_pg:
+    image: pgvector/pgvector:pg17
+    container_name: db_pg
+    restart: always
+    environment:
+      POSTGRES_DB: ai_assistant
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+      - ./backend/sql/init:/docker-entrypoint-initdb.d  # 初始化 DDL
+    networks:
+      - ai_net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d ai_assistant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════════════════════
+  # 5. Qdrant — 向量数据库（高性能 HNSW 召回）
+  # ═══════════════════════════════════════════════════════════════
+  db_qdrant:
+    image: qdrant/qdrant:latest
+    container_name: db_qdrant
+    restart: always
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - ai_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1G
+
+# ═════════════════════════════════════════════════════════════════
+# 共享网络
+# ═════════════════════════════════════════════════════════════════
+networks:
+  ai_net:
+    driver: bridge
+
+volumes:
+  qdrant_data:

@@ -1,0 +1,52 @@
+# ===== 敏感配置 =====
+.env
+.env.*
+!.env.example
+.agentm_session
+
+# ===== 数据库 / 持久化数据 =====
+postgres_data/
+qdrant_data/
+backend/data/*.log
+data/*.log
+
+# ===== 模型权重 / 语料(体积大或可重新下载) =====
+models/
+backend/wheels/
+uv_latest.tar
+*.tar
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.uv-cache/
+.ruff_cache/
+venv/
+venv_eval/
+*.egg-info
+cli/=3.0
+
+# ===== Node / 前端构建产物 =====
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# ===== 日志 / 临时 =====
+*.log
+logs/
+.Trash/
+._____temp
+*.tmp
+*.bak
+
+# ===== IDE / 系统 =====
+.claude/
+.vscode/
+.idea/
+.DS_Store
+
+# ===== 评测产出 =====
+backend/data/eval/
+data/eval/

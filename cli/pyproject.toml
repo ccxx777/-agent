@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentm"
+version = "0.1.0"
+description = "AgentM CLI — local AI chat in your terminal"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28",
+    "rich>=13.0",
+    "prompt_toolkit>=3.0",
+]
+
+[project.scripts]
+agentm = "main:entry"

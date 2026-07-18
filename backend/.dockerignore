@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+configs/
+embedding_service/
+scripts/
+sql/
+tests/
+wheels/
+

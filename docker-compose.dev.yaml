@@ -1,0 +1,6 @@
+# 开发覆盖配置：Backend 代码直接挂载，普通 Python 修改只需重启容器。
+services:
+  backend:
+    volumes:
+      - ./backend/app:/app/app:ro
+

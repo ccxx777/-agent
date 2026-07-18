@@ -1,0 +1,40 @@
+# =============================================================================
+# Sentinel 哨兵 — 独立微服务 (data_worker)
+#
+# 启动:  docker compose up -d
+# 查看:  docker compose logs -f
+# =============================================================================
+
+services:
+  sentinel:
+    build: .
+    container_name: sentinel
+    restart: always
+    working_dir: /app
+    command: python -u -m data_worker.cli --watch
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DATA_DIR: /app/data/raw
+
+      PG_HOST: db_pg
+      PG_PORT: "5432"
+      PG_USER: admin
+      PG_PASSWORD: ${POSTGRES_PASSWORD}
+      PG_DATABASE: ai_assistant
+
+      QDRANT_URL: http://db_qdrant:6333
+      EMBED_URL: http://embedding_service:8001/embed
+    volumes:
+      - ../data/raw:/app/data/raw:ro
+    networks:
+      - ai_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 256M
+
+networks:
+  ai_net:
+    external: true
+    name: my-ai-research_ai_net

@@ -1,0 +1,8 @@
+httpx>=0.28
+ragas==0.4.3
+# Ragas 0.4.3 still imports the legacy VertexAI module removed in 0.4.x.
+# Keep the evaluator environment isolated from Backend's LangChain 1.x stack.
+langchain-community==0.3.31
+openai>=1.0
+pandas>=2.0
+python-dotenv>=1.0
