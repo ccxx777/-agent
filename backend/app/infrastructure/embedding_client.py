@@ -29,4 +29,13 @@ class EmbeddingClient:
             )
         response.raise_for_status()
         payload = response.json()
-        return payload["dense"][0], (payload.get("sparse") or [{}])[0]
+        raw_sparse = (payload.get("sparse") or [{}])[0]
+
+        # JSON object keys are always strings.  Qdrant payloads store token IDs
+        # as integers and the frozen Cascade Funnel also performs integer
+        # lookups, so normalize the HTTP representation at this boundary.
+        sparse = {
+            int(token_id): float(weight)
+            for token_id, weight in raw_sparse.items()
+        }
+        return payload["dense"][0], sparse
