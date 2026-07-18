@@ -34,17 +34,30 @@ from pathlib import Path
 from typing import Any, Iterator
 
 
+class BaselineError(RuntimeError):
+    """输入数据、已有结果或运行配置不满足可比较评测条件。"""
+
+
+def discover_backend_import_root(repo_root: Path) -> Path:
+    """兼容仓库 ``backend/app`` 与容器 ``/app/app`` 两种代码布局。"""
+
+    candidates = (repo_root / "backend", repo_root)
+    for candidate in candidates:
+        if (candidate / "app").is_dir():
+            return candidate
+    raise BaselineError(
+        f"无法定位 Backend Python 包；已检查："
+        f"{', '.join(str(item / 'app') for item in candidates)}"
+    )
+
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
-BACKEND_ROOT = REPO_ROOT / "backend"
-if BACKEND_ROOT.is_dir() and str(BACKEND_ROOT) not in sys.path:
-    sys.path.insert(0, str(BACKEND_ROOT))
+BACKEND_IMPORT_ROOT = discover_backend_import_root(REPO_ROOT)
+if str(BACKEND_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_IMPORT_ROOT))
 
 DETAILS_FILENAME = "details.jsonl"
 SUMMARY_FILENAME = "summary.json"
-
-
-class BaselineError(RuntimeError):
-    """输入数据、已有结果或运行配置不满足可比较评测条件。"""
 
 
 @dataclass(frozen=True)

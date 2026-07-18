@@ -11,6 +11,7 @@ from evaluation.watsonx_docsqa_retrieval_baseline import (
     BaselineError,
     Question,
     build_summary,
+    discover_backend_import_root,
     evaluation_collection,
     load_existing_results,
     load_questions,
@@ -26,6 +27,16 @@ def _question(question_id: str = "q-1") -> Question:
         gold_doc_ids=["gold-a", "gold-b"],
         reference_contexts=["The setting is enabled."],
     )
+
+
+def test_discovers_repository_and_container_backend_layouts(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    (repository / "backend" / "app").mkdir(parents=True)
+    assert discover_backend_import_root(repository) == repository / "backend"
+
+    container = tmp_path / "container"
+    (container / "app").mkdir(parents=True)
+    assert discover_backend_import_root(container) == container
 
 
 def test_score_retrieval_uses_funnel_chunk_rank_and_unique_gold_docs() -> None:
