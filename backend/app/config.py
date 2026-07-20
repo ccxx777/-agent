@@ -27,6 +27,7 @@ class Settings:
     pg_database: str = field(default_factory=lambda: os.getenv("PG_DATABASE", "ai_assistant"))
 
     qdrant_url: str = field(default_factory=lambda: os.getenv("QDRANT_URL", "http://db_qdrant:6333"))
+    rag_collection: str = field(default_factory=lambda: os.getenv("RAG_COLLECTION", "rag_chunks"))
 
     # ── Embedding 服务 ──
     embedding_url: str = field(

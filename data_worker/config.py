@@ -25,7 +25,9 @@ class WorkerSettings:
     pg_user: str = field(default_factory=lambda: os.getenv("PG_USER", "admin"))
     pg_password: str = field(default_factory=lambda: os.getenv("PG_PASSWORD", ""))
     pg_database: str = field(default_factory=lambda: os.getenv("PG_DATABASE", "ai_assistant"))
-    collection_name: str = "rag_chunks"
+    collection_name: str = field(
+        default_factory=lambda: os.getenv("RAG_COLLECTION", "rag_chunks")
+    )
     vector_dim: int = 1024
     chunk_size: int = 1000
     chunk_overlap: int = 200

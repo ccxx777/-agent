@@ -93,7 +93,7 @@ def test_capture_restores_all_search_functions_after_error() -> None:
     module = SimpleNamespace(
         _dense_search_scored=dense,
         _sparse_search_scored=sparse,
-        _fulltext_search_scored=fulltext,
+        _bm25_search_scored=fulltext,
     )
 
     with pytest.raises(RuntimeError, match="stop"):
@@ -104,4 +104,4 @@ def test_capture_restores_all_search_functions_after_error() -> None:
 
     assert module._dense_search_scored is dense
     assert module._sparse_search_scored is sparse
-    assert module._fulltext_search_scored is fulltext
+    assert module._bm25_search_scored is fulltext

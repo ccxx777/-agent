@@ -3,7 +3,7 @@
 
 该诊断器不复制或修改生产召回函数。它在独立 Python 进程中临时包装现有
 ``_dense_search_scored``、``_sparse_search_scored`` 和
-``_fulltext_search_scored``，记录 L1 的原始返回值；L2 使用生产模块自己的
+``_bm25_search_scored``，记录 L1 的原始返回值；L2 使用生产模块自己的
 ``normalize`` 与 ``calculate_query_specificity`` 按当前公式重建；L3 直接采用
 ``get_final_funnel_top3`` 的真实 Reranker 结果。
 
@@ -43,7 +43,7 @@ else:  # 直接执行 /app/evaluation/*.py
 SEARCH_FUNCTIONS = {
     "dense": "_dense_search_scored",
     "sparse": "_sparse_search_scored",
-    "fulltext": "_fulltext_search_scored",
+    "fulltext": "_bm25_search_scored",
 }
 
 

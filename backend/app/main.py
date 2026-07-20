@@ -57,6 +57,7 @@ async def lifespan(app: FastAPI):
         reranker_model=settings.reranker_model,
         reranker_api_url=settings.reranker_api_url,
         reranker_api_key=settings.reranker_api_key,
+        collection_name=settings.rag_collection,
     )
     model_provider = ModelProvider(
         model=settings.main_model,

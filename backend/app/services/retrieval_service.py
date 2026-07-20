@@ -2,10 +2,11 @@
 
 这是 Agent 与自研 Cascade Funnel 之间唯一的业务入口。它负责：
 1. 调用 Embedding Service 获取查询向量；
-2. 把原始查询和向量交给冻结的 Funnel；
+2. 把原始查询和向量交给当前 Funnel；
 3. 将已排好序的结果转换成稳定 ``RetrievalPayload``。
 
-本文件明确不修改三路召回、权重、Top-K、粗排和 Reranker 算法。
+Collection由装配层注入，因此离线建好的v2 Collection可通过环境变量切换，
+无需改代码或覆盖旧库。
 """
 
 from __future__ import annotations
@@ -27,12 +28,14 @@ class RetrievalService:
         reranker_model: str,
         reranker_api_url: str,
         reranker_api_key: str,
+        collection_name: str = "rag_chunks",
     ) -> None:
         self._embedding_client = embedding_client
         self._qdrant = qdrant
         self._reranker_model = reranker_model
         self._reranker_api_url = reranker_api_url
         self._reranker_api_key = reranker_api_key
+        self._collection_name = collection_name
 
     async def retrieve(self, query: str) -> RetrievalPayload:
         """返回 Funnel 最终排序后的稳定检索结果。
@@ -49,5 +52,6 @@ class RetrievalService:
             reranker_model=self._reranker_model,
             reranker_api_url=self._reranker_api_url,
             reranker_api_key=self._reranker_api_key,
+            collection_name=self._collection_name,
         )
         return build_retrieval_payload(ranked_hits)

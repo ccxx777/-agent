@@ -369,6 +369,7 @@ async def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
         reranker_model=settings.reranker_model,
         reranker_api_url=settings.reranker_api_url,
         reranker_api_key=settings.reranker_api_key,
+        collection_name=args.collection,
     )
 
     with evaluation_collection(args.collection), details_path.open(

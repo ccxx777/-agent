@@ -253,6 +253,7 @@ async def run_generation_baseline(args: argparse.Namespace) -> dict[str, Any]:
         reranker_model=settings.reranker_model,
         reranker_api_url=settings.reranker_api_url,
         reranker_api_key=settings.reranker_api_key,
+        collection_name=args.collection,
     )
     llm = ModelProvider(
         model=model,

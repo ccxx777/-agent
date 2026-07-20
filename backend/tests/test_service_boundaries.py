@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 from langchain_core.messages import AIMessage
 
 from app.infrastructure.embedding_client import EmbeddingClient
+from app.components.retriever.qdrant.v2_0_0.main import _sparse_search_scored
 from app.services.chat_service import ChatService
 from app.services.retrieval_service import RetrievalService
 from app.services.session_service import SessionService
@@ -44,6 +45,18 @@ class _FakeAsyncClient:
         return _FakeEmbeddingResponse()
 
 
+class _NativeSparseClient:
+    def __init__(self) -> None:
+        self.search_calls: list[dict] = []
+
+    def search(self, **kwargs):
+        self.search_calls.append(kwargs)
+        return [SimpleNamespace(id="point", score=0.9, payload={})]
+
+    def scroll(self, **kwargs):  # pragma: no cover - 调用即代表原生路径失效
+        raise AssertionError("v2 native sparse path must not scan payloads")
+
+
 class ServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
     async def test_embedding_client_normalizes_json_sparse_keys_to_int(self):
         with patch("app.infrastructure.embedding_client.httpx.AsyncClient", _FakeAsyncClient):
@@ -64,6 +77,7 @@ class ServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
             reranker_model="reranker",
             reranker_api_url="http://reranker",
             reranker_api_key="key",
+            collection_name="knowledge_v2",
         )
 
         with patch(
@@ -75,6 +89,23 @@ class ServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([doc.point_id for doc in result.documents], ["second", "first"])
         self.assertEqual([doc.rank for doc in result.documents], [1, 2])
         funnel.assert_awaited_once()
+        self.assertEqual(funnel.await_args.kwargs["collection_name"], "knowledge_v2")
+
+    async def test_native_sparse_path_does_not_scroll_payloads(self):
+        client = _NativeSparseClient()
+
+        results = _sparse_search_scored(
+            client,
+            {2026: 0.12, 562: 0.18},
+            10,
+            "knowledge_v2",
+            {"bge_m3_sparse"},
+        )
+
+        self.assertEqual(results[0][0], 0.9)
+        self.assertEqual(len(client.search_calls), 1)
+        query_vector = client.search_calls[0]["query_vector"]
+        self.assertEqual(query_vector.name, "bge_m3_sparse")
 
     async def test_chat_service_keeps_thread_and_user_ids(self):
         graph = SimpleNamespace(

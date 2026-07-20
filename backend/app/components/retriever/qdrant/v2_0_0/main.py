@@ -10,11 +10,17 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import httpx
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qm
+
+from app.services.query_specificity import (
+    bm25_query_tokens,
+    calculate_query_specificity_details,
+    sparse_token_id,
+)
 
 try:
     from log import logger
@@ -27,6 +33,10 @@ COLLECTION_NAME = "rag_chunks"
 DEFAULT_QDRANT_URL = "http://localhost:6333"
 DEFAULT_EMBED_URL = "http://embedding_service:8001/embed"
 RRF_K = 60
+DENSE_VECTOR_NAME = "dense"
+BGE_SPARSE_VECTOR_NAME = "bge_m3_sparse"
+BM25_EN_VECTOR_NAME = "bm25_word"
+BM25_ZH_VECTOR_NAME = "bm25_zh"
 
 
 def run(inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -156,18 +166,10 @@ def _fulltext_search(client: QdrantClient, query: str, limit: int = 20) -> list:
 # 粗排：缺省惩罚的动态归一化融合 (Dynamic Normalized Fusion)
 # ═════════════════════════════════════════════════════════════════
 
-STOPWORDS = {"的", "是", "在", "了", "如何", "怎么", "办理", "规定", "哪些", "什么", "关于", "办法", "申请", "研究生"}
-
-
 def calculate_query_specificity(query: str) -> float:
-    """计算查询专业度 S ∈ [0.2, 0.8]。
+    """兼容旧测试/调用方；实际实现位于Service层的双语分析器。"""
 
-    停用词越多 → 通用口语 → S 偏低（依赖语义向量）
-    停用词越少 → 专有名词多 → S 偏高（依赖字面匹配）
-    """
-    count = sum(1 for sw in STOPWORDS if sw in query)
-    specificity = 0.8 - count * 0.1
-    return max(0.2, min(0.8, specificity))
+    return calculate_query_specificity_details(query).specificity
 
 
 def normalize(scored_hits: list) -> tuple[dict, dict]:
@@ -193,18 +195,86 @@ def normalize(scored_hits: list) -> tuple[dict, dict]:
     return norm, lookup
 
 
-def _dense_search_scored(client: QdrantClient, dense_vec: list, top_k: int) -> list:
+def _vector_names(client: QdrantClient, collection_name: str) -> tuple[set[str], set[str]]:
+    """读取Collection命名Dense/Sparse空间；旧Collection返回空集合。"""
+
+    info = client.get_collection(collection_name)
+    params = info.config.params
+    dense_config = getattr(params, "vectors", None)
+    sparse_config = getattr(params, "sparse_vectors", None)
+    dense_names = set(dense_config) if isinstance(dense_config, dict) else set()
+    sparse_names = set(sparse_config or {}) if isinstance(sparse_config, dict) else set()
+    return dense_names, sparse_names
+
+
+def _query_named_vector(
+    client: QdrantClient,
+    *,
+    collection_name: str,
+    vector_name: str,
+    vector: list | qm.SparseVector,
+    top_k: int,
+) -> list:
+    """兼容qdrant-client 1.9 search API与新版Query API。"""
+
+    query_points = getattr(client, "query_points", None)
+    if callable(query_points):
+        response = query_points(
+            collection_name=collection_name,
+            query=vector,
+            using=vector_name,
+            limit=top_k,
+            with_payload=True,
+        )
+        return list(response.points)
+    if isinstance(vector, qm.SparseVector):
+        query_vector = qm.NamedSparseVector(name=vector_name, vector=vector)
+    else:
+        query_vector = (vector_name, vector)
+    return client.search(
+        collection_name=collection_name,
+        query_vector=query_vector,
+        limit=top_k,
+        with_payload=True,
+    )
+
+
+def _dense_search_scored(
+    client: QdrantClient,
+    dense_vec: list,
+    top_k: int,
+    collection_name: str,
+    dense_names: set[str],
+) -> list:
     """Dense 召回，保留 Qdrant 原始 score。返回 [(score, point), ...]"""
-    results = client.search(collection_name=COLLECTION_NAME, query_vector=dense_vec, limit=top_k)
+    if DENSE_VECTOR_NAME in dense_names:
+        results = _query_named_vector(
+            client,
+            collection_name=collection_name,
+            vector_name=DENSE_VECTOR_NAME,
+            vector=dense_vec,
+            top_k=top_k,
+        )
+    else:
+        results = client.search(
+            collection_name=collection_name,
+            query_vector=dense_vec,
+            limit=top_k,
+        )
     return [(r.score, r) for r in results]
 
 
-def _sparse_search_scored(client: QdrantClient, sparse_dict: dict, top_k: int) -> list:
-    """Sparse 召回，保留暴力内积 score。返回 [(score, point), ...]"""
+def _legacy_sparse_search_scored(
+    client: QdrantClient,
+    sparse_dict: dict,
+    top_k: int,
+    collection_name: str,
+) -> list:
+    """仅供旧Collection回退的Payload全量扫描。"""
     all_points, offset = [], None
     while True:
         batch, offset = client.scroll(
-            collection_name=COLLECTION_NAME, limit=200,
+            collection_name=collection_name, limit=200,
             offset=offset, with_payload=True, with_vectors=False)
         all_points.extend(batch)
         if offset is None:
@@ -222,7 +292,41 @@ def _sparse_search_scored(client: QdrantClient, sparse_dict: dict, top_k: int) -
     return scored[:top_k]
 
 
-def _fulltext_search_scored(client: QdrantClient, query: str, top_k: int) -> list:
+def _sparse_search_scored(
+    client: QdrantClient,
+    sparse_dict: dict,
+    top_k: int,
+    collection_name: str,
+    sparse_names: set[str],
+) -> list:
+    """优先使用Qdrant原生BGE-M3 Sparse Index，旧库才允许Payload扫描。"""
+
+    if BGE_SPARSE_VECTOR_NAME not in sparse_names:
+        logger.warning("Collection %s 尚未迁移原生Sparse，使用Payload扫描回退", collection_name)
+        return _legacy_sparse_search_scored(client, sparse_dict, top_k, collection_name)
+    items = sorted((int(index), float(value)) for index, value in sparse_dict.items())
+    if not items:
+        return []
+    vector = qm.SparseVector(
+        indices=[item[0] for item in items],
+        values=[item[1] for item in items],
+    )
+    results = _query_named_vector(
+        client,
+        collection_name=collection_name,
+        vector_name=BGE_SPARSE_VECTOR_NAME,
+        vector=vector,
+        top_k=top_k,
+    )
+    return [(result.score, result) for result in results]
+
+
+def _legacy_fulltext_search_scored(
+    client: QdrantClient,
+    query: str,
+    top_k: int,
+    collection_name: str,
+) -> list:
     """Fulltext 召回，TF 匹配率作为 score。返回 [(score, point), ...]"""
     keywords = [w for w in query[:100].split() if len(w) >= 1]
     if not keywords:
@@ -232,7 +336,7 @@ def _fulltext_search_scored(client: QdrantClient, query: str, top_k: int) -> lis
     for kw in keywords[:5]:
         try:
             batch, _ = client.scroll(
-                collection_name=COLLECTION_NAME,
+                collection_name=collection_name,
                 scroll_filter=qm.Filter(must=[qm.FieldCondition(key="chunk_text", match=qm.MatchText(text=kw))]),
                 limit=top_k, with_payload=True, with_vectors=False,
             )
@@ -245,7 +349,7 @@ def _fulltext_search_scored(client: QdrantClient, query: str, top_k: int) -> lis
     if not all_ids:
         return []
 
-    results = client.retrieve(collection_name=COLLECTION_NAME, ids=list(all_ids), with_payload=True)
+    results = client.retrieve(collection_name=collection_name, ids=list(all_ids), with_payload=True)
 
     scored = []
     for pt in results:
@@ -261,6 +365,32 @@ def _fulltext_search_scored(client: QdrantClient, query: str, top_k: int) -> lis
     return scored[:top_k]
 
 
+def _bm25_search_scored(
+    client: QdrantClient,
+    query: str,
+    language: str,
+    top_k: int,
+    collection_name: str,
+    sparse_names: set[str],
+) -> list:
+    """使用离线构建的命名BM25 Sparse Vector获得真正可排序的词法分数。"""
+
+    vector_name = BM25_ZH_VECTOR_NAME if language == "zh" else BM25_EN_VECTOR_NAME
+    if vector_name not in sparse_names:
+        return _legacy_fulltext_search_scored(client, query, top_k, collection_name)
+    token_ids = sorted({sparse_token_id(token) for token in bm25_query_tokens(query, language)})
+    if not token_ids:
+        return []
+    results = _query_named_vector(
+        client,
+        collection_name=collection_name,
+        vector_name=vector_name,
+        vector=qm.SparseVector(indices=token_ids, values=[1.0] * len(token_ids)),
+        top_k=top_k,
+    )
+    return [(result.score, result) for result in results]
+
+
 async def get_final_funnel_top3(
     query: str,
     dense_vec: list,
@@ -269,6 +399,7 @@ async def get_final_funnel_top3(
     reranker_model: str = "BAAI/bge-reranker-v2-m3",
     reranker_api_url: str = "https://api.siliconflow.cn/v1/rerank",
     reranker_api_key: str = "",
+    collection_name: str | None = None,
 ) -> list:
     """Cascade Funnel 主线 — 三层漏斗检索 (全异步)。
 
@@ -279,14 +410,41 @@ async def get_final_funnel_top3(
     由调用方提供已计算好的 dense_vec 和 sparse_dict，不重复 embed。
     """
     client = QdrantClient(url=qdrant_url)
+    active_collection = collection_name or COLLECTION_NAME
+    dense_names, sparse_names = await asyncio.to_thread(
+        _vector_names, client, active_collection
+    )
+    query_analysis = calculate_query_specificity_details(query)
 
     # ═══════════════════════════════════════════════════════════
     # Layer 1: 召回层 — 三路并发 Top-10 + ID 物理去重
     # ═══════════════════════════════════════════════════════════
     dense_hits, sparse_hits, ft_hits = await asyncio.gather(
-        asyncio.to_thread(_dense_search_scored, client, dense_vec, 10),
-        asyncio.to_thread(_sparse_search_scored, client, sparse_dict, 10),
-        asyncio.to_thread(_fulltext_search_scored, client, query, 10),
+        asyncio.to_thread(
+            _dense_search_scored,
+            client,
+            dense_vec,
+            10,
+            active_collection,
+            dense_names,
+        ),
+        asyncio.to_thread(
+            _sparse_search_scored,
+            client,
+            sparse_dict,
+            10,
+            active_collection,
+            sparse_names,
+        ),
+        asyncio.to_thread(
+            _bm25_search_scored,
+            client,
+            query,
+            query_analysis.language,
+            10,
+            active_collection,
+            sparse_names,
+        ),
     )
 
     # ID 物理去重 — 保留首次出现的 point 对象
@@ -310,7 +468,7 @@ async def get_final_funnel_top3(
     norm_sparse, _ = normalize(sparse_hits)
     norm_bm25, _ = normalize(ft_hits)
 
-    S = calculate_query_specificity(query)
+    S = query_analysis.specificity
     w_semantic = 1.0 - S
     w_literal = S
 
@@ -330,8 +488,17 @@ async def get_final_funnel_top3(
     ranked = sorted(final_scores.items(), key=lambda x: x[1], reverse=True)[:10]
     coarse_top10 = [all_lookup[uid] for uid, _ in ranked if uid in all_lookup]
 
-    logger.info("L2 粗排完成，截断保留 Top-%d (S=%.2f w_sem=%.2f w_lit=%.2f)",
-                len(coarse_top10), S, w_semantic, w_literal)
+    logger.info(
+        "L2 粗排完成，截断保留 Top-%d "
+        "(lang=%s confidence=%.2f density=%.2f S=%.2f w_sem=%.2f w_lit=%.2f)",
+        len(coarse_top10),
+        query_analysis.language,
+        query_analysis.confidence,
+        query_analysis.signal_density,
+        S,
+        w_semantic,
+        w_literal,
+    )
 
     # ═══════════════════════════════════════════════════════════
     # Layer 3: 精排层 — 硅基流动 Reranker (异常降级至粗排)

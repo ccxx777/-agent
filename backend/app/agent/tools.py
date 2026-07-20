@@ -20,10 +20,10 @@ def create_retrieval_tools(retrieval_service: RetrievalService) -> list[BaseTool
     """创建绑定当前 ``RetrievalService`` 的 Agent 工具列表。"""
 
     @tool
-    async def search_hust_rules(query: str) -> str:
-        """搜索华中科技大学校内规章制度等官方文档。"""
-        logger.info("进入工具: search_hust_rules (query=%.60s)", query)
+    async def search_knowledge_base(query: str) -> str:
+        """搜索当前通用知识库中的事实、制度、产品、流程和专业资料。"""
+        logger.info("进入工具: search_knowledge_base (query=%.60s)", query)
         result = await retrieval_service.retrieve(query)
         return result.model_dump_json()
 
-    return [search_hust_rules]
+    return [search_knowledge_base]
