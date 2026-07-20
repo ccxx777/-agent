@@ -258,7 +258,10 @@ async def trace_questions(args: argparse.Namespace) -> list[dict[str, Any]]:
     try:
         collection_info = qdrant_client.get_collection(args.collection)
     except Exception as error:
-        raise BaselineError(f"无法读取 Qdrant collection：{args.collection}") from error
+        raise BaselineError(
+            f"无法读取 Qdrant collection：{args.collection}；"
+            f"{type(error).__name__}: {error}"
+        ) from error
     finally:
         qdrant_client.close()
     points = int(collection_info.points_count or 0)
