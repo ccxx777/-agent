@@ -1,5 +1,9 @@
 # watsonxDocsQA 30题完整评测工作流
 
+> 当前状态（2026-07-20）：v1 的30题生成、人工抽查和RAGAS已经完成；Retrieval v2
+> 已迁移并通过3题Smoke，完整30题检索门禁尚待归档。v2生成评测必须使用新目录和
+> 新人工确认，不能复用v1断点。
+
 本文说明如何按“答案生成 → 统计与重点抽查 → 人工确认 → RAGAS”的顺序运行
 固定30题基线。工作流不会修改生产集合、召回算法或Backend镜像。
 
@@ -11,6 +15,25 @@
 - RAGAS不能越过人工抽查门；答案、Context或报告变化后，旧确认自动失效。
 - RAGAS环境继续与Backend隔离，固定使用 `evaluation/requirements.txt` 中的
   `ragas==0.4.3`。
+
+## v1冻结结果
+
+| 类别 | 指标 | 结果 |
+|---|---|---:|
+| 生成 | 完成率 | 30/30 |
+| 检索 | Gold Hit@1 | 80.00% |
+| 检索 | Gold Hit@3 | 93.33% |
+| 生成 | 拒答数量 | 6 |
+| 生成 | 平均总延迟 / P95 | 4.812 / 7.196秒 |
+| RAGAS | Answer Correctness | 0.613954 |
+| RAGAS | Faithfulness | 0.794416 |
+| RAGAS | Context Relevance | 0.900000 |
+| RAGAS | 三项覆盖率 | 100% |
+
+已知重点样本：Gold未命中 `test_3/test_5`，缺少引用
+`test_3/test_8/test_25/test_26`。人工抽查认为6道拒答均为错误拒答；Faithfulness
+最低样本主要是无依据扩展；Answer Correctness低分同时包含生成失败与Ground Truth冲突。
+因此指标均值必须和逐题审查一起解读。
 
 ## 第一、二步：生成30题并制作抽查报告
 
@@ -131,3 +154,16 @@ RAGAS均值及覆盖率。指标均值必须始终与覆盖率和重点样本一
 - 重建Embedding镜像
 - 重新导入watsonxDocsQA
 - 修改 `rag_chunks` 生产Collection
+
+## v2运行原则
+
+v2必须按以下顺序重新执行：
+
+1. 先完成30题检索门禁并比较v1/v2；
+2. 使用 `generation_baseline_v2` 生成30题答案；
+3. 重新生成并人工阅读v2抽查报告；
+4. 重新执行 `approve`，不能复制v1的 `approval.json`；
+5. 使用独立 `ragas_baseline_v2` 运行完整RAGAS；
+6. 对比错误拒答、缺少引用、低Faithfulness题和Ground Truth冲突题。
+
+任何输入、Prompt、Collection、Generator或Evaluator变化，都必须产生新的运行签名。

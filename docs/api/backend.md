@@ -2,7 +2,7 @@
 
 | 容器名 | 端口 | 框架 |
 |--------|------|------|
-| `backend` | `8000`（内网，不对外暴露） | FastAPI + LangGraph ReAct Agent |
+| `backend` | `8000`（绑定宿主机127.0.0.1） | FastAPI + LangGraph Agent |
 
 ## 端点
 
@@ -53,7 +53,7 @@ START → condense_memory → chatbot → tools → generate_answer → END
 
 1. `condense_memory` — 对超过窗口的最旧一问一答生成摘要
 2. `chatbot` — SystemMessage 注入 + LLM 决定是否调用工具
-3. `tools` — `search_hust_rules` 调用 `RetrievalService`
+3. `tools` — `search_knowledge_base` 调用 `RetrievalService`
 4. `generate_answer` — 解析结构化检索结果并生成最终答案
 
 ### GET /api/chat/history/{session_id}
@@ -77,16 +77,20 @@ curl http://127.0.0.1:3000/api/chat/history/s1
 
 ## RAG 检索架构
 
-Cascade Funnel 三层漏斗（详见 PLAN.md 第五章）：
+Cascade Funnel 三层漏斗（详见根目录 `PLAN.md`）：
 
 ```
-L1 Recall:  Dense HNSW + Sparse 内积 + BM25 并发 Top-10 → ID 去重
+L1 Recall:  Named Dense + Native BGE Sparse + BM25 并发 Top-10 → ID 去重
 L2 Coarse:  缺省惩罚动态归一化 + 语义保底 → Top-10
 L3 Fine:    硅基流动 Reranker 交叉编码 → Top-3 (异常降级至粗排)
 ```
 
-冻结的 Cascade Funnel 实现在 `components/retriever/qdrant/v2_0_0/main.py`；
+当前 Cascade Funnel 实现在 `components/retriever/qdrant/v2_0_0/main.py`；
 `services/retrieval_service.py` 只负责向量化、调用算法和稳定结果适配。
+
+Query进入Funnel前会计算语言、置信度、信号词密度与 `S∈[0.2,0.8]`。
+Collection通过 `RAG_COLLECTION` 注入：生产默认 `rag_chunks`，隔离评测可以显式传入
+`watsonx_docsqa_colab_v1/v2`，不会修改正在运行的生产库。
 
 ## 启动流程
 
@@ -113,4 +117,5 @@ L3 Fine:    硅基流动 Reranker 交叉编码 → Top-3 (异常降级至粗排)
 - 启动约 15 秒，期间返回 502
 - `db_qdrant` 镜像不含 curl，无法 HTTP 健康检查，设为 `service_started`
 - 非流式输出：POST /api/chat 需等待完整生成
-- `asyncio.gather` 调用已移除，现为单次 LLM 调用
+- Reranker是外部服务，失败时检索会降级为L2粗排Top-3
+- 启动日志中的 psycopg pool constructor warning 是待处理的弃用提醒，不影响当前健康检查

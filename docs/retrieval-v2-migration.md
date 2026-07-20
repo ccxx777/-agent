@@ -1,5 +1,10 @@
 # 通用知识库Retrieval v2迁移与切换
 
+> 执行状态（2026-07-20）：评测库迁移已完成。Qdrant 已按 `1.9.0 → 1.9.7 → 1.10.1`
+> 升级并完成三份 Collection 快照校验；`watsonx_docsqa_colab_v2` 已写入 6759 Points，
+> 耗时 25.829 秒，`fulltext_mode=qdrant_multilingual`。3 题 Retrieval Smoke 已通过，
+> 完整 30 题 v1/v2 门禁比较尚未归档。本文同时保留可复用的迁移 Runbook。
+
 ## 目标
 
 本次版本同时解决三个已验证问题：
@@ -92,6 +97,10 @@ literal_weight = S
 
 ## 第一步：服务器版本预检
 
+本次实际预检先发现 Qdrant 1.9.0 不支持动态 IDF，因此没有直接建库。升级前为
+`rag_chunks`、`watsonx_docsqa_v1`、`watsonx_docsqa_colab_v1` 创建并下载 Collection
+Snapshot，SHA256 一致后才按官方要求逐 Minor 升级到 1.10.1。
+
 更新代码后，在仓库根目录执行：
 
 ```bash
@@ -103,15 +112,17 @@ uv run \
   --expected-points 6759
 ```
 
-记录输出中的 `qdrant_version`，并在 `.env` 中固定当前镜像版本，例如：
+记录输出中的 `qdrant_version`，并在 `.env` 中固定已验证镜像版本：
 
 ```text
-QDRANT_IMAGE=qdrant/qdrant:v1.x.y
+QDRANT_IMAGE=qdrant/qdrant:v1.10.1
 ```
 
 不要在迁移过程中升级或降级Qdrant存储卷。原生Sparse Index最低需要1.7；本方案还使用动态IDF，因此服务器版本低于1.10时停止迁移。
 
 ## 第二步：离线构建新Collection
+
+本次命令已完成；来源 6759 Points 与目标 6759 Points 精确一致，来源库未修改。
 
 ```bash
 uv run \
@@ -128,9 +139,9 @@ uv run \
 中断后确认来源和目标名称没有变化，再添加 `--resume`。脚本会重新幂等Upsert，不会删除
 旧库或覆盖未知目标库。
 
-## 第三步：只重建一次Backend
+## 第三步：重建Backend
 
-Prompt、语言检测和Jieba依赖进入Backend，因此这一步需要一次计划内重建：
+Prompt、语言检测、Jieba 和 Qdrant 1.10 Client 依赖进入Backend，因此需要计划内重建：
 
 ```bash
 docker-compose \
@@ -141,7 +152,14 @@ docker-compose \
 
 Embedding和Qdrant镜像不需要重建。
 
+本次部署第一次 Smoke 暴露出 `qdrant-client 1.9.2` 无法解析 Sparse Vector 的
+`modifier=idf`。项目随后把 Backend/Data Worker 约束升级到 `qdrant-client>=1.10,<1.11`
+并改进了错误输出。以后必须同时核对 Server 和 Client，不能只看 HTTP 200。
+
 ## 第四步：v2独立检索基线
+
+3 题 Smoke 已完成：3/3、零错误，Hit@1/Hit@3 均为66.67%，未命中仍为已知
+`test_3`；P50为0.964秒。三题不足以判断整体延迟，下面的30题基线仍是正式门禁。
 
 ```bash
 docker exec backend python \
@@ -166,6 +184,9 @@ uv run python evaluation/compare_retrieval_baselines.py \
 - v2 Hit@3不低于v1的93.33%；
 - 对 `test_3`、`test_5` 和新增差异题做人工检查；
 - 平均/P95延迟明显下降，确认日志中不再出现Sparse Payload扫描回退。
+
+截至本文更新时间，完整30题任务正在服务器运行，结果应写入独立
+`retrieval_baseline_v2`，不得把3题Smoke指标当作正式结论。
 
 ## 第五步：生成与RAGAS回归
 
@@ -201,3 +222,8 @@ RAG_COLLECTION=rag_chunks
 ```
 
 再重启Backend即可回滚。旧Collection至少保留一个完整观察周期。
+
+独立 Data Worker 当前使用单独的 Compose 文件；虽然 `data_worker/config.py` 已读取
+`RAG_COLLECTION`，但 `data_worker/docker-compose.yml` 尚未显式转发该变量。生产切换前
+必须补齐并验证 Backend 与 Sentinel 指向同一 Collection；在此之前保持 Sentinel 暂停，
+避免出现“Backend读v2、Data Worker仍写v1”。

@@ -1,5 +1,9 @@
 # 容器化避坑指南
 
+> 文档属性：多阶段开发历史记录，不是当前架构清单。Infinity、Redis、旧流式前端等章节
+> 用于解释过去为何迁移或淘汰相关方案；当前服务、版本和运行命令以根目录 `README.md`、
+> `PLAN.md`、`docs/retrieval-v2-migration.md` 和 `docs/api/` 为准。
+
 > 记录 AI Assistant 六服务容器化过程中踩过的所有坑，按排查顺序排列。
 > 每坑含：症状、根因、修复、教训。
 
