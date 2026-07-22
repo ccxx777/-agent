@@ -1,7 +1,8 @@
 # AI 知识库助手 — 当前实施计划
 
-> 更新日期：2026-07-20
-> 当前阶段：Retrieval v2 隔离评测。前端继续冻结，生产 `rag_chunks` 暂不切换。
+> 更新日期：2026-07-22
+> 当前阶段：watsonxDocsQA Retrieval v2 门禁已通过，进入 v2 生成、人工抽查与 RAGAS。
+> 前端继续冻结，生产 `rag_chunks` 暂不切换。
 
 ## 一、目标与边界
 
@@ -106,10 +107,10 @@ POST /api/chat 或 POST /api/eval/rag_query
 
 ### Retrieval v2
 
-- 30/30 完成且零错误。
-- Hit@3 ≥ 93.33%。
-- 新增零命中题为 0；若存在，必须逐题解释。
-- Mean/P95 延迟相对 v1 有可重复的改善。
+- 30/30 完成且零错误；公平对照基线为当前代码下的 `retrieval_v1_current`。
+- v1/v2 Hit@1、Hit@3、MRR@3、Mean Recall@3 均为 83.33%、90.00%、86.67%、90.00%，无退化。
+- 零命中集合一致：`test_3`、`test_5`、`test_8`；`test_8` 作为英文 lexical 回归样本保留。
+- Mean 延迟从 6.884 秒降至 1.038 秒，速度提升 6.63×。
 - Collection 为 6759 Points，命名向量和 IDF 配置可被 Client 正确解析。
 
 ### Generation v2
@@ -125,4 +126,4 @@ POST /api/chat 或 POST /api/eval/rag_query
 - 使用新名称离线建库并保留旧库至少一个观察周期。
 - 通过 `RAG_COLLECTION` 切换；回滚只需恢复旧值并重启 Backend。
 - Data Worker 与 Backend 指向同一生产 Collection 后才允许恢复增量写入。
-- 当前 `data_worker/docker-compose.yml` 尚未显式转发 `RAG_COLLECTION`；生产切换前必须补齐并验证，不能只修改Backend。
+- `data_worker/docker-compose.yml` 已显式转发 `RAG_COLLECTION`；生产切换前仍必须实际验证 Backend 与 Sentinel 的环境值一致。

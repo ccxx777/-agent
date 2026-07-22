@@ -98,8 +98,8 @@ RAG_COLLECTION=rag_chunks_v2
 发生异常时恢复 `RAG_COLLECTION=rag_chunks` 并重启Backend。完整流程见
 `docs/retrieval-v2-migration.md`。
 
-独立Data Worker的Compose当前未显式转发该变量，因此生产切换前还需要同步修正并验证
-Sentinel配置；评测Collection不允许由Sentinel增量写入。
+独立Data Worker的Compose已显式转发该变量；生产切换前仍需在服务器核验 Backend 与
+Sentinel 的环境值一致。评测Collection不允许由Sentinel增量写入。
 
 ## 已知边界
 

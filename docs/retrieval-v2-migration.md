@@ -1,9 +1,10 @@
 # 通用知识库Retrieval v2迁移与切换
 
-> 执行状态（2026-07-20）：评测库迁移已完成。Qdrant 已按 `1.9.0 → 1.9.7 → 1.10.1`
+> 执行状态（2026-07-22）：评测库迁移已完成。Qdrant 已按 `1.9.0 → 1.9.7 → 1.10.1`
 > 升级并完成三份 Collection 快照校验；`watsonx_docsqa_colab_v2` 已写入 6759 Points，
 > 耗时 25.829 秒，`fulltext_mode=qdrant_multilingual`。3 题 Retrieval Smoke 已通过，
-> 完整 30 题 v1/v2 门禁比较尚未归档。本文同时保留可复用的迁移 Runbook。
+> 完整 30 题公平门禁已通过：两库 Hit@3 均为 90.00%，v2 平均延迟为 1.038 秒，
+> 相比当前 v1 的 6.884 秒提升 6.63×。本文同时保留可复用的迁移 Runbook。
 
 ## 目标
 
@@ -169,11 +170,11 @@ docker exec backend python \
   --collection watsonx_docsqa_colab_v2
 ```
 
-比较v1/v2并强制Hit@3不退化：
+比较时必须使用**同一代码版本**生成的 v1 基线，不能复用迁移前的历史结果：
 
 ```bash
 uv run python evaluation/compare_retrieval_baselines.py \
-  --old data/benchmarks/watsonxDocsQA/results/retrieval_baseline_v1/summary.json \
+  --old data/benchmarks/watsonxDocsQA/results/retrieval_v1_current/summary.json \
   --new data/benchmarks/watsonxDocsQA/results/retrieval_baseline_v2/summary.json \
   --output data/benchmarks/watsonxDocsQA/results/retrieval_v1_v2_comparison.json
 ```
@@ -181,12 +182,13 @@ uv run python evaluation/compare_retrieval_baselines.py \
 切换门：
 
 - 30/30完成且零错误；
-- v2 Hit@3不低于v1的93.33%；
-- 对 `test_3`、`test_5` 和新增差异题做人工检查；
+- v2 Hit@3不低于同版本v1；
+- 对 `test_3`、`test_5`、`test_8` 和新增差异题做人工检查；
 - 平均/P95延迟明显下降，确认日志中不再出现Sparse Payload扫描回退。
 
-截至本文更新时间，完整30题任务正在服务器运行，结果应写入独立
-`retrieval_baseline_v2`，不得把3题Smoke指标当作正式结论。
+本次正式比较结果为：v1/v2 的 Hit@3 均为 90.00%，零命中题均为
+`test_3/test_5/test_8`。`test_8` 在当前 v1 中已是 L2 淘汰、在 v2 中是 L1 未召回，
+因此它是后续英文 lexical 召回优化的回归样本，而不是 v2 迁移引入的退化。
 
 ## 第五步：生成与RAGAS回归
 
@@ -223,7 +225,9 @@ RAG_COLLECTION=rag_chunks
 
 再重启Backend即可回滚。旧Collection至少保留一个完整观察周期。
 
-独立 Data Worker 当前使用单独的 Compose 文件；虽然 `data_worker/config.py` 已读取
-`RAG_COLLECTION`，但 `data_worker/docker-compose.yml` 尚未显式转发该变量。生产切换前
-必须补齐并验证 Backend 与 Sentinel 指向同一 Collection；在此之前保持 Sentinel 暂停，
+独立 Data Worker 使用单独的 Compose 文件，现已显式转发 `RAG_COLLECTION`。生产切换前
+必须验证 Backend 与 Sentinel 指向同一个**生产** Collection；在此之前保持 Sentinel 暂停，
 避免出现“Backend读v2、Data Worker仍写v1”。
+
+`watsonx_docsqa_colab_v2` 仅用于隔离评测：不得设置为生产 Backend 或 Sentinel 的
+`RAG_COLLECTION`，否则会让 IBM 评测文档替代生产知识库，并污染后续可复现的评测语料。

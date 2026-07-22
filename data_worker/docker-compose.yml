@@ -23,6 +23,8 @@ services:
       PG_DATABASE: ai_assistant
 
       QDRANT_URL: http://db_qdrant:6333
+      # 与 Backend 使用同一个显式 Collection；默认仍保持生产 v1，避免误把评测库当作入库目标。
+      RAG_COLLECTION: ${RAG_COLLECTION:-rag_chunks}
       EMBED_URL: http://embedding_service:8001/embed
     volumes:
       - ../data/raw:/app/data/raw:ro

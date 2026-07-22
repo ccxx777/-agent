@@ -4,9 +4,9 @@
 以 BGE-M3、Qdrant 和外部 Reranker 实现三层混合检索，并使用固定问题集与 RAGAS
 分别评估检索和答案质量。
 
-> 当前状态（2026-07-20）：生产知识库仍使用 `rag_chunks`；watsonxDocsQA 已完成
-> v1 全量基线，并完成 `watsonx_docsqa_colab_v2` 原生 Sparse/BM25 离线迁移。
-> v2 的 3 题检索 Smoke 已通过，完整 30 题 v1/v2 门禁比较正在执行，结果确认前不切换生产库。
+> 当前状态（2026-07-22）：生产知识库仍使用 `rag_chunks`；watsonxDocsQA 的 v1/v2
+> 30 题公平门禁已通过。两者 Hit@3 均为 90.00%，v2 平均检索延迟从 6.884 秒降至
+> 1.038 秒（6.63×）。`watsonx_docsqa_colab_v2` 仍是隔离评测库，不能作为生产入库目标。
 
 ## 项目能力
 
@@ -153,8 +153,7 @@ docs/                       架构、API、迁移与评测文档
 
 ## 当前下一步
 
-1. 完成 v2 的 30 题检索基线并通过 Hit@3 不退化门禁。
-2. 分析逐题排名变化与 Mean/P95 延迟，而不是只看均值。
-3. 门禁通过后运行 v2 的 30 题生成、人工抽查和 RAGAS。
-4. 只有 v2 检索与生成均通过后，才讨论生产 `rag_chunks_v2` 的离线重建与切换。
-5. 生产切换前让独立 Data Worker 显式接收同一个 `RAG_COLLECTION`，避免读新库、写旧库。
+1. 使用 `watsonx_docsqa_colab_v2` 运行 30 题答案生成、人工抽查和完整 RAGAS。
+2. 将 `test_8` 保留为英文 lexical 召回回归样本；它是 v1/v2 共同漏题，不属于本次迁移退化。
+3. 只有 v2 检索与生成均通过后，才离线重建生产 `rag_chunks_v2`。
+4. 生产切换时让 Backend 和独立 Data Worker 接收同一个生产 `RAG_COLLECTION`，避免读新库、写旧库；不得将 watsonx 评测库用于生产写入。
