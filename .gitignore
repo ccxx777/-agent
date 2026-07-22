@@ -11,6 +11,7 @@ backend/data/*.log
 data/*.log
 
 # ===== 模型权重 / 语料(体积大或可重新下载) =====
+/data/
 models/
 backend/wheels/
 uv_latest.tar
@@ -42,6 +43,7 @@ logs/
 *.bak
 
 # ===== IDE / 系统 =====
+.codegraph/
 .claude/
 .vscode/
 .idea/
