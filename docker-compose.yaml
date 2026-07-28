@@ -61,6 +61,17 @@ services:
       RERANKER_MODEL: ${RERANKER_MODEL}
       RERANKER_API_URL: ${RERANKER_API_URL}
       RERANKER_API_KEY: ${RERANKER_API_KEY}
+
+      # 合同上传：原始 PDF 只落私有目录；OCR 默认关闭，开启前请确认云端图片隐私策略。
+      CONTRACT_STORAGE_DIR: /app/private-data/contracts
+      CONTRACT_MAX_UPLOAD_BYTES: ${CONTRACT_MAX_UPLOAD_BYTES:-20971520}
+      CONTRACT_MAX_PAGES: ${CONTRACT_MAX_PAGES:-50}
+      CONTRACT_DOC_COMMAND: ${CONTRACT_DOC_COMMAND:-antiword}
+      CONTRACT_DOCUMENT_TIMEOUT: ${CONTRACT_DOCUMENT_TIMEOUT:-30}
+      CONTRACT_OCR_ENABLED: ${CONTRACT_OCR_ENABLED:-false}
+      CONTRACT_OCR_BASE_URL: ${CONTRACT_OCR_BASE_URL:-https://api.siliconflow.cn/v1}
+      CONTRACT_OCR_API_KEY: ${CONTRACT_OCR_API_KEY:-}
+      CONTRACT_OCR_MODEL: ${CONTRACT_OCR_MODEL:-deepseek-ai/DeepSeek-OCR}
     depends_on:
       db_pg:
         condition: service_healthy
@@ -72,6 +83,7 @@ services:
       - /root/my-ai-research/.env:/app/.env:ro
       - /root/my-ai-research/evaluation:/app/evaluation:ro
       - /root/my-ai-research/data:/app/data
+      - /root/my-ai-research/private-data/contracts:/app/private-data/contracts
     deploy:
       resources:
         limits:

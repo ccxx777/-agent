@@ -1,129 +1,137 @@
-# AI 知识库助手 — 当前实施计划
+# 劳动合同风险审查助手：开发计划与验收门禁
 
-> 更新日期：2026-07-22
-> 当前阶段：watsonxDocsQA Retrieval v2 门禁已通过，进入 v2 生成、人工抽查与 RAGAS。
-> 前端继续冻结，生产 `rag_chunks` 暂不切换。
+> 更新日期：2026-07-28
+>
+> 当前阶段：通用 RAG 已完成 v2 检索门禁和端到端基线；合同上传（PDF/DOC/DOCX）、私有存储、异步任务、质量状态和隐私脱敏基础模块已实现，正在进行服务器运行时验证。
 
-## 一、目标与边界
+## 一、产品目标与边界
 
-当前目标不是继续堆功能，而是用固定数据集证明以下改造是否真实有效：
+首版面向中国大陆个人用户的劳动合同签署前辅助审查。产品输出风险事实、风险等级、法律依据、官方案例解释、修改建议和需要用户补充的事实，不替用户决定是否签署，不提供地方性法律判断，不构成律师意见或责任担保。
 
-1. 通用 Prompt 能否减少错误拒答和无依据扩展；
-2. Qdrant 原生 Sparse/BM25 能否降低检索延迟；
-3. 双语 Query Specificity 能否修复英文问题长期 `S=0.8` 的偏差；
-4. 在性能改善的同时，Hit@3、Faithfulness 和答案正确性不能退化。
+首版资料优先级：
 
-## 二、架构清单
+1. **A 级**：现行有效的全国通用法律、行政法规、司法解释和官方规范性文件。
+2. **B 级**：最高人民法院指导案例、典型案例和可公开核验的裁判文书。
+3. 暂不接入律师公众号、转载文章和付费/授权不明确的行业资料。
 
-### 保留
+## 二、架构分工
 
-- FastAPI + LangGraph Agent 与 PostgreSQL Checkpointer。
-- BGE-M3 独立 Embedding 服务。
-- 自研 L1 → L2 → L3 Cascade Funnel。
-- Dense 强语义保底和 Reranker 失败降级。
-- 独立 Data Worker、SHA-256 指纹和增量文件监听。
-- 稳定 `RetrievalPayload`、Eval API 与分阶段评测工作流。
+### 保留并作为生产基础
 
-### 已完成的合并与收口
+- FastAPI + LangGraph：API 边界和可暂停、可恢复的 Workflow 编排。
+- `RetrievalService` + Qdrant Cascade Funnel：统一服务 Agent、Eval 和离线基线。
+- BGE-M3 Embedding Service：Dense 和 Sparse 向量生成。
+- PostgreSQL：用户、会话、Checkpoint、文档指纹和合同任务状态。
+- 独立 Data Worker：公共资料的 Loader、Chunker、Embedding、Writer 和指纹幂等。
+- 私有合同存储、页级解析、脱敏和质量门禁：合同原文不进入公共 RAG Collection。
 
-- Agent、Eval API 和离线评测统一通过 `RetrievalService` 使用生产召回链。
-- 召回输出统一为 `context + contexts + documents`。
-- Collection 通过 `RAG_COLLECTION` / 构造参数注入，不再依赖固定模块常量。
-- 文档入库统一由 `data_worker/ingest/service.py` 编排。
-- 认证、会话和检索模型分别收口到 `schemas/` 与 `services/`。
+### 已退出当前生产路径
 
-### 已退出生产路径
+- Component Registry、YAML Pipeline、旧 Backend Sentinel。
+- Redis 及其旧消息/Token 表。
+- 重复的旧 RRF `run()` 入口和只用于历史解释的实验包装器。
 
-- Component Registry 与动态自动发现。
-- YAML Pipeline。
-- Backend 内旧 Sentinel。
-- Redis。
-- 重复的 `messages`、`token_usage` 旧表。
-- 旧同步 RRF `run()`：源码暂留作演化记录，但 Agent 不调用。
+### 明确隔离
 
-## 三、当前数据流
+- `evaluation/` 独立于 Backend 和 Frontend，通过真实 API/服务边界运行评测。
+- `data/` 只保存本地语料和评测产物，默认被 Git 忽略。
+- `watsonx_docsqa_colab_v1/v2` 只用于离线评测；生产通用库仍由 `RAG_COLLECTION=rag_chunks` 控制。
 
-```text
-POST /api/chat 或 POST /api/eval/rag_query
-  → LangGraph
-  → search_knowledge_base
-  → RetrievalService
-      ├─ BGE-M3 Query Dense/Sparse
-      ├─ 中英文语言检测与 Query Specificity
-      └─ 指定 Qdrant Collection
-  → L1：Dense + Native BGE Sparse + BM25 并发 Top-10
-  → L2：分路 Min-Max + 动态权重 + Dense 语义保底 → Top-10
-  → L3：Qwen3 Reranker → Top-3
-  → RetrievalPayload
-      ├─ context：带引用的生成 Prompt
-      ├─ contexts：实际生成上下文
-      └─ documents：召回元数据与最终 Rank
-  → 通用知识库 Prompt 生成答案
-  → PostgreSQL Checkpoint
-```
+## 三、已完成工作
 
-旧 `rag_chunks` 仍允许 Payload Sparse 回退；v2 Collection 必须走原生 Sparse Index，
-正常日志中不应出现 `Payload扫描回退`。
+### 3.1 通用 RAG 主链
 
-## 四、已经完成
+- [x] LangGraph 图、工具调用、答案生成和引用约束稳定运行。
+- [x] `RetrievalPayload` 统一返回 `context`、`contexts` 和最终排序 `documents`。
+- [x] Dense、BGE-M3 Sparse、BM25 三路 L1 召回，L2 动态融合粗排，L3 云端 Reranker 精排 Top-3。
+- [x] 中英文 Query Specificity 使用命中密度计算，统一将 `S` 截断到 `[0.2, 0.8]`。
+- [x] Data Worker 使用 SHA-256 指纹实现增量同步、断点恢复和重复文件跳过。
 
-- [x] RAG 主链稳定返回 `answer + contexts + documents`。
-- [x] watsonxDocsQA 1144 文档、45 训练题、30 测试题完成标准化。
-- [x] 6759 个 BGE-M3 预计算 Chunk 导入隔离 Collection。
-- [x] v1 30 题检索基线：Hit@3 93.33%，零运行错误。
-- [x] v1 30 题生成、人工抽查与 RAGAS：三个指标覆盖率均为 100%。
-- [x] Prompt 改为通用知识库并加强引用、部分回答和拒答边界。
-- [x] 中英文 Query Specificity 按信号词密度计算，S 截断为 `[0.2, 0.8]`。
-- [x] Qdrant 1.9.0 → 1.9.7 → 1.10.1 分阶段升级并完成快照校验。
-- [x] `watsonx_docsqa_colab_v2` 原生 Sparse/BM25 离线迁移：6759/6759。
-- [x] v2 3 题检索 Smoke：3/3 完成，零错误。
+### 3.2 检索 v2 迁移与门禁
 
-## 五、正在进行
+- [x] Qdrant 从 1.9.0 升级至 1.10.1，并完成旧 Collection 快照校验。
+- [x] `watsonx_docsqa_colab_v2` 离线写入 6759 Points，使用原生 Sparse/BM25 结构。
+- [x] v1/v2 在相同 30 道问题、相同最终 Top-3 下通过门禁：Hit@3 不下降。
+- [x] 当前门禁结果：Hit@1 `83.33%`、Hit@3 `90.00%`、MRR@3 `86.67%`、Mean Recall@3 `90.00%`。
+- [x] 平均检索延迟由 `6.884s` 降至 `1.038s`，约提升 `6.63×`。
+- [x] `test_3`、`test_5`、`test_8` 作为共同未命中和回归样本保留；`test_8` 不是 v2 迁移引入的退化。
 
-- [ ] 完成 `watsonx_docsqa_colab_v2` 的 30 题检索基线。
-- [ ] 运行 `compare_retrieval_baselines.py`，要求 Hit@3 不低于 v1 的 93.33%。
-- [ ] 比较 Hit@1、MRR@3、逐题退化、Mean/P50/P95 和零命中题。
-- [ ] 确认原生 Sparse 路径不再执行全库 Payload Scroll。
+### 3.3 端到端生成与 RAGAS
 
-## 六、门禁通过后的顺序
+- [x] 30/30 答案生成完成，无结构性失败。
+- [x] v2 生成基线：Gold Hit@1/Hit@3 为 `83.33% / 90.00%`，拒答 3 题，平均总延迟 `5.938s`，P95 `9.513s`。
+- [x] RAGAS 0.4.3 完整覆盖 30 题：Answer Correctness `0.653255`、Faithfulness `0.908333`、Context Relevance `0.891667`，覆盖率均为 100%。
+- [x] 已保留人工重点抽查和 RAGAS 明细，不用单个 LLM Judge 均值替代人工复核。
 
-1. 运行 v2 的 30 题答案生成基线。
-2. 重新生成重点样本抽查报告，不沿用 v1 人工确认。
-3. 检查原来的 6 道错误拒答和 Faithfulness 低分题。
-4. 人工确认后运行 v2 完整 30 题 RAGAS。
-5. 对比 Answer Correctness、Faithfulness、Context Relevance 与覆盖率。
-6. 只有检索和生成均通过，才为生产数据离线构建 `rag_chunks_v2`。
+### 3.4 合同上传基础模块
 
-## 七、明确不做
+- [x] `POST /api/contract-reviews`：登录后上传 PDF、DOC、DOCX，限制 20 MB、50 页。
+- [x] 原始文件按 `review_id` 保存到私有目录，并写入 PostgreSQL 任务记录和 SHA-256。
+- [x] `GET /api/contract-reviews/{review_id}`：查询任务状态并返回脱敏后的页级结果。
+- [x] PDF 使用 PyMuPDF；DOCX 读取 OOXML 正文和表格；DOC 使用 `antiword`。
+- [x] 状态机 `queued → extracting → ready / needs_confirmation / failed`。
+- [x] 脱敏身份证号、手机号、银行卡号；处理零宽字符和不可见控制字符；只记录脱敏统计，不记录敏感值。
+- [x] 扫描 PDF OCR 接口和外部原图发送审计字段已预留，默认关闭。
+- [x] 后端合同相关测试、解析测试和隐私测试已加入 `backend/tests/`。
 
-- 暂不修改 React 前端。
-- 不直接覆盖或删除旧 Qdrant Collection。
-- 不根据 3 题 Smoke 或单道失败题调整 Top-K、阈值和融合权重。
-- 不把 RAGAS 安装进生产 Backend 镜像。
-- 不因为 Backend 修改重建 Embedding 镜像。
-- 不把 LLM Judge 分数当作唯一结论，必须保留严格 Gold 指标和人工审查。
+## 四、当前进行中
 
-## 八、验收标准
+### P0：完成上传模块的服务器验收
 
-### Retrieval v2
+- [ ] 在服务器重建/重启 Backend 后，用真实 PDF、DOC、DOCX 分别上传。
+- [ ] 验证 `queued → extracting → ready` 和异常时的 `failed` 路径。
+- [ ] 验证 DOC 容器内 `antiword` 可执行；若本机 Windows 没有该运行时，先转换为 PDF/DOCX。
+- [ ] 检查真实合同不会进入 `data_worker`、Qdrant 或公开评测结果。
+- [ ] 检查脱敏前后字段、零宽字符计数、日志和 API 响应均不泄露原始敏感值。
 
-- 30/30 完成且零错误；公平对照基线为当前代码下的 `retrieval_v1_current`。
-- v1/v2 Hit@1、Hit@3、MRR@3、Mean Recall@3 均为 83.33%、90.00%、86.67%、90.00%，无退化。
-- 零命中集合一致：`test_3`、`test_5`、`test_8`；`test_8` 作为英文 lexical 回归样本保留。
-- Mean 延迟从 6.884 秒降至 1.038 秒，速度提升 6.63×。
-- Collection 为 6759 Points，命名向量和 IDF 配置可被 Client 正确解析。
+### P1：合同审查 Workflow 第一版
 
-### Generation v2
+- [ ] 建立劳动合同条款 Schema：主体、期限、试用期、工作地点、岗位、薪资、工时休息、社保、解除、违约金、竞业、保密等。
+- [ ] 将“条款提取、事实确认、检索、规则计算、报告表达”拆成清晰的 LangGraph 节点。
+- [ ] 信息不足时暂停并提出补充问题；事实未确认前不得输出确定性高风险结论。
+- [ ] 先实现全国通用规则，不加入地方性判断。
+- [ ] 报告字段固定为：风险事实、风险等级、判定依据、相关条款、可选案例、修改建议、待确认事项、免责声明。
 
-- 30/30 完成，无结构性失败。
-- 错误拒答数量下降。
-- 缺少引用和无效引用不增加。
-- Faithfulness、Answer Correctness 不低于 v1，Context Relevance 保持稳定。
-- 所有指标同时报告覆盖率、运行签名和重点样本。
+### P1：法律资料准备
 
-### 生产切换
+- [ ] 收集并核验 A 级法律和司法解释的版本、生效日期、来源 URL、废止状态。
+- [ ] 收集 B 级官方案例，保留案号、法院、裁判日期、争议焦点和官方来源。
+- [ ] 为每条规则建立人工复核卡：适用前提、例外条件、证据需求和预期输出。
+- [ ] 数据入库前做版权、授权、转载限制和个人信息检查。
 
-- 使用新名称离线建库并保留旧库至少一个观察周期。
-- 通过 `RAG_COLLECTION` 切换；回滚只需恢复旧值并重启 Backend。
-- Data Worker 与 Backend 指向同一生产 Collection 后才允许恢复增量写入。
-- `data_worker/docker-compose.yml` 已显式转发 `RAG_COLLECTION`；生产切换前仍必须实际验证 Backend 与 Sentinel 的环境值一致。
+## 五、下一阶段验收门禁
+
+### 上传与隐私门禁
+
+- PDF、DOC、DOCX 均能创建任务，非法扩展名、空文件、超限文件均被拒绝。
+- 解析结果只包含脱敏页文本和质量元数据；原始文件路径不通过 API 返回。
+- 解析失败可查询、可重试或明确失败，不留下孤立公共向量。
+- 任意测试日志、评测 JSON、GitHub Issue 和公开报告都不含真实合同原文。
+
+### RAG 评测门禁
+
+- 固定问题集 30/30 完成且无错误；v2 Hit@3 不低于当前 v1 基线。
+- 同时记录 Hit@1、Hit@3、MRR@3、Mean Recall@3、Mean/P50/P95 延迟和零命中题。
+- 端到端生成必须保存输入 SHA-256、Collection、模型、评测器版本和 RAGAS 覆盖率。
+- 任何检索改动都必须回归 `test_3`、`test_5`、`test_8`。
+
+### 生产切换门禁
+
+- 不把 `watsonx_docsqa_colab_v2` 直接切成生产库。
+- 只有真实 `rag_chunks` 离线重建为 `rag_chunks_v2`、通过完整门禁并保留回滚快照后，才讨论生产切换。
+- Backend 和 Data Worker 切换时必须使用同一 `RAG_COLLECTION`，避免读新写旧。
+
+## 六、暂不做
+
+- 暂不重构现有 React 前端，不以旧前端验收合同产品。
+- 暂不把用户合同写入公共法律/案例 Qdrant Collection。
+- 暂不接入律师公众号、来源不明的转载文章或付费访问内容。
+- 暂不提供地方性法律判断、自动签署建议、诉讼代理或责任担保。
+- 暂不把 RAGAS Judge 分数当作法律正确率。
+
+## 七、运行与协作规则
+
+1. 普通后端源码变更优先 `docker-compose ... restart backend`，不要为小改动重建 Embedding 镜像。
+2. 依赖或 Dockerfile 变更才重建对应镜像；RAGAS 依赖放在 `evaluation/requirements.txt`。
+3. 代码、Compose、评测 summary 和本计划冲突时，优先核对当前源码和实际运行产物。
+4. 任何提交前检查 `.env`、真实合同、模型权重、`data/`、数据库持久化目录和 CodeGraph 索引没有被加入 Git。

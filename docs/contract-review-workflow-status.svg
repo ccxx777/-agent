@@ -1,0 +1,240 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1030" viewBox="0 0 1600 1030" role="img" aria-labelledby="title desc">
+<title id="title">劳动合同风险审查助手：当前状态与近期开发工作</title>
+<desc id="desc">上方为已经完成的通用 RAG 能力；下方展示劳动合同审查 Workflow，其中合同上传、PDF/DOC/DOCX 文档解析、隐私脱敏和任务状态模块已完成，其余节点仍待补齐。</desc>
+<style>text{font-family:'Helvetica Neue',Helvetica,Arial,'PingFang SC','Microsoft YaHei','Microsoft JhengHei','SimHei',sans-serif;} </style>
+<defs>
+<marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
+<marker id="arrow-teal" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#0f766e"/></marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/></marker>
+</defs>
+<rect data-graph-role="background" width="1600" height="1030" fill="#ffffff"/>
+<text x="60" y="48" font-size="26px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">劳动合同风险审查助手：当前状态与近期开发工作</text>
+<text x="60" y="78" font-size="14px" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">先把可暂停、可追溯的审查任务骨架跑通；法律资料与人工复核作为并行输入接入。</text>
+<text x="1125" y="38" font-size="12px" fill="#6b7280" font-weight="600" text-anchor="start" opacity="1.0">图例</text>
+<rect x="1125" y="49" width="14" height="14" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text x="1147" y="61" font-size="12px" fill="#374151" font-weight="400" text-anchor="start" opacity="1.0">已完成</text>
+<rect x="1210" y="49" width="14" height="14" rx="3" fill="#f0fdfa" stroke="#5eead4"/>
+<text x="1232" y="61" font-size="12px" fill="#374151" font-weight="400" text-anchor="start" opacity="1.0">可复用</text>
+<rect x="1300" y="49" width="14" height="14" rx="3" fill="#f3f4f6" stroke="#9ca3af"/>
+<text x="1322" y="61" font-size="12px" fill="#374151" font-weight="400" text-anchor="start" opacity="1.0">待开发</text>
+<line x1="1390" y1="56" x2="1420" y2="56" stroke="#6b7280" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arrow-gray)"/>
+<text x="1428" y="61" font-size="12px" fill="#374151" font-weight="400" text-anchor="start" opacity="1.0">并行/异步</text>
+<rect data-graph-role="container" x="50" y="112" width="1500" height="290" rx="14" fill="#f8fbff" stroke="#bfdbfe" stroke-width="1.4"/>
+<rect data-graph-role="container" x="50" y="430" width="1500" height="500" rx="14" fill="#fafafa" stroke="#d1d5db" stroke-width="1.4"/>
+<text x="76" y="144" font-size="16px" fill="#1d4ed8" font-weight="600" text-anchor="start" opacity="1.0">当前已完成 / 已验证：通用 Agent + RAG 主链</text>
+<text x="76" y="470" font-size="16px" fill="#374151" font-weight="600" text-anchor="start" opacity="1.0">马上需要开发：劳动合同审查 Workflow（首版）</text>
+<text x="1320" y="144" font-size="12px" fill="#2563eb" font-weight="600" text-anchor="end" opacity="1.0">当前线上能力</text>
+<text x="1475" y="470" font-size="12px" fill="#6b7280" font-weight="600" text-anchor="end" opacity="1.0">灰色 = 近期开发项</text>
+<path id="e-query-api" data-graph-role="edge" data-source="generic-query" data-target="fastapi" d="M260 238 H300" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<path id="e-api-graph" data-graph-role="edge" data-source="fastapi" data-target="langgraph" d="M490 238 H530" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<path id="e-graph-retrieval" data-graph-role="edge" data-source="langgraph" data-target="retrieval" d="M720 238 H760" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<path id="e-retrieval-qdrant" data-graph-role="edge" data-source="retrieval" data-target="qdrant" d="M990 238 H1030" fill="none" stroke="#0f766e" stroke-width="2" marker-end="url(#arrow-teal)"/>
+<text x="1010" y="211" font-size="11px" fill="#0f766e" font-weight="600" text-anchor="middle" opacity="1.0">上下文</text>
+<path id="e-qdrant-answer" data-graph-role="edge" data-source="qdrant" data-target="answer" d="M1240 238 H1270" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<path id="e-data-qdrant" data-graph-role="edge" data-source="data-worker" data-target="qdrant" d="M300 348 V386 H1000 V276 H1030" fill="none" stroke="#6b7280" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arrow-gray)"/>
+<text x="645" y="378" font-size="11px" fill="#6b7280" font-weight="600" text-anchor="middle" opacity="1.0">增量文档同步</text>
+<path id="e-upload-parse" data-graph-role="edge" data-source="contract-upload" data-target="parse" d="M270 558 H315" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<path id="e-parse-task" data-graph-role="edge" data-source="parse" data-target="review-task" d="M515 558 H560" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<path id="e-task-clause" data-graph-role="edge" data-source="review-task" data-target="clause-facts" d="M760 558 H805" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<path id="e-clause-fact" data-graph-role="edge" data-source="clause-facts" data-target="fact-decision" d="M1005 558 H1050" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<path id="e-fact-yes" data-graph-role="edge" data-source="fact-decision" data-target="contract-workflow" d="M1415 610 V640 H1030 V748 H200 V765" fill="none" stroke="#0f766e" stroke-width="2" marker-end="url(#arrow-teal)"/>
+<text x="1340" y="632" font-size="11px" fill="#0f766e" font-weight="600" text-anchor="middle" opacity="1.0">是 / 事实足够</text>
+<path id="e-fact-no" data-graph-role="edge" data-source="fact-decision" data-target="clarification" d="M1505 558 H1530 V695 H1480" fill="none" stroke="#7c3aed" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text x="1514" y="641" font-size="11px" fill="#7c3aed" font-weight="600" text-anchor="end" opacity="1.0">否 / 需要补充</text>
+<path id="e-workflow-legal" data-graph-role="edge" data-source="contract-workflow" data-target="legal-rag" d="M320 815 H370" fill="none" stroke="#0f766e" stroke-width="2" marker-end="url(#arrow-teal)"/>
+<path id="e-legal-rules" data-graph-role="edge" data-source="legal-rag" data-target="rule-engine" d="M610 815 H660" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<path id="e-rules-report" data-graph-role="edge" data-source="rule-engine" data-target="risk-report" d="M900 815 H950" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<path id="e-report-ui" data-graph-role="edge" data-source="risk-report" data-target="task-ui" d="M1190 815 H1240" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<g id="generic-query" data-graph-role="node"><rect x="80" y="190" width="180" height="96" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="108" cy="220" r="17" fill="#2563eb"/>
+<text x="108" y="225" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">Q</text>
+<text x="134" y="219" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">通用问题</text>
+<text x="134" y="243" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="134" dy="0px">用户查询</tspan>
+</text>
+<rect x="166" y="255" width="78" height="22" rx="11" fill="#dbeafe" stroke="none"/>
+<text x="205.0" y="270" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已完成</text>
+</g>
+<g id="fastapi" data-graph-role="node"><rect x="300" y="190" width="190" height="96" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="328" cy="220" r="17" fill="#009688"/>
+<text x="328" y="225" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">API</text>
+<text x="354" y="219" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">FastAPI API</text>
+<text x="354" y="243" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="354" dy="0px">会话 / 问答接口</tspan>
+</text>
+<rect x="396" y="255" width="78" height="22" rx="11" fill="#dbeafe" stroke="none"/>
+<text x="435.0" y="270" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已完成</text>
+</g>
+<g id="langgraph" data-graph-role="node"><rect x="530" y="190" width="190" height="96" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="558" cy="220" r="17" fill="#1c3c3c"/>
+<text x="558" y="225" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">LG</text>
+<text x="584" y="219" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">LangGraph Agent</text>
+<text x="584" y="243" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="584" dy="0px">记忆压缩 + 回答编排</tspan>
+</text>
+<rect x="626" y="255" width="78" height="22" rx="11" fill="#dbeafe" stroke="none"/>
+<text x="665.0" y="270" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已完成</text>
+</g>
+<g id="retrieval" data-graph-role="node"><rect x="760" y="190" width="230" height="96" rx="10" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.6"/>
+<circle cx="788" cy="220" r="17" fill="#0f766e"/>
+<text x="788" y="225" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">R</text>
+<text x="814" y="219" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">三层混合检索</text>
+<text x="814" y="243" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="814" dy="0px">L1召回 → L2粗排 → L3精排</tspan>
+</text>
+<rect x="896" y="255" width="78" height="22" rx="11" fill="#ccfbf1" stroke="none"/>
+<text x="935.0" y="270" font-size="11px" fill="#0f766e" font-weight="600" text-anchor="middle" opacity="1.0">可复用</text>
+</g>
+<g id="qdrant" data-graph-role="node"><rect x="1030" y="190" width="210" height="96" rx="10" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.6"/>
+<circle cx="1058" cy="220" r="17" fill="#dc244c"/>
+<text x="1058" y="225" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">Q</text>
+<text x="1084" y="219" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">Qdrant 检索库</text>
+<text x="1084" y="243" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="1084" dy="0px">Dense / Sparse / BM25</tspan>
+</text>
+<rect x="1146" y="255" width="78" height="22" rx="11" fill="#ccfbf1" stroke="none"/>
+<text x="1185.0" y="270" font-size="11px" fill="#0f766e" font-weight="600" text-anchor="middle" opacity="1.0">可复用</text>
+</g>
+<g id="answer" data-graph-role="node"><rect x="1270" y="190" width="220" height="96" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="1298" cy="220" r="17" fill="#2563eb"/>
+<text x="1298" y="225" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">A</text>
+<text x="1324" y="219" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">答案 + 引用</text>
+<text x="1324" y="243" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="1324" dy="0px">约束回答 / 拒答</tspan>
+</text>
+<rect x="1396" y="255" width="78" height="22" rx="11" fill="#dbeafe" stroke="none"/>
+<text x="1435.0" y="270" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已验证</text>
+</g>
+<g id="data-worker" data-graph-role="node"><rect x="80" y="322" width="220" height="52" rx="9" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.6"/>
+<circle cx="106" cy="348" r="15" fill="#0f766e"/>
+<text x="106" y="352" font-size="9px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">DW</text>
+<text x="130" y="344" font-size="12px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">Data Worker</text>
+<text x="130" y="361" font-size="11px" fill="#4b5563" font-weight="400" text-anchor="start" opacity="1.0">切分 / 写入向量</text>
+<rect x="226" y="337" width="64" height="22" rx="11" fill="#ccfbf1" stroke="none"/>
+<text x="258.0" y="352" font-size="11px" fill="#0f766e" font-weight="600" text-anchor="middle" opacity="1.0">已完成</text>
+</g>
+<rect x="320" y="322" width="650" height="44" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="1.2"/>
+<text x="342" y="340" font-size="11px" fill="#1e40af" font-weight="400" text-anchor="start" opacity="1.0">30题基线：Hit@1 83.33%  ·  Hit@3 90.00%  ·  MRR@3 86.67%</text>
+<text x="342" y="357" font-size="11px" fill="#1e40af" font-weight="400" text-anchor="start" opacity="1.0">v2检索约 1.04s  ·  RAGAS Faithfulness 0.908  ·  Context Relevance 0.892</text>
+<g id="contract-upload" data-graph-role="node"><rect x="80" y="510" width="190" height="96" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="108" cy="540" r="17" fill="#2563eb"/>
+<text x="108" y="545" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">DOC</text>
+<text x="134" y="539" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">合同上传</text>
+<text x="134" y="563" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="134" dy="0px">PDF / DOC / DOCX / SHA-256</tspan>
+</text>
+<rect x="176" y="575" width="78" height="22" rx="11" fill="#dbeafe" stroke="none"/>
+<text x="215.0" y="590" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已完成</text>
+</g>
+<g id="parse" data-graph-role="node"><rect x="315" y="510" width="200" height="96" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="343" cy="540" r="17" fill="#2563eb"/>
+<text x="343" y="545" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">P</text>
+<text x="369" y="539" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">解析与质量检查</text>
+<text x="369" y="563" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="369" dy="0px">PDF / OOXML / antiword / OCR 门禁</tspan>
+</text>
+<rect x="421" y="575" width="78" height="22" rx="11" fill="#dbeafe" stroke="none"/>
+<text x="460.0" y="590" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已完成</text>
+</g>
+<g id="review-task" data-graph-role="node"><rect x="560" y="510" width="200" height="96" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="588" cy="540" r="17" fill="#2563eb"/>
+<text x="588" y="545" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">T</text>
+<text x="614" y="539" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">审查任务状态</text>
+<text x="614" y="563" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="614" dy="0px">PostgreSQL / 后台任务 / 恢复</tspan>
+</text>
+<rect x="666" y="575" width="78" height="22" rx="11" fill="#dbeafe" stroke="none"/>
+<text x="705.0" y="590" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已完成</text>
+</g>
+<g id="clause-facts" data-graph-role="node"><rect x="805" y="510" width="200" height="96" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle cx="833" cy="540" r="17" fill="#6b7280"/>
+<text x="833" y="545" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">C</text>
+<text x="859" y="539" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">条款与事实提取</text>
+<text x="859" y="563" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="859" dy="0px">结构化，不直接定级</tspan>
+</text>
+<rect x="911" y="575" width="78" height="22" rx="11" fill="#e5e7eb" stroke="none"/>
+<text x="950.0" y="590" font-size="11px" fill="#4b5563" font-weight="600" text-anchor="middle" opacity="1.0">待开发</text>
+</g>
+<g id="fact-placeholder" data-graph-role="node"><rect x="1050" y="510" width="220" height="96" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle cx="1078" cy="540" r="17" fill="#6b7280"/>
+<text x="1078" y="545" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">F</text>
+<text x="1104" y="539" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">事实确认</text>
+<text x="1104" y="563" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="1104" dy="0px">缺失信息可暂停审查</tspan>
+</text>
+<rect x="1176" y="575" width="78" height="22" rx="11" fill="#e5e7eb" stroke="none"/>
+<text x="1215.0" y="590" font-size="11px" fill="#4b5563" font-weight="600" text-anchor="middle" opacity="1.0">待开发</text>
+</g>
+<g id="fact-decision" data-graph-role="node"><polygon points="1415,506 1505,558 1415,610 1325,558" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<text x="1415" y="553" font-size="13px" fill="#374151" font-weight="600" text-anchor="middle">
+<tspan x="1415" dy="0px">事实是否</tspan>
+<tspan x="1415" dy="18px">足够？</tspan>
+</text>
+</g>
+<g id="clarification" data-graph-role="node"><rect x="1180" y="655" width="300" height="96" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle cx="1208" cy="685" r="17" fill="#7c3aed"/>
+<text x="1208" y="690" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">?</text>
+<text x="1234" y="684" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">补充问题 / 暂停</text>
+<text x="1234" y="708" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="1234" dy="0px">用户补充事实后恢复任务</tspan>
+</text>
+<rect x="1386" y="720" width="78" height="22" rx="11" fill="#e5e7eb" stroke="none"/>
+<text x="1425.0" y="735" font-size="11px" fill="#4b5563" font-weight="600" text-anchor="middle" opacity="1.0">待开发</text>
+</g>
+<g id="contract-workflow" data-graph-role="node"><rect x="80" y="765" width="240" height="96" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle cx="108" cy="795" r="17" fill="#6b7280"/>
+<text x="108" y="800" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">WG</text>
+<text x="134" y="794" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">合同审查 Workflow</text>
+<text x="134" y="818" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="134" dy="0px">LangGraph 节点解耦</tspan>
+</text>
+<rect x="226" y="830" width="78" height="22" rx="11" fill="#e5e7eb" stroke="none"/>
+<text x="265.0" y="845" font-size="11px" fill="#4b5563" font-weight="600" text-anchor="middle" opacity="1.0">需扩展</text>
+</g>
+<g id="legal-rag" data-graph-role="node"><rect x="370" y="765" width="240" height="96" rx="10" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.6"/>
+<circle cx="398" cy="795" r="17" fill="#0f766e"/>
+<text x="398" y="800" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">R</text>
+<text x="424" y="794" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">法律检索适配</text>
+<text x="424" y="818" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="424" dy="0px">复用混合召回骨架</tspan>
+</text>
+<rect x="516" y="830" width="78" height="22" rx="11" fill="#e5e7eb" stroke="none"/>
+<text x="555.0" y="845" font-size="11px" fill="#4b5563" font-weight="600" text-anchor="middle" opacity="1.0">待接入</text>
+</g>
+<g id="rule-engine" data-graph-role="node"><rect x="660" y="765" width="240" height="96" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle cx="688" cy="795" r="17" fill="#6b7280"/>
+<text x="688" y="800" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">R</text>
+<text x="714" y="794" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">确定性规则引擎</text>
+<text x="714" y="818" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="714" dy="0px">规则决定风险等级</tspan>
+</text>
+<rect x="806" y="830" width="78" height="22" rx="11" fill="#e5e7eb" stroke="none"/>
+<text x="845.0" y="845" font-size="11px" fill="#4b5563" font-weight="600" text-anchor="middle" opacity="1.0">待开发</text>
+</g>
+<g id="risk-report" data-graph-role="node"><rect x="950" y="765" width="240" height="96" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle cx="978" cy="795" r="17" fill="#6b7280"/>
+<text x="978" y="800" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">REP</text>
+<text x="1004" y="794" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">风险事实 + 建议</text>
+<text x="1004" y="818" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="1004" dy="0px">等级、置信度、法律依据</tspan>
+</text>
+<rect x="1096" y="830" width="78" height="22" rx="11" fill="#e5e7eb" stroke="none"/>
+<text x="1135.0" y="845" font-size="11px" fill="#4b5563" font-weight="600" text-anchor="middle" opacity="1.0">待开发</text>
+</g>
+<g id="task-ui" data-graph-role="node"><rect x="1240" y="765" width="240" height="96" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle cx="1268" cy="795" r="17" fill="#6b7280"/>
+<text x="1268" y="800" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">UI</text>
+<text x="1294" y="794" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">任务型 Web 前端</text>
+<text x="1294" y="818" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
+<tspan x="1294" dy="0px">上传 / 追问 / 报告</tspan>
+</text>
+<rect x="1386" y="830" width="78" height="22" rx="11" fill="#e5e7eb" stroke="none"/>
+<text x="1425.0" y="845" font-size="11px" fill="#4b5563" font-weight="600" text-anchor="middle" opacity="1.0">待开发</text>
+</g>
+<rect x="80" y="875" width="700" height="42" rx="9" fill="#ffffff" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="7,5"/>
+<text x="102" y="901" font-size="12px" fill="#4b5563" font-weight="600" text-anchor="start" opacity="1.0">并行支线：法律 A 级来源、官方 B 级案例、规则卡与人工复核（不阻塞骨架开发）</text>
+<rect x="830" y="875" width="680" height="42" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1.3"/>
+<text x="852" y="901" font-size="12px" fill="#374151" font-weight="600" text-anchor="start" opacity="1.0">本轮已交付：上传 → PDF/DOC/DOCX 解析 → PII 脱敏 → 质量状态（OCR/条款审查仍待接入）</text>
+</svg>

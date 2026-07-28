@@ -6,32 +6,40 @@
 """
 
 # 环境文件必须在导入读取 Settings 的模块之前加载。
-# ruff: noqa: E402
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 # 必须最先执行，以项目 .env 覆盖宿主进程中同名变量。
 from dotenv import load_dotenv
+
 load_dotenv(dotenv_path=os.getenv("DOTENV_PATH", "/app/.env"), override=True)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.agent.graph import get_compiled_graph
 from app.api.auth import create_auth_router
 from app.api.chat import create_chat_router
+from app.api.contract_reviews import create_contract_review_router
 from app.api.eval import create_eval_router
 from app.api.sessions import create_sessions_router
 from app.config import settings
+from app.infrastructure.contract_document import ContractDocumentParser
+from app.infrastructure.contract_ocr import ContractOCRClient
+from app.infrastructure.contract_review_repository import ContractReviewRepository
+from app.infrastructure.contract_storage import PrivateContractStorage
 from app.infrastructure.embedding_client import EmbeddingClient
 from app.infrastructure.model_provider import ModelProvider
 from app.infrastructure.postgres import close_postgres_pool, create_postgres_pool
 from app.infrastructure.qdrant import QdrantGateway
 from app.services.auth_service import AuthService
 from app.services.chat_service import ChatService
+from app.services.contract_review_service import ContractReviewService
 from app.services.retrieval_service import RetrievalService
 from app.services.session_service import SessionService
 
@@ -51,6 +59,22 @@ async def lifespan(app: FastAPI):
     app.state.pg_pool = pg_pool
 
     auth_service = AuthService(pg_pool)
+    contract_review_service = ContractReviewService(
+        repository=ContractReviewRepository(pg_pool),
+        storage=PrivateContractStorage(settings.contract_storage_dir),
+        parser=ContractDocumentParser(
+            doc_command=settings.contract_doc_command,
+            doc_timeout=settings.contract_document_timeout,
+        ),
+        ocr_client=ContractOCRClient(
+            enabled=settings.contract_ocr_enabled,
+            base_url=settings.contract_ocr_base_url,
+            api_key=settings.contract_ocr_api_key,
+            model=settings.contract_ocr_model,
+        ),
+        max_upload_bytes=settings.contract_max_upload_bytes,
+        max_pages=settings.contract_max_pages,
+    )
     retrieval_service = RetrievalService(
         embedding_client=EmbeddingClient(settings.embedding_endpoint),
         qdrant=QdrantGateway(settings.qdrant_url),
@@ -76,16 +100,24 @@ async def lifespan(app: FastAPI):
     app.state.retrieval_service = retrieval_service
     app.state.chat_service = chat_service
     app.state.session_service = session_service
+    app.state.contract_review_service = contract_review_service
+    contract_recovery_task = asyncio.create_task(contract_review_service.resume_pending())
+    app.state.contract_recovery_task = contract_recovery_task
 
     app.include_router(create_auth_router(auth_service))
     app.include_router(create_chat_router(chat_service))
     app.include_router(create_sessions_router(session_service))
+    app.include_router(create_contract_review_router(contract_review_service))
     app.include_router(create_eval_router(chat_service))
 
     logger.info("Backend ready")
     yield
 
     await close_postgres_pool(pg_pool)
+    if not contract_recovery_task.done():
+        contract_recovery_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await contract_recovery_task
     logger.info("Shutting down...")
 
 

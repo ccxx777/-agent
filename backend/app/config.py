@@ -49,6 +49,38 @@ class Settings:
     openai_api_key: str = field(default_factory=lambda: os.getenv("ANTHROPIC_AUTH_TOKEN", ""))
     main_model: str = field(default_factory=lambda: os.getenv("MAIN_MODEL", "deepseek-v4-flash"))
 
+    # ── 合同文件接入 ──
+    contract_storage_dir: str = field(
+        default_factory=lambda: os.getenv("CONTRACT_STORAGE_DIR", "/app/private-data/contracts")
+    )
+    contract_max_upload_bytes: int = field(
+        default_factory=lambda: int(os.getenv("CONTRACT_MAX_UPLOAD_BYTES", str(20 * 1024 * 1024)))
+    )
+    contract_max_pages: int = field(
+        default_factory=lambda: int(os.getenv("CONTRACT_MAX_PAGES", "50"))
+    )
+    contract_doc_command: str = field(
+        default_factory=lambda: os.getenv("CONTRACT_DOC_COMMAND", "antiword")
+    )
+    contract_document_timeout: float = field(
+        default_factory=lambda: float(os.getenv("CONTRACT_DOCUMENT_TIMEOUT", "30"))
+    )
+    contract_ocr_enabled: bool = field(
+        default_factory=lambda: os.getenv("CONTRACT_OCR_ENABLED", "false").lower()
+        in {"1", "true", "yes", "on"}
+    )
+    contract_ocr_base_url: str = field(
+        default_factory=lambda: os.getenv("CONTRACT_OCR_BASE_URL", "https://api.siliconflow.cn/v1")
+    )
+    contract_ocr_api_key: str = field(
+        default_factory=lambda: os.getenv(
+            "CONTRACT_OCR_API_KEY", os.getenv("SILICONFLOW_API_KEY", "")
+        )
+    )
+    contract_ocr_model: str = field(
+        default_factory=lambda: os.getenv("CONTRACT_OCR_MODEL", "deepseek-ai/DeepSeek-OCR")
+    )
+
     # ── Server ──
     host: str = "0.0.0.0"
     port: int = 8000

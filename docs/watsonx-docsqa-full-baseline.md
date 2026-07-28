@@ -1,169 +1,96 @@
-# watsonxDocsQA 30题完整评测工作流
+# watsonxDocsQA v2 完整基线
 
-> 当前状态（2026-07-20）：v1 的30题生成、人工抽查和RAGAS已经完成；Retrieval v2
-> 已迁移并通过3题Smoke，完整30题检索门禁尚待归档。v2生成评测必须使用新目录和
-> 新人工确认，不能复用v1断点。
+> 这是一份通用 RAG 工程基线，不是劳动合同法律正确率报告。评测语料来自 IBM watsonx 文档，法律产品必须另建 A/B 级法律与案例复核集。
 
-本文说明如何按“答案生成 → 统计与重点抽查 → 人工确认 → RAGAS”的顺序运行
-固定30题基线。工作流不会修改生产集合、召回算法或Backend镜像。
+## 1. 运行签名
 
-## 设计边界
+- Collection：`watsonx_docsqa_colab_v2`
+- 文档数：1,144
+- 评测问题：30（test split）
+- 向量点：6,759
+- Generator：`deepseek-v4-flash`
+- Evaluator：`deepseek-v4-flash`
+- RAGAS：`0.4.3`，`metrics.collections` API
+- 最终检索输出：生产 Cascade Funnel Top-3
+- 完成人工重点抽查：2026-07-22
 
-- 生成阶段复用 `RetrievalService + AgentNodes.generate_answer + ANSWER_PROMPT`。
-- Collection固定为 `watsonx_docsqa_colab_v1`，预期包含6759个Point。
-- 答案生成和RAGAS均可断点续跑。
-- RAGAS不能越过人工抽查门；答案、Context或报告变化后，旧确认自动失效。
-- RAGAS环境继续与Backend隔离，固定使用 `evaluation/requirements.txt` 中的
-  `ragas==0.4.3`。
+评测 Collection 与生产 `rag_chunks` 隔离。它用于验证检索/生成代码的可复现性，不应直接切成生产法律语料库。
 
-## v1冻结结果
+## 2. 检索门禁
 
-| 类别 | 指标 | 结果 |
-|---|---|---:|
-| 生成 | 完成率 | 30/30 |
-| 检索 | Gold Hit@1 | 80.00% |
-| 检索 | Gold Hit@3 | 93.33% |
-| 生成 | 拒答数量 | 6 |
-| 生成 | 平均总延迟 / P95 | 4.812 / 7.196秒 |
-| RAGAS | Answer Correctness | 0.613954 |
-| RAGAS | Faithfulness | 0.794416 |
-| RAGAS | Context Relevance | 0.900000 |
-| RAGAS | 三项覆盖率 | 100% |
+### v1/v2 对照
 
-已知重点样本：Gold未命中 `test_3/test_5`，缺少引用
-`test_3/test_8/test_25/test_26`。人工抽查认为6道拒答均为错误拒答；Faithfulness
-最低样本主要是无依据扩展；Answer Correctness低分同时包含生成失败与Ground Truth冲突。
-因此指标均值必须和逐题审查一起解读。
+| 指标 | `watsonx_docsqa_colab_v1` | `watsonx_docsqa_colab_v2` | 变化 |
+|---|---:|---:|---:|
+| Gold Hit@1 | 83.33% | 83.33% | 0 |
+| Gold Hit@3 | 90.00% | 90.00% | 0 |
+| MRR@3 | 86.67% | 86.67% | 0 |
+| Mean Recall@3 | 90.00% | 90.00% | 0 |
+| 平均检索延迟 | 6.884 秒 | 1.038 秒 | -5.846 秒 |
 
-## 第一、二步：生成30题并制作抽查报告
+v2 通过“Hit@3 不得下降”门禁，同时将平均检索延迟降低到约原来的 1/6.63。v2 使用 Qdrant 原生 Sparse Vector 和 BM25 命名向量，避免旧的 Payload Sparse 全库扫描路径。
 
-在仓库根目录执行：
+### 回归样本
 
-```bash
-uv run python evaluation/watsonx_docsqa_full_baseline.py prepare
-```
+- `test_3`、`test_5`、`test_8`：v1 和 v2 均未命中。
+- `test_8`：英文 lexical 召回样本，未命中不是 v2 迁移引入的退化；后续优化必须保留它作为回归题。
+- 评测时同时保存 `zero_hit_question_ids`、每题 trace、延迟和错误 ID，不能只看平均值。
 
-编排器会在Backend容器中执行生产同构答案生成，不需要Docker rebuild。若进程中断，
-再次执行相同命令即可；已经成功生成的问题会被跳过。
+## 3. 端到端生成基线
 
-只有达到30/30成功后，才会生成：
+- 完成率：30 / 30
+- Gold Hit@1 / Hit@3：83.33% / 90.00%
+- 拒答数量：3
+- 平均总延迟：5.938 秒
+- P95 总延迟：9.513 秒
+- 生成链路：`RetrievalService → AgentNodes.generate_answer → ANSWER_PROMPT`
 
-```text
-data/benchmarks/watsonxDocsQA/results/generation_baseline_v1/
-├── details.jsonl
-├── failures.jsonl
-├── summary.json
-└── review/
-    ├── review_summary.json
-    ├── spotcheck.json
-    ├── spotcheck.md
-    └── review_manifest.json
-```
+生成回答必须保留 `answer`、`contexts`、`documents`、引用和每题延迟。拒答只能在没有足够证据时发生；有证据时的错误拒答需要单独抽查，不能被平均指标掩盖。
 
-`review_summary.json` 包含：
+## 4. RAGAS 完整结果
 
-- Gold Hit@1和Hit@3；
-- 拒答、缺少引用和越界引用；
-- Context数量和字面量转义换行；
-- 答案长度；
-- Retrieval、Generation和Total的Mean、P50、P95及Max。
+| 指标 | 均值 | 计分题数 | 覆盖率 |
+|---|---:|---:|---:|
+| Answer Correctness | 0.653255 | 30 / 30 | 100% |
+| Faithfulness | 0.908333 | 30 / 30 | 100% |
+| Context Relevance | 0.891667 | 30 / 30 | 100% |
 
-`spotcheck.md` 会优先纳入Gold漏召回、拒答、引用异常、Context数量异常、延迟离群、
-最长/最短答案，再用固定位置样本补足。高风险样本不会因为默认目标为10而被丢弃，
-所以实际抽查数可能超过10。
+### 如何解读
 
-查看材料：
+1. Faithfulness 较高，说明回答大部分能被给定上下文支持，但不能推出法律结论可靠。
+2. Context Relevance 较高，说明 Top-3 上下文整体相关；仍需要逐题查看未命中和错误引用。
+3. Answer Correctness 低于前两项，主要受回答是否完整、是否错误拒答和参考答案标注质量影响。
+4. RAGAS 是 LLM Judge，必须和 Gold Hit@K、人工抽查、规则级测试一起使用。
 
-```bash
-cat data/benchmarks/watsonxDocsQA/results/generation_baseline_v1/review/review_summary.json
-less data/benchmarks/watsonxDocsQA/results/generation_baseline_v1/review/spotcheck.md
-```
+## 5. 当前已知限制
 
-## 人工确认
+- 30 道题规模适合回归，不足以代表通用知识库所有领域。
+- watsonxDocsQA 的参考答案和 golden documents 可能存在标注粒度差异；低 Answer Correctness 需要回看原问题和证据，而不是直接修改检索算法。
+- Reranker 使用外部服务，网络、模型版本和额度会影响延迟。
+- 评测问题为英文，`test_8` 暴露了英文 lexical 召回仍需优化；这项优化必须在同一门禁下进行。
 
-逐题确认答案正确性、证据支撑和引用关系后执行：
-
-```bash
-uv run python evaluation/watsonx_docsqa_full_baseline.py approve \
-  --reviewer ccxx \
-  --note "已检查重点样本，同意运行v1完整RAGAS"
-```
-
-这会生成 `review/approval.json`。确认记录同时绑定：
-
-- 30题问题、答案、Context和文档的输入SHA256；
-- 抽查Manifest的SHA256；
-- 各抽查产物的SHA256。
-
-生成结果或抽查材料发生变化后，`score` 会拒绝沿用旧确认。
-
-## 第三步：运行完整30题RAGAS
-
-```bash
-uv run \
-  --with-requirements evaluation/requirements.txt \
-  -i https://pypi.tuna.tsinghua.edu.cn/simple \
-  python evaluation/watsonx_docsqa_full_baseline.py score
-```
-
-评分固定包含：
-
-- `answer_correctness`
-- `faithfulness`
-- `context_relevance`
-
-每题每指标完成后立即写入独立断点。中断后重新执行同一命令即可继续，已有有效分数
-不会重复调用Judge。只有三个指标都达到30/30覆盖率，完整基线才会标记完成。
-
-输出目录：
+## 6. 复现顺序
 
 ```text
-data/benchmarks/watsonxDocsQA/results/ragas_baseline_v1/
-├── manifest.json
-├── summary.json
-├── baseline_report.md
-└── scores/
-    ├── test_1.json
-    ├── ...
-    └── test_30.json
+1. 启动 Backend、Qdrant、Embedding Service
+2. 用固定 questions 和指定 Collection 跑 retrieval baseline
+3. 对比 old/new summary，确认 Hit@3 门禁
+4. 运行 30 题答案生成并保存 details.jsonl
+5. 人工抽查拒答、低 Faithfulness、低 Correctness 和缺少引用样本
+6. 运行 RAGAS，保存每题 score 与总 summary
+7. 将 Collection、模型、版本、输入 SHA-256 和覆盖率写入报告
 ```
 
-`baseline_report.md` 汇总运行签名、生成完成率、Gold命中、拒答、延迟、人工审查人、
-RAGAS均值及覆盖率。指标均值必须始终与覆盖率和重点样本一起解读。
+RAGAS 依赖只放在 `evaluation/requirements.txt`，不加入生产 Backend 镜像。运行失败时先检查 RAG 主链返回结构，再检查评测器兼容性。
 
-## 常见失败
+## 7. 与劳动合同产品的关系
 
-### 生成未达到30/30
+本基线只证明通用检索和答案生成链路已经具备稳定的工程接口。劳动合同产品还需要：
 
-保留当前目录，再次执行 `prepare`。生成脚本会跳过已成功题目，并重试未完成题目。
+- A 级法律条文和司法解释的版本化资料；
+- B 级官方案例及其适用边界；
+- 合同条款结构化 Schema；
+- 确定性风险规则、事实补充问题和人工复核；
+- 不把用户合同写入公共语料、不让 LLM 单独决定风险等级。
 
-### 人工确认失效
-
-重新执行 `prepare` 生成最新抽查材料，人工阅读后再次执行 `approve`。不要手工修改
-哈希或确认文件。
-
-### RAGAS部分指标超时
-
-直接重新执行 `score`。成功的题目和指标会跳过，只重试没有有效数值的断点。
-
-### 不需要执行的操作
-
-此工作流不需要执行以下操作：
-
-- `docker-compose build backend`
-- 重建Embedding镜像
-- 重新导入watsonxDocsQA
-- 修改 `rag_chunks` 生产Collection
-
-## v2运行原则
-
-v2必须按以下顺序重新执行：
-
-1. 先完成30题检索门禁并比较v1/v2；
-2. 使用 `generation_baseline_v2` 生成30题答案；
-3. 重新生成并人工阅读v2抽查报告；
-4. 重新执行 `approve`，不能复制v1的 `approval.json`；
-5. 使用独立 `ragas_baseline_v2` 运行完整RAGAS；
-6. 对比错误拒答、缺少引用、低Faithfulness题和Ground Truth冲突题。
-
-任何输入、Prompt、Collection、Generator或Evaluator变化，都必须产生新的运行签名。
+上述内容见根目录 [`PLAN.md`](../PLAN.md) 和合同流程图 [`contract-review-workflow-status.png`](contract-review-workflow-status.png)。

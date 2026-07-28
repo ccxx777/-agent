@@ -7,6 +7,10 @@
 # ===== 数据库 / 持久化数据 =====
 postgres_data/
 qdrant_data/
+private-data/
+
+# 本地合同测试样本可能包含个人信息，不进入版本库
+test_contract/
 backend/data/*.log
 data/*.log
 

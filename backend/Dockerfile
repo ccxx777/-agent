@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
     apt-get update && apt-get install -y --no-install-recommends \
-    gcc libc6-dev libpq-dev
+    gcc libc6-dev libpq-dev antiword
 
 WORKDIR /app
 
