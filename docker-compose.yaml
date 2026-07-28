@@ -72,6 +72,10 @@ services:
       CONTRACT_OCR_BASE_URL: ${CONTRACT_OCR_BASE_URL:-https://api.siliconflow.cn/v1}
       CONTRACT_OCR_API_KEY: ${CONTRACT_OCR_API_KEY:-}
       CONTRACT_OCR_MODEL: ${CONTRACT_OCR_MODEL:-deepseek-ai/DeepSeek-OCR}
+      # 合同事实提取默认关闭；确认脱敏和外部模型调用策略后再显式开启
+      CONTRACT_EXTRACTION_ENABLED: ${CONTRACT_EXTRACTION_ENABLED:-false}
+      CONTRACT_EXTRACTION_BATCH_CLAUSES: ${CONTRACT_EXTRACTION_BATCH_CLAUSES:-6}
+      CONTRACT_EXTRACTION_MAX_CHARS: ${CONTRACT_EXTRACTION_MAX_CHARS:-12000}
     depends_on:
       db_pg:
         condition: service_healthy

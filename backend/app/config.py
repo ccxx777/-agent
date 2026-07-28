@@ -80,6 +80,16 @@ class Settings:
     contract_ocr_model: str = field(
         default_factory=lambda: os.getenv("CONTRACT_OCR_MODEL", "deepseek-ai/DeepSeek-OCR")
     )
+    contract_extraction_enabled: bool = field(
+        default_factory=lambda: os.getenv("CONTRACT_EXTRACTION_ENABLED", "false").lower()
+        in {"1", "true", "yes", "on"}
+    )
+    contract_extraction_batch_clauses: int = field(
+        default_factory=lambda: int(os.getenv("CONTRACT_EXTRACTION_BATCH_CLAUSES", "6"))
+    )
+    contract_extraction_max_chars: int = field(
+        default_factory=lambda: int(os.getenv("CONTRACT_EXTRACTION_MAX_CHARS", "12000"))
+    )
 
     # ── Server ──
     host: str = "0.0.0.0"

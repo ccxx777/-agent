@@ -39,6 +39,7 @@ from app.infrastructure.postgres import close_postgres_pool, create_postgres_poo
 from app.infrastructure.qdrant import QdrantGateway
 from app.services.auth_service import AuthService
 from app.services.chat_service import ChatService
+from app.services.contract_extraction_service import ContractExtractionService
 from app.services.contract_review_service import ContractReviewService
 from app.services.retrieval_service import RetrievalService
 from app.services.session_service import SessionService
@@ -59,8 +60,25 @@ async def lifespan(app: FastAPI):
     app.state.pg_pool = pg_pool
 
     auth_service = AuthService(pg_pool)
+    contract_repository = ContractReviewRepository(pg_pool)
+    model_provider = ModelProvider(
+        model=settings.main_model,
+        base_url=settings.openai_base_url,
+        api_key=settings.openai_api_key,
+    )
+    extraction_service = (
+        ContractExtractionService(
+            contract_repository,
+            chat_model=model_provider.create_chat_model(),
+            model_name=settings.main_model,
+            batch_clauses=settings.contract_extraction_batch_clauses,
+            max_model_chars=settings.contract_extraction_max_chars,
+        )
+        if settings.contract_extraction_enabled
+        else None
+    )
     contract_review_service = ContractReviewService(
-        repository=ContractReviewRepository(pg_pool),
+        repository=contract_repository,
         storage=PrivateContractStorage(settings.contract_storage_dir),
         parser=ContractDocumentParser(
             doc_command=settings.contract_doc_command,
@@ -74,6 +92,7 @@ async def lifespan(app: FastAPI):
         ),
         max_upload_bytes=settings.contract_max_upload_bytes,
         max_pages=settings.contract_max_pages,
+        extraction_service=extraction_service,
     )
     retrieval_service = RetrievalService(
         embedding_client=EmbeddingClient(settings.embedding_endpoint),
@@ -82,11 +101,6 @@ async def lifespan(app: FastAPI):
         reranker_api_url=settings.reranker_api_url,
         reranker_api_key=settings.reranker_api_key,
         collection_name=settings.rag_collection,
-    )
-    model_provider = ModelProvider(
-        model=settings.main_model,
-        base_url=settings.openai_base_url,
-        api_key=settings.openai_api_key,
     )
     graph = get_compiled_graph(
         pg_pool,

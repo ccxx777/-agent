@@ -17,7 +17,9 @@ from app.infrastructure.contract_ocr import ContractOCRClient, ContractOCRUnavai
 from app.infrastructure.contract_pdf import PDFParseError
 from app.infrastructure.contract_review_repository import ContractReviewRepository
 from app.infrastructure.contract_storage import PrivateContractStorage
+from app.schemas.contract_extraction import ContractExtractionResult, ExtractionStatus
 from app.schemas.contract_review import ContractReviewDetail, ContractReviewSummary
+from app.services.contract_extraction_service import ContractExtractionError
 from app.services.privacy_redaction import desensitize_text
 
 logger = logging.getLogger(__name__)
@@ -51,6 +53,7 @@ class ContractReviewService:
         *,
         max_upload_bytes: int,
         max_pages: int,
+        extraction_service: Any | None = None,
     ) -> None:
         self.repository = repository
         self.storage = storage
@@ -58,6 +61,7 @@ class ContractReviewService:
         self.ocr_client = ocr_client
         self.max_upload_bytes = max_upload_bytes
         self.max_pages = max_pages
+        self.extraction_service = extraction_service
 
     async def create_review(
         self,
@@ -214,6 +218,15 @@ class ContractReviewService:
                 privacy=privacy,
                 pages=pages,
             )
+            if self.extraction_service is not None:
+                # 只把已经脱敏的页文本交给事实提取服务；原始文件仍留在私有存储中。
+                try:
+                    await self.extraction_service.process(review_id, pages)
+                except ContractExtractionError:
+                    # 文档解析已经成功；事实提取失败只影响 extraction_status，允许用户重试。
+                    logger.warning("Contract fact extraction deferred: review_id=%s", review_id)
+                except Exception:
+                    logger.exception("Contract fact extraction infrastructure unavailable: review_id=%s", review_id)
             logger.info("Contract review parsed: review_id=%s status=%s", review_id, status)
         except (PDFParseError, OSError, ValueError) as error:
             await self.repository.mark_status(review_id, "failed", "合同解析失败，请重新上传文件")
@@ -236,10 +249,16 @@ class ContractReviewService:
             page_count=record["page_count"],
             quality=record.get("quality"),
             privacy=record.get("privacy"),
+            extraction_status=record.get("extraction_status") or ExtractionStatus.NOT_STARTED.value,
             error_message=record.get("error_message"),
             created_at=record.get("created_at"),
             updated_at=record.get("updated_at"),
             pages=record.get("pages", []),
+            extraction=(
+                ContractExtractionResult.model_validate(record["extraction_result"])
+                if record.get("extraction_result")
+                else None
+            ),
         )
 
     async def resume_pending(self) -> None:
@@ -259,3 +278,5 @@ class ContractReviewService:
                 str(record["review_id"]),
                 storage_path=record["storage_path"],
             )
+        if self.extraction_service is not None:
+            await self.extraction_service.resume_pending()

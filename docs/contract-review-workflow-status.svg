@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1030" viewBox="0 0 1600 1030" role="img" aria-labelledby="title desc">
 <title id="title">劳动合同风险审查助手：当前状态与近期开发工作</title>
-<desc id="desc">上方为已经完成的通用 RAG 能力；下方展示劳动合同审查 Workflow，其中合同上传、PDF/DOC/DOCX 文档解析、隐私脱敏和任务状态模块已完成，其余节点仍待补齐。</desc>
+<desc id="desc">上方为已经完成的通用 RAG 能力；下方展示劳动合同审查 Workflow，其中合同上传、PDF/DOC/DOCX 文档解析、隐私脱敏、任务状态、条款切分、结构化事实提取和证据定位已完成，其余节点仍待补齐。</desc>
 <style>text{font-family:'Helvetica Neue',Helvetica,Arial,'PingFang SC','Microsoft YaHei','Microsoft JhengHei','SimHei',sans-serif;} </style>
 <defs>
 <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
@@ -147,15 +147,15 @@
 <rect x="666" y="575" width="78" height="22" rx="11" fill="#dbeafe" stroke="none"/>
 <text x="705.0" y="590" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已完成</text>
 </g>
-<g id="clause-facts" data-graph-role="node"><rect x="805" y="510" width="200" height="96" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
-<circle cx="833" cy="540" r="17" fill="#6b7280"/>
+<g id="clause-facts" data-graph-role="node"><rect x="805" y="510" width="200" height="96" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="833" cy="540" r="17" fill="#2563eb"/>
 <text x="833" y="545" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">C</text>
 <text x="859" y="539" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">条款与事实提取</text>
 <text x="859" y="563" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
-<tspan x="859" dy="0px">结构化，不直接定级</tspan>
+<tspan x="859" dy="0px">结构化 + 脱敏证据定位</tspan>
 </text>
-<rect x="911" y="575" width="78" height="22" rx="11" fill="#e5e7eb" stroke="none"/>
-<text x="950.0" y="590" font-size="11px" fill="#4b5563" font-weight="600" text-anchor="middle" opacity="1.0">待开发</text>
+<rect x="911" y="575" width="78" height="22" rx="11" fill="#dbeafe" stroke="none"/>
+<text x="950.0" y="590" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已完成</text>
 </g>
 <g id="fact-placeholder" data-graph-role="node"><rect x="1050" y="510" width="220" height="96" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
 <circle cx="1078" cy="540" r="17" fill="#6b7280"/>
@@ -236,5 +236,5 @@
 <rect x="80" y="875" width="700" height="42" rx="9" fill="#ffffff" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="7,5"/>
 <text x="102" y="901" font-size="12px" fill="#4b5563" font-weight="600" text-anchor="start" opacity="1.0">并行支线：法律 A 级来源、官方 B 级案例、规则卡与人工复核（不阻塞骨架开发）</text>
 <rect x="830" y="875" width="680" height="42" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1.3"/>
-<text x="852" y="901" font-size="12px" fill="#374151" font-weight="600" text-anchor="start" opacity="1.0">本轮已交付：上传 → PDF/DOC/DOCX 解析 → PII 脱敏 → 质量状态（OCR/条款审查仍待接入）</text>
+<text x="852" y="901" font-size="12px" fill="#374151" font-weight="600" text-anchor="start" opacity="1.0">本轮已交付：上传 → PDF/DOC/DOCX 解析 → PII 脱敏 → 条款切分 → 事实提取 → 证据定位（法律规则仍待接入）</text>
 </svg>

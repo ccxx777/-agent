@@ -7,6 +7,8 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.contract_extraction import ContractExtractionResult, ExtractionStatus
+
 
 class ReviewStatus(str, Enum):
     QUEUED = "queued"
@@ -66,6 +68,7 @@ class ContractReviewSummary(BaseModel):
     page_count: int | None = Field(default=None, ge=0)
     quality: ContractQuality | None = None
     privacy: PrivacyReport | None = None
+    extraction_status: ExtractionStatus = ExtractionStatus.NOT_STARTED
     error_message: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -73,4 +76,4 @@ class ContractReviewSummary(BaseModel):
 
 class ContractReviewDetail(ContractReviewSummary):
     pages: list[ContractPage] = Field(default_factory=list)
-
+    extraction: ContractExtractionResult | None = None

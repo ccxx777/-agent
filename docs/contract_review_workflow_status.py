@@ -232,7 +232,7 @@ def build_svg() -> str:
     add(lines, "<title id=\"title\">劳动合同风险审查助手：当前状态与近期开发工作</title>")
     add(
         lines,
-        '<desc id="desc">上方为已经完成的通用 RAG 能力；下方展示劳动合同审查 Workflow，其中合同上传、PDF/DOC/DOCX 文档解析、隐私脱敏和任务状态模块已完成，其余节点仍待补齐。</desc>',
+        '<desc id="desc">上方为已经完成的通用 RAG 能力；下方展示劳动合同审查 Workflow，其中合同上传、PDF/DOC/DOCX 文档解析、隐私脱敏、任务状态、条款切分、结构化事实提取和证据定位已完成，其余节点仍待补齐。</desc>',
     )
     add(
         lines,
@@ -353,7 +353,7 @@ def build_svg() -> str:
     node(lines, "contract-upload", 80, 510, 190, "合同上传", "PDF / DOC / DOCX / SHA-256", fill="#eff6ff", stroke="#93c5fd", badge="DOC", badge_fill="#2563eb", status="已完成", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "parse", 315, 510, 200, "解析与质量检查", "PDF / OOXML / antiword / OCR 门禁", fill="#eff6ff", stroke="#93c5fd", badge="P", badge_fill="#2563eb", status="已完成", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "review-task", 560, 510, 200, "审查任务状态", "PostgreSQL / 后台任务 / 恢复", fill="#eff6ff", stroke="#93c5fd", badge="T", badge_fill="#2563eb", status="已完成", status_fill="#dbeafe", status_text="#1d4ed8")
-    node(lines, "clause-facts", 805, 510, 200, "条款与事实提取", "结构化，不直接定级", fill="#f3f4f6", stroke="#9ca3af", badge="C", badge_fill="#6b7280", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
+    node(lines, "clause-facts", 805, 510, 200, "条款与事实提取", "结构化 + 脱敏证据定位", fill="#eff6ff", stroke="#93c5fd", badge="C", badge_fill="#2563eb", status="已完成", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "fact-placeholder", 1050, 510, 220, "事实确认", "缺失信息可暂停审查", fill="#f3f4f6", stroke="#9ca3af", badge="F", badge_fill="#6b7280", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
     decision(lines, "fact-decision", 1415, 558, 90, 52)
     node(lines, "clarification", 1180, 655, 300, "补充问题 / 暂停", "用户补充事实后恢复任务", fill="#f3f4f6", stroke="#9ca3af", badge="?", badge_fill="#7c3aed", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
@@ -367,7 +367,7 @@ def build_svg() -> str:
     add(lines, '<rect x="80" y="875" width="700" height="42" rx="9" fill="#ffffff" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="7,5"/>')
     text(lines, 102, 901, "并行支线：法律 A 级来源、官方 B 级案例、规则卡与人工复核（不阻塞骨架开发）", size=12, fill="#4b5563", weight=600)
     add(lines, '<rect x="830" y="875" width="680" height="42" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1.3"/>')
-    text(lines, 852, 901, "本轮已交付：上传 → PDF/DOC/DOCX 解析 → PII 脱敏 → 质量状态（OCR/条款审查仍待接入）", size=12, fill="#374151", weight=600)
+    text(lines, 852, 901, "本轮已交付：上传 → PDF/DOC/DOCX 解析 → PII 脱敏 → 条款切分 → 事实提取 → 证据定位（法律规则仍待接入）", size=12, fill="#374151", weight=600)
 
     add(lines, "</svg>")
     return "\n".join(lines) + "\n"

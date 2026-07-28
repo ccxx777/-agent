@@ -14,6 +14,7 @@
 | 三层混合检索 | 已验证 | Dense + BGE-M3 Sparse + BM25，经 L1/L2/L3 漏斗输出 Top-3 |
 | 检索基线与 RAGAS | 已完成一轮完整基线 | 30 道 watsonxDocsQA 测试题，结果见下文 |
 | 合同上传与解析 | 已实现基础模块 | PDF、DOC、DOCX；私有存储、异步任务、质量状态、脱敏 |
+| 条款切分与事实提取 | 首版已接入 | 确定性条款切分、结构化事实 Schema、模型候选事实、本地证据定位；默认关闭外部模型调用 |
 | 扫描 PDF OCR | 接口已预留 | 默认关闭，需配置 OCR 服务后启用 |
 | 劳动法条款识别与风险分级 | 规划中 | 需要先准备 A 级法律资料、B 级官方案例和人工复核样本 |
 | Web 合同审查前端 | 规划中 | 现有 React 前端暂不作为合同产品验收依据 |
@@ -61,6 +62,8 @@
 - **隐私处理**：进入后续 LLM、Embedding、Reranker 和日志前，脱敏身份证号、手机号、银行卡号，并清理零宽字符等不可见字符。
 - **任务状态**：`queued → extracting → ready / needs_confirmation / failed`。任务和结果写入 PostgreSQL，原始文件保存在私有目录，不进入公共 Qdrant 语料库。
 - **质量门禁**：记录页数、文本覆盖率、OCR 使用情况、失败页、可疑页和脱敏统计；不把“解析完成”误认为“合同格式完全还原”。
+- **条款与事实提取**：解析完成后可按 `CONTRACT_EXTRACTION_ENABLED=true` 启用。条款先由确定性切分器生成，再由模型提取候选事实；每条事实必须在脱敏页文本中重新定位证据，缺证据、低置信度或相互矛盾的字段会进入 `needs_confirmation`。
+- **边界**：事实提取不输出“违法/高风险/建议签署”等法律结论；`extraction_status` 与文件解析 `status` 独立保存，模型失败不会把已经成功解析的合同标记为文件解析失败。
 
 ![合同上传模块流程](docs/contract-upload-module.png)
 
@@ -118,8 +121,8 @@ flowchart TB
 │   │   ├── api/             # chat、session、eval、contract-reviews
 │   │   ├── agent/           # State、Nodes、Tools、Prompts、Graph
 │   │   ├── infrastructure/  # Qdrant、PostgreSQL、Parser、OCR、私有存储
-│   │   ├── schemas/         # API 和检索/合同数据契约
-│   │   └── services/        # 认证、会话、检索、合同任务服务
+│   │   ├── schemas/         # API、检索、合同和事实提取数据契约
+│   │   └── services/        # 认证、会话、检索、合同解析、条款和事实提取
 │   ├── sql/                 # 初始化表和迁移
 │   └── tests/               # 后端单元测试
 ├── data_worker/             # 公共资料增量解析、向量化、写入

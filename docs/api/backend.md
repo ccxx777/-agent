@@ -126,6 +126,8 @@ queued → extracting → ready
 | `quality` | 页数、文本覆盖率、OCR 页、失败页和可疑页 |
 | `privacy` | 脱敏版本、类别计数、零宽字符计数和外部原图审计字段 |
 | `pages` | 逐页脱敏文本、页面模式、OCR 标记和质量标记 |
+| `extraction_status` | `not_started`、`running`、`ready`、`needs_confirmation` 或 `failed`；与文件解析 `status` 独立 |
+| `extraction` | 条款、结构化事实、证据页码/字符偏移、确认问题和警告；只包含脱敏文本 |
 | `error_message` | 面向用户的安全错误说明，不包含原始合同内容 |
 
 `needs_confirmation` 表示文本层不足、OCR 未配置/失败或页边界无法可靠恢复；它不等于“合同没有风险”。
@@ -152,8 +154,9 @@ queued → extracting → ready
 - `CONTRACT_DOC_COMMAND`
 - `CONTRACT_DOCUMENT_TIMEOUT`
 - `CONTRACT_OCR_ENABLED`、`CONTRACT_OCR_BASE_URL`、`CONTRACT_OCR_API_KEY`、`CONTRACT_OCR_MODEL`
+- `CONTRACT_EXTRACTION_ENABLED`（默认 `false`）、`CONTRACT_EXTRACTION_BATCH_CLAUSES`（默认 `6`）、`CONTRACT_EXTRACTION_MAX_CHARS`（默认 `12000`）
 
-旧 PostgreSQL 需要执行 `backend/sql/migrations/002-contract-review.sql`；新建数据库会执行 `backend/sql/init/03-contract-review.sql`。
+旧 PostgreSQL 需要执行 `backend/sql/migrations/002-contract-review.sql` 和 `backend/sql/migrations/003-contract-extraction.sql`；新建数据库会执行 `backend/sql/init/03-contract-review.sql`。
 
 ## 运行与验证
 

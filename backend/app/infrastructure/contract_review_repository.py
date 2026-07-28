@@ -45,6 +45,38 @@ class ContractReviewRepository:
                 (status, error_message, review_id),
             )
 
+    async def mark_extraction_status(
+        self,
+        review_id: str,
+        status: str,
+        *,
+        result: dict[str, Any] | None = None,
+    ) -> None:
+        """更新事实提取状态；不覆盖文件解析错误信息。"""
+
+        async with self._pool.connection() as conn, conn.cursor() as cur:
+            await cur.execute(
+                """
+                    UPDATE contract_review_tasks
+                    SET extraction_status = %s,
+                        extraction_result = COALESCE(%s, extraction_result),
+                        updated_at = NOW()
+                    WHERE review_id = %s
+                    """,
+                (status, Jsonb(result) if result is not None else None, review_id),
+            )
+
+    async def save_extraction(
+        self,
+        review_id: str,
+        *,
+        status: str,
+        result: dict[str, Any],
+    ) -> None:
+        """原子保存条款、事实和证据定位结果。"""
+
+        await self.mark_extraction_status(review_id, status, result=result)
+
     async def save_result(
         self,
         review_id: str,
@@ -95,7 +127,8 @@ class ContractReviewRepository:
                     """
                     SELECT review_id, user_id, filename, content_type, size_bytes,
                            sha256, storage_path, status, page_count, quality,
-                           privacy, error_message, created_at, updated_at
+                           privacy, extraction_status, extraction_result,
+                           error_message, created_at, updated_at
                     FROM contract_review_tasks
                     WHERE review_id = %s AND user_id = %s
                     """,
@@ -117,6 +150,22 @@ class ContractReviewRepository:
                 task["pages"] = await cur.fetchall()
                 return dict(task)
 
+    async def get_pages(self, review_id: str) -> list[dict[str, Any]]:
+        """恢复事实提取时读取已经保存的脱敏页文本。"""
+
+        async with self._pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                    SELECT page_no, mode, redacted_text AS text,
+                           ocr_used, quality_flags
+                    FROM contract_review_pages
+                    WHERE review_id = %s
+                    ORDER BY page_no
+                    """,
+                (review_id,),
+            )
+            return [dict(row) for row in await cur.fetchall()]
+
     async def list_pending(self) -> list[dict[str, Any]]:
         async with self._pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
                 await cur.execute(
@@ -128,3 +177,18 @@ class ContractReviewRepository:
                     """
                 )
                 return [dict(row) for row in await cur.fetchall()]
+
+    async def list_pending_extractions(self) -> list[dict[str, Any]]:
+        """列出进程重启时尚未完成的事实提取任务。"""
+
+        async with self._pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                    SELECT review_id, extraction_status
+                    FROM contract_review_tasks
+                    WHERE status IN ('ready', 'needs_confirmation')
+                      AND extraction_status = 'running'
+                    ORDER BY created_at
+                    """
+            )
+            return [dict(row) for row in await cur.fetchall()]

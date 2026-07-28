@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS contract_review_tasks (
     page_count INTEGER CHECK (page_count IS NULL OR page_count >= 0),
     quality JSONB,
     privacy JSONB,
+    extraction_status TEXT NOT NULL DEFAULT 'not_started' CHECK (
+        extraction_status IN ('not_started', 'running', 'ready', 'needs_confirmation', 'failed')
+    ),
+    extraction_result JSONB,
     error_message TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
