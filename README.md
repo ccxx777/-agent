@@ -67,6 +67,12 @@
 
 ![合同上传模块流程](docs/contract-upload-module.png)
 
+### 条款与事实提取模块
+
+解析通过质量门禁后，系统先用确定性规则切分条款，再按 `contract_extraction` Schema 提取候选事实。每条事实都必须在脱敏页文本中定位证据；缺少证据、置信度不足或同名事实冲突时，进入确认问题，而不是直接生成法律结论。
+
+![合同条款与事实提取模块流程](docs/contract-extraction-module.png)
+
 ### 当前限制
 
 扫描 PDF 的 OCR 需要单独配置外部 OCR 服务；DOC/DOCX 无法稳定恢复 Word 原始分页、页眉页脚和浮动文本框，因此相关任务可能进入 `needs_confirmation`。用户合同不会写入 `rag_chunks` 或任何公共评测 Collection。
@@ -178,6 +184,7 @@ uv run ruff check backend evaluation data_worker
 - [文档索引](docs/README.md)
 - [合同上传 API](docs/api/backend.md)
 - [合同上传模块流程](docs/contract-upload-module.png)
+- [条款与事实提取模块流程](docs/contract-extraction-module.png)
 - [整体开发状态流程图](docs/contract-review-workflow-status.png)
 - [自研三层检索算法](docs/self-developed-retrieval-algorithm.md)
 - [Qdrant v2 迁移记录](docs/retrieval-v2-migration.md)

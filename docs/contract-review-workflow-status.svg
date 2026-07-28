@@ -142,7 +142,7 @@
 <text x="588" y="545" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">T</text>
 <text x="614" y="539" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">审查任务状态</text>
 <text x="614" y="563" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
-<tspan x="614" dy="0px">PostgreSQL / 后台任务 / 恢复</tspan>
+<tspan x="614" dy="0px">PostgreSQL / 两套状态 / 恢复</tspan>
 </text>
 <rect x="666" y="575" width="78" height="22" rx="11" fill="#dbeafe" stroke="none"/>
 <text x="705.0" y="590" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已完成</text>
@@ -162,7 +162,7 @@
 <text x="1078" y="545" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">F</text>
 <text x="1104" y="539" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">事实确认</text>
 <text x="1104" y="563" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
-<tspan x="1104" dy="0px">缺失信息可暂停审查</tspan>
+<tspan x="1104" dy="0px">缺失 / 冲突字段可暂停</tspan>
 </text>
 <rect x="1176" y="575" width="78" height="22" rx="11" fill="#e5e7eb" stroke="none"/>
 <text x="1215.0" y="590" font-size="11px" fill="#4b5563" font-weight="600" text-anchor="middle" opacity="1.0">待开发</text>

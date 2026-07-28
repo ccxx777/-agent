@@ -44,10 +44,11 @@
 <text x="895" y="641" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">页文本</text>
 <path id="e-redact-quality" data-graph-role="edge" data-source="redact" data-target="quality" d="M650 659 H600" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
 <text x="625" y="641" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">脱敏文本</text>
-<path id="e-quality-workflow" data-graph-role="edge" data-source="quality" data-target="workflow" d="M380 659 H300 V760" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
-<text x="330" y="742" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">ready</text>
-<path id="e-quality-confirm" data-graph-role="edge" data-source="quality" data-target="confirmation" d="M600 700 V820 H900" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
-<text x="750" y="812" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">needs_confirmation</text>
+<path id="e-quality-extraction" data-graph-role="edge" data-source="quality" data-target="clause-extraction" d="M490 703 V742 H530 V760" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text x="505" y="742" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">ready</text>
+<path id="e-extraction-workflow" data-graph-role="edge" data-source="clause-extraction" data-target="workflow" d="M680 808 H720" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text x="700" y="794" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">facts</text>
+<path id="e-quality-confirm" data-graph-role="edge" data-source="quality" data-target="confirmation" d="M600 704 H700 V755 H1350 V804" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
 <g id="user" data-graph-role="node"><rect x="60" y="180" width="180" height="88" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
 <circle cx="88" cy="209" r="17" fill="#2563eb"/>
 <text x="88" y="214" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">U</text>
@@ -136,21 +137,29 @@
 <rect x="518" y="674" width="68" height="20" rx="10" fill="#fed7aa"/>
 <text x="552" y="688" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">已完成</text>
 </g>
-<g id="workflow" data-graph-role="node"><rect x="100" y="760" width="220" height="88" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
-<circle cx="128" cy="789" r="17" fill="#6b7280"/>
-<text x="128" y="794" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">LG</text>
-<text x="154" y="788" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">LangGraph Workflow</text>
-<text x="154" y="812" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">仅接收 ready 文本</text>
-<rect x="238" y="819" width="68" height="20" rx="10" fill="#e5e7eb"/>
-<text x="272" y="833" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">下一步</text>
+<g id="clause-extraction" data-graph-role="node"><rect x="380" y="760" width="300" height="88" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="408" cy="789" r="17" fill="#2563eb"/>
+<text x="408" y="794" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">C</text>
+<text x="434" y="788" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">条款与事实提取</text>
+<text x="434" y="812" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">Schema / 证据定位 / 确认问题</text>
+<rect x="598" y="819" width="68" height="20" rx="10" fill="#dbeafe"/>
+<text x="632" y="833" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">已接入</text>
 </g>
-<g id="confirmation" data-graph-role="node"><rect x="900" y="760" width="250" height="88" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
-<circle cx="928" cy="789" r="17" fill="#6b7280"/>
-<text x="928" y="794" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">?</text>
-<text x="954" y="788" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">用户确认 / 重传</text>
-<text x="954" y="812" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">OCR 失败或页面不清晰</text>
-<rect x="1068" y="819" width="68" height="20" rx="10" fill="#e5e7eb"/>
-<text x="1102" y="833" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">下一步</text>
+<g id="workflow" data-graph-role="node"><rect x="720" y="760" width="240" height="88" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle cx="748" cy="789" r="17" fill="#6b7280"/>
+<text x="748" y="794" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">LG</text>
+<text x="774" y="788" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">LangGraph Workflow</text>
+<text x="774" y="812" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">接收结构化事实</text>
+<rect x="878" y="819" width="68" height="20" rx="10" fill="#e5e7eb"/>
+<text x="912" y="833" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">下一步</text>
+</g>
+<g id="confirmation" data-graph-role="node"><rect x="1100" y="760" width="250" height="88" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle cx="1128" cy="789" r="17" fill="#6b7280"/>
+<text x="1128" y="794" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">?</text>
+<text x="1154" y="788" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">用户确认 / 重传</text>
+<text x="1154" y="812" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">OCR 失败或页面不清晰</text>
+<rect x="1268" y="819" width="68" height="20" rx="10" fill="#e5e7eb"/>
+<text x="1302" y="833" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">下一步</text>
 </g>
 <rect x="70" y="890" width="1460" height="82" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>
 <text x="95" y="919" font-size="13px" fill="#9a3412" font-weight="700" text-anchor="start">隐私边界</text>

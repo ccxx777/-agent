@@ -173,8 +173,9 @@ def build_svg() -> str:
     edge(lines, "e-ocr-redact", "M1240 659 H1160 V750 H760 V703", source="ocr", target="redact", color="#ea580c", marker="arrow-orange", label="OCR 文本", label_x=1080, label_y=742)
     edge(lines, "e-native-redact", "M920 659 H870", source="native-text", target="redact", color="#2563eb", marker="arrow-blue", label="页文本", label_x=895, label_y=641)
     edge(lines, "e-redact-quality", "M650 659 H600", source="redact", target="quality", color="#ea580c", marker="arrow-orange", label="脱敏文本", label_x=625, label_y=641)
-    edge(lines, "e-quality-workflow", "M380 659 H300 V760", source="quality", target="workflow", color="#059669", marker="arrow-green", label="ready", label_x=330, label_y=742)
-    edge(lines, "e-quality-confirm", "M600 700 V820 H900", source="quality", target="confirmation", color="#ea580c", marker="arrow-orange", label="needs_confirmation", label_x=750, label_y=812)
+    edge(lines, "e-quality-extraction", "M490 703 V742 H530 V760", source="quality", target="clause-extraction", color="#2563eb", marker="arrow-blue", label="ready", label_x=505, label_y=742)
+    edge(lines, "e-extraction-workflow", "M680 808 H720", source="clause-extraction", target="workflow", color="#059669", marker="arrow-green", label="facts", label_x=700, label_y=794)
+    edge(lines, "e-quality-confirm", "M600 704 H700 V755 H1350 V804", source="quality", target="confirmation", color="#ea580c", marker="arrow-orange")
 
     # Nodes
     node(lines, "user", 60, 180, 180, "用户", "上传待审合同", fill="#eff6ff", stroke="#93c5fd", badge="U", badge_fill="#2563eb", status="入口", status_fill="#dbeafe", status_text="#1d4ed8")
@@ -188,8 +189,9 @@ def build_svg() -> str:
     node(lines, "ocr", 1240, 615, 220, "OCR Provider", "DeepSeek OCR，可选", fill="#fff7ed", stroke="#fdba74", badge="OCR", badge_fill="#ea580c", status="可配置", status_fill="#fed7aa", status_text="#9a3412")
     node(lines, "redact", 650, 615, 220, "本地脱敏", "身份证 / 手机 / 银行卡", fill="#fff7ed", stroke="#fdba74", badge="PII", badge_fill="#ea580c", status="已完成", status_fill="#fed7aa", status_text="#9a3412")
     node(lines, "quality", 380, 615, 220, "文本质量门禁", "页级质量 / 需确认", fill="#fff7ed", stroke="#fdba74", badge="Q", badge_fill="#ea580c", status="已完成", status_fill="#fed7aa", status_text="#9a3412")
-    node(lines, "workflow", 100, 760, 220, "LangGraph Workflow", "仅接收 ready 文本", fill="#f3f4f6", stroke="#9ca3af", badge="LG", badge_fill="#6b7280", status="下一步", status_fill="#e5e7eb", status_text="#4b5563")
-    node(lines, "confirmation", 900, 760, 250, "用户确认 / 重传", "OCR 失败或页面不清晰", fill="#f3f4f6", stroke="#9ca3af", badge="?", badge_fill="#6b7280", status="下一步", status_fill="#e5e7eb", status_text="#4b5563")
+    node(lines, "clause-extraction", 380, 760, 300, "条款与事实提取", "Schema / 证据定位 / 确认问题", fill="#eff6ff", stroke="#93c5fd", badge="C", badge_fill="#2563eb", status="已接入", status_fill="#dbeafe", status_text="#1d4ed8")
+    node(lines, "workflow", 720, 760, 240, "LangGraph Workflow", "接收结构化事实", fill="#f3f4f6", stroke="#9ca3af", badge="LG", badge_fill="#6b7280", status="下一步", status_fill="#e5e7eb", status_text="#4b5563")
+    node(lines, "confirmation", 1100, 760, 250, "用户确认 / 重传", "OCR 失败或页面不清晰", fill="#f3f4f6", stroke="#9ca3af", badge="?", badge_fill="#6b7280", status="下一步", status_fill="#e5e7eb", status_text="#4b5563")
 
     add(lines, '<rect x="70" y="890" width="1460" height="82" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>')
     text(lines, 95, 919, "隐私边界", size=13, fill="#9a3412", weight=700)
