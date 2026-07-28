@@ -73,6 +73,8 @@
 
 ![合同条款与事实提取模块流程](docs/contract-extraction-module.png)
 
+![合同事实提取详细流程](docs/contract-fact-extraction-flow.png)
+
 ### 当前限制
 
 扫描 PDF 的 OCR 需要单独配置外部 OCR 服务；DOC/DOCX 无法稳定恢复 Word 原始分页、页眉页脚和浮动文本框，因此相关任务可能进入 `needs_confirmation`。用户合同不会写入 `rag_chunks` 或任何公共评测 Collection。
@@ -185,6 +187,7 @@ uv run ruff check backend evaluation data_worker
 - [合同上传 API](docs/api/backend.md)
 - [合同上传模块流程](docs/contract-upload-module.png)
 - [条款与事实提取模块流程](docs/contract-extraction-module.png)
+- [事实提取详细流程](docs/contract-fact-extraction-flow.png)
 - [整体开发状态流程图](docs/contract-review-workflow-status.png)
 - [自研三层检索算法](docs/self-developed-retrieval-algorithm.md)
 - [Qdrant v2 迁移记录](docs/retrieval-v2-migration.md)

@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1120" viewBox="0 0 1800 1120" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-schema-version="1" data-style-id="1" data-visual-theme="flat-icon" data-diagram-type="flowchart" data-semantic-profile="generic" data-quality-profile="standard" data-min-node-gap="40" data-min-container-gutter="20" data-min-label-clearance="4" data-min-segment-length="16">
+<title id="title">合同事实提取详细流程</title>
+<desc id="desc">展示脱敏文本如何经过正则与关键词条款切分、批量上下文构造、LLM 候选事实 JSON、Schema 校验、本地证据定位、事实规范化、置信度门禁、冲突检测和 PostgreSQL 持久化。</desc>
+<style>text{font-family:'Helvetica Neue',Helvetica,Arial,'PingFang SC','Microsoft YaHei','Microsoft JhengHei','SimHei',sans-serif;}</style>
+<defs>
+<marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#9333ea"/></marker>
+<marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#059669"/></marker>
+<marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ea580c"/></marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/></marker>
+</defs>
+<rect data-graph-role="background" width="1800" height="1120" fill="#ffffff"/>
+<text data-graph-role="label" x="60" y="48" font-size="28px" fill="#111827" font-weight="600" text-anchor="start">合同事实提取详细流程</text>
+<text data-graph-role="label" x="60" y="80" font-size="14px" fill="#6b7280" font-weight="400" text-anchor="start">规则负责结构，模型负责语义，本地代码负责证据与不确定性门禁</text>
+<text data-graph-role="label" x="1280" y="43" font-size="12px" fill="#6b7280" font-weight="600" text-anchor="start">图例</text>
+<line x1="1280" y1="64" x2="1310" y2="64" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" x="1320" y="68" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">确定性流程</text>
+<line x1="1430" y1="64" x2="1460" y2="64" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="1470" y="68" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">模型/变换</text>
+<line x1="1580" y1="64" x2="1610" y2="64" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="1620" y="68" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">证据/持久化</text>
+<rect data-graph-role="container" x="45" y="105" width="1710" height="260" rx="14" fill="#f8fbff" stroke="#bfdbfe" stroke-width="1.4"/>
+<rect data-graph-role="container" x="45" y="400" width="1710" height="300" rx="14" fill="#f8fafc" stroke="#d1d5db" stroke-width="1.4"/>
+<rect data-graph-role="container" x="45" y="735" width="1710" height="320" rx="14" fill="#fffdf8" stroke="#fed7aa" stroke-width="1.4"/>
+<text data-graph-role="label" x="70" y="135" font-size="16px" fill="#1d4ed8" font-weight="600" text-anchor="start">① 确定性条款切分 → 模型候选</text>
+<text data-graph-role="label" x="70" y="430" font-size="16px" fill="#374151" font-weight="600" text-anchor="start">② 候选 JSON → 本地证据定位与事实规范化</text>
+<text data-graph-role="label" x="70" y="765" font-size="16px" fill="#9a3412" font-weight="600" text-anchor="start">③ 状态门禁 → 冲突检测 → 可追溯结果</text>
+<path id="e-pages-split" data-edge-id="e-pages-split" data-graph-role="edge" data-source="redacted-pages" data-target="clause-splitter" d="M300 225 H380" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" x="340" y="207" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">脱敏页文本</text>
+<path id="e-split-schema" data-edge-id="e-split-schema" data-graph-role="edge" data-source="clause-splitter" data-target="clause-schema" d="M620 225 H700" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="660" y="207" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">条款块</text>
+<path id="e-schema-batch" data-edge-id="e-schema-batch" data-graph-role="edge" data-source="clause-schema" data-target="batch-context" d="M940 225 H1020" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" x="980" y="155" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">clause_id / page</text>
+<path id="e-batch-llm" data-edge-id="e-batch-llm" data-graph-role="edge" data-source="batch-context" data-target="llm-extractor" d="M1260 225 H1340" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="1300" y="155" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">脱敏条款 prompt</text>
+<path id="e-llm-candidate" data-edge-id="e-llm-candidate" data-graph-role="edge" data-source="llm-extractor" data-target="candidate-json" d="M1500 275 V490" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="1545" y="385" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">facts JSON</text>
+<path id="e-candidate-schema" data-edge-id="e-candidate-schema" data-graph-role="edge" data-source="candidate-json" data-target="schema-validation" d="M1350 540 H1240" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="1295" y="520" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">候选结构</text>
+<path id="e-schema-evidence" data-edge-id="e-schema-evidence" data-graph-role="edge" data-source="schema-validation" data-target="evidence-locator" d="M1000 540 H940" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" x="970" y="520" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">合法字段</text>
+<path id="e-evidence-normalizer" data-edge-id="e-evidence-normalizer" data-graph-role="edge" data-source="evidence-locator" data-target="fact-normalizer" d="M680 540 H620" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="650" y="520" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">证据列表</text>
+<path id="e-normalizer-facts" data-edge-id="e-normalizer-facts" data-graph-role="edge" data-source="fact-normalizer" data-target="fact-list" d="M360 540 H300" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" x="330" y="465" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">ContractFact</text>
+<path id="e-facts-gate" data-edge-id="e-facts-gate" data-graph-role="edge" data-source="fact-list" data-target="status-gate" d="M190 590 V650 H60 V825 H290" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<path id="e-gate-confirmed" data-edge-id="e-gate-confirmed" data-graph-role="edge" data-source="status-gate" data-target="confirmed-facts" d="M490 825 H580" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="535" y="790" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">是 / ready</text>
+<path id="e-gate-needs-confirmation" data-edge-id="e-gate-needs-confirmation" data-graph-role="edge" data-source="status-gate" data-target="needs-confirmation" d="M390 870 V930" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
+<text data-graph-role="label" x="450" y="905" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">否 / 追问</text>
+<path id="e-confirmed-contradictions" data-edge-id="e-confirmed-contradictions" data-graph-role="edge" data-source="confirmed-facts" data-target="contradiction-check" d="M840 820 H950" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<path id="e-needs-contradictions" data-edge-id="e-needs-contradictions" data-graph-role="edge" data-source="needs-confirmation" data-target="contradiction-check" d="M520 980 H900 V870 H950" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
+<text data-graph-role="label" x="700" y="965" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">仍需确认</text>
+<path id="e-contradictions-questions" data-edge-id="e-contradictions-questions" data-graph-role="edge" data-source="contradiction-check" data-target="confirmation-questions" d="M1090 870 V930" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
+<text data-graph-role="label" x="1150" y="905" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">冲突字段</text>
+<path id="e-questions-db" data-edge-id="e-questions-db" data-graph-role="edge" data-source="confirmation-questions" data-target="postgres" d="M1230 980 H1340" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="1285" y="960" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">facts + questions</text>
+<g id="redacted-pages" data-node-id="redacted-pages" data-graph-role="node" data-graph-bounds="80 175 300 275">
+<rect data-node-id="redacted-pages" x="80" y="175" width="220" height="100" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle data-node-id="redacted-pages" cx="111" cy="207" r="19" fill="#2563eb"/>
+<text data-graph-role="node" x="111" y="212" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">TXT</text>
+<text data-graph-role="node" x="145" y="206" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">脱敏页文本</text>
+<text data-graph-role="node" x="145" y="232" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">ContractPage / PII 已清理</text>
+<rect data-node-id="redacted-pages" x="206" y="245" width="80" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="246" y="260" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">输入</text>
+</g>
+<g id="clause-splitter" data-node-id="clause-splitter" data-graph-role="node" data-graph-bounds="380 175 620 275">
+<rect data-node-id="clause-splitter" x="380" y="175" width="240" height="100" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle data-node-id="clause-splitter" cx="411" cy="207" r="19" fill="#2563eb"/>
+<text data-graph-role="node" x="411" y="212" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">RE</text>
+<text data-graph-role="node" x="445" y="206" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">条款切分器</text>
+<text data-graph-role="node" x="445" y="232" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">逐行 + 编号/标题正则</text>
+<rect data-node-id="clause-splitter" x="526" y="245" width="80" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="566" y="260" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">本地</text>
+</g>
+<g id="clause-schema" data-node-id="clause-schema" data-graph-role="node" data-graph-bounds="700 175 940 275">
+<rect data-node-id="clause-schema" x="700" y="175" width="240" height="100" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<circle data-node-id="clause-schema" cx="731" cy="207" r="19" fill="#9333ea"/>
+<text data-graph-role="node" x="731" y="212" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">S</text>
+<text data-graph-role="node" x="765" y="206" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">ContractClause</text>
+<text data-graph-role="node" x="765" y="232" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">clause_id / type / page range</text>
+<rect data-node-id="clause-schema" x="846" y="245" width="80" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="886" y="260" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">结构</text>
+</g>
+<g id="batch-context" data-node-id="batch-context" data-graph-role="node" data-graph-bounds="1020 175 1260 275">
+<rect data-node-id="batch-context" x="1020" y="175" width="240" height="100" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<circle data-node-id="batch-context" cx="1051" cy="207" r="19" fill="#9333ea"/>
+<text data-graph-role="node" x="1051" y="212" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">B</text>
+<text data-graph-role="node" x="1085" y="206" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">批量上下文</text>
+<text data-graph-role="node" x="1085" y="232" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">最多 6 条 / 字符上限</text>
+<rect data-node-id="batch-context" x="1166" y="245" width="80" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="1206" y="260" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">变换</text>
+</g>
+<g id="llm-extractor" data-node-id="llm-extractor" data-graph-role="node" data-graph-bounds="1340 175 1660 275">
+<rect data-node-id="llm-extractor" x="1340" y="175" width="320" height="100" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<circle data-node-id="llm-extractor" cx="1371" cy="207" r="19" fill="#9333ea"/>
+<text data-graph-role="node" x="1371" y="212" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">LLM</text>
+<text data-graph-role="node" x="1405" y="206" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">LLM 候选事实提取</text>
+<text data-graph-role="node" x="1405" y="232" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">主体 / 期限 / 工资 / 社保 / …</text>
+<rect data-node-id="llm-extractor" x="1566" y="245" width="80" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="1606" y="260" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">可开关</text>
+</g>
+<g id="candidate-json" data-node-id="candidate-json" data-graph-role="node" data-graph-bounds="1350 490 1650 590">
+<rect data-node-id="candidate-json" x="1350" y="490" width="300" height="100" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<circle data-node-id="candidate-json" cx="1381" cy="522" r="19" fill="#9333ea"/>
+<text data-graph-role="node" x="1381" y="527" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">J</text>
+<text data-graph-role="node" x="1415" y="521" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">候选 facts JSON</text>
+<text data-graph-role="node" x="1415" y="547" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">value / quote / clause_ids / confidence</text>
+<rect data-node-id="candidate-json" x="1556" y="560" width="80" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="1596" y="575" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">模型输出</text>
+</g>
+<g id="schema-validation" data-node-id="schema-validation" data-graph-role="node" data-graph-bounds="1000 490 1240 590">
+<rect data-node-id="schema-validation" x="1000" y="490" width="240" height="100" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle data-node-id="schema-validation" cx="1031" cy="522" r="19" fill="#2563eb"/>
+<text data-graph-role="node" x="1031" y="527" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">V</text>
+<text data-graph-role="node" x="1065" y="521" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">Schema 校验</text>
+<text data-graph-role="node" x="1065" y="547" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">Pydantic；无效项丢弃并记录 warning</text>
+<rect data-node-id="schema-validation" x="1146" y="560" width="80" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="1186" y="575" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">本地</text>
+</g>
+<g id="evidence-locator" data-node-id="evidence-locator" data-graph-role="node" data-graph-bounds="680 490 940 590">
+<rect data-node-id="evidence-locator" x="680" y="490" width="260" height="100" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="evidence-locator" cx="711" cy="522" r="19" fill="#059669"/>
+<text data-graph-role="node" x="711" y="527" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">E</text>
+<text data-graph-role="node" x="745" y="521" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">EvidenceLocator</text>
+<text data-graph-role="node" x="745" y="547" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">exact → 空白规范化 fallback</text>
+<rect data-node-id="evidence-locator" x="846" y="560" width="80" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="886" y="575" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">本地</text>
+</g>
+<g id="fact-normalizer" data-node-id="fact-normalizer" data-graph-role="node" data-graph-bounds="360 490 620 590">
+<rect data-node-id="fact-normalizer" x="360" y="490" width="260" height="100" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle data-node-id="fact-normalizer" cx="391" cy="522" r="19" fill="#2563eb"/>
+<text data-graph-role="node" x="391" y="527" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">N</text>
+<text data-graph-role="node" x="425" y="521" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">FactNormalizer</text>
+<text data-graph-role="node" x="425" y="547" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">日期/文本清理 + 证据门禁</text>
+<rect data-node-id="fact-normalizer" x="526" y="560" width="80" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="566" y="575" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">本地</text>
+</g>
+<g id="fact-list" data-node-id="fact-list" data-graph-role="node" data-graph-bounds="80 490 300 590">
+<rect data-node-id="fact-list" x="80" y="490" width="220" height="100" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="fact-list" cx="111" cy="522" r="19" fill="#059669"/>
+<text data-graph-role="node" x="111" y="527" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">F</text>
+<text data-graph-role="node" x="145" y="521" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">ContractFact[]</text>
+<text data-graph-role="node" x="145" y="547" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">status / evidence / confidence</text>
+<rect data-node-id="fact-list" x="206" y="560" width="80" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="246" y="575" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">中间结果</text>
+</g>
+<rect data-graph-role="note" x="900" y="630" width="800" height="46" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>
+<text data-graph-role="note" x="925" y="658" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">隐私边界：只向模型发送脱敏文本；引用必须回到本地页文本重新定位，找不到证据不会自动确认。</text>
+<g id="status-gate" data-node-id="status-gate" data-graph-role="decision" data-graph-bounds="290 780 490 870">
+<polygon points="390,780 490,825 390,870 290,825" fill="#fff7ed" stroke="#ea580c" stroke-width="1.7"/>
+<text data-graph-role="node" x="390" y="821" font-size="13px" fill="#111827" font-weight="600" text-anchor="middle">证据足够?</text>
+<text data-graph-role="node" x="390" y="841" font-size="11px" fill="#9a3412" font-weight="400" text-anchor="middle">confidence ≥ 0.65</text>
+</g>
+<g id="confirmed-facts" data-node-id="confirmed-facts" data-graph-role="node" data-graph-bounds="580 770 840 870">
+<rect data-node-id="confirmed-facts" x="580" y="770" width="260" height="100" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="confirmed-facts" cx="611" cy="802" r="19" fill="#059669"/>
+<text data-graph-role="node" x="611" y="807" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">OK</text>
+<text data-graph-role="node" x="645" y="801" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">确认事实</text>
+<text data-graph-role="node" x="645" y="827" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">有证据且 confidence ≥ 0.65</text>
+<rect data-node-id="confirmed-facts" x="746" y="840" width="80" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="786" y="855" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">confirmed</text>
+</g>
+<g id="needs-confirmation" data-node-id="needs-confirmation" data-graph-role="node" data-graph-bounds="260 930 520 1030">
+<rect data-node-id="needs-confirmation" x="260" y="930" width="260" height="100" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
+<circle data-node-id="needs-confirmation" cx="291" cy="962" r="19" fill="#ea580c"/>
+<text data-graph-role="node" x="291" y="967" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">?</text>
+<text data-graph-role="node" x="325" y="961" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">待确认事实</text>
+<text data-graph-role="node" x="325" y="987" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">缺证据 / 低置信度 / 需追问</text>
+<rect data-node-id="needs-confirmation" x="426" y="1000" width="80" height="21" rx="11" fill="#fed7aa"/>
+<text data-graph-role="node" x="466" y="1015" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">needs_confirmation</text>
+</g>
+<g id="contradiction-check" data-node-id="contradiction-check" data-graph-role="node" data-graph-bounds="950 770 1230 870">
+<rect data-node-id="contradiction-check" x="950" y="770" width="280" height="100" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
+<circle data-node-id="contradiction-check" cx="981" cy="802" r="19" fill="#ea580c"/>
+<text data-graph-role="node" x="981" y="807" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">C</text>
+<text data-graph-role="node" x="1015" y="801" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">同名事实冲突检查</text>
+<text data-graph-role="node" x="1015" y="827" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">category + name 分组比较 normalized_value</text>
+<rect data-node-id="contradiction-check" x="1136" y="840" width="80" height="21" rx="11" fill="#fed7aa"/>
+<text data-graph-role="node" x="1176" y="855" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">本地</text>
+</g>
+<g id="confirmation-questions" data-node-id="confirmation-questions" data-graph-role="node" data-graph-bounds="950 930 1230 1030">
+<rect data-node-id="confirmation-questions" x="950" y="930" width="280" height="100" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle data-node-id="confirmation-questions" cx="981" cy="962" r="19" fill="#6b7280"/>
+<text data-graph-role="node" x="981" y="967" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">Q</text>
+<text data-graph-role="node" x="1015" y="961" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">确认问题生成</text>
+<text data-graph-role="node" x="1015" y="987" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">missing / contradicted / evidence 缺失</text>
+<rect data-node-id="confirmation-questions" x="1136" y="1000" width="80" height="21" rx="11" fill="#e5e7eb"/>
+<text data-graph-role="node" x="1176" y="1015" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">可追问</text>
+</g>
+<g id="postgres" data-node-id="postgres" data-graph-role="node" data-graph-bounds="1340 930 1640 1030">
+<rect data-node-id="postgres" x="1340" y="930" width="300" height="100" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="postgres" cx="1371" cy="962" r="19" fill="#336791"/>
+<text data-graph-role="node" x="1371" y="967" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">PG</text>
+<text data-graph-role="node" x="1405" y="961" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">PostgreSQL JSONB</text>
+<text data-graph-role="node" x="1405" y="987" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">extraction_status + extraction_result</text>
+<rect data-node-id="postgres" x="1546" y="1000" width="80" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1586" y="1015" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">持久化</text>
+</g>
+<rect data-graph-role="note" x="70" y="310" width="1100" height="36" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>
+<text data-graph-role="note" x="92" y="333" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">开关分支：CONTRACT_EXTRACTION_ENABLED=false 时保存条款并直接进入 needs_confirmation，不调用模型。</text>
+</svg>
