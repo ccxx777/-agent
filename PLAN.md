@@ -116,6 +116,7 @@
 
 ### P1：法律资料准备
 
+- [ ] 按 [`docs/labor-contract-legal-corpus-plan.md`](docs/labor-contract-legal-corpus-plan.md) 收集 P0 法律最小包、建立版本 metadata 和导入 manifest。
 - [ ] 收集并核验 A 级法律和司法解释的版本、生效日期、来源 URL、废止状态。
 - [ ] 收集 B 级官方案例，保留案号、法院、裁判日期、争议焦点和官方来源。
 - [ ] 为每条规则建立人工复核卡：适用前提、例外条件、证据需求和预期输出。
