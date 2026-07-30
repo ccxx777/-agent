@@ -10,7 +10,8 @@
 |---|---|---|
 | [`../README.md`](../README.md) | 项目定位、当前能力、启动方式和安全边界 | 当前总览 |
 | [`../PLAN.md`](../PLAN.md) | 开发阶段、完成项、下一步和验收门禁 | 当前计划 |
-| [`contract-review-workflow-status.png`](contract-review-workflow-status.png) | 已完成能力与待开发 Workflow 的总览图 | 当前状态 |
+| [`contract-review-workflow-status.png`](contract-review-workflow-status.png) | 已完成能力与待开发资料工作的总览图 | 当前状态 |
+| [`contract-review-workflow.png`](contract-review-workflow.png) | v0.1 事实确认、法律检索、规则卡片和报告节点 | Workflow 详细流程 |
 | [`contract-upload-module.png`](contract-upload-module.png) | PDF/DOC/DOCX 上传、解析、脱敏和质量门禁 | 已实现基础模块 |
 | [`contract-extraction-module.png`](contract-extraction-module.png) | 条款切分、结构化事实提取、证据定位和确认门禁 | 已实现基础模块 |
 | [`contract-fact-extraction-flow.png`](contract-fact-extraction-flow.png) | 事实提取内部步骤、状态门禁、冲突检测和结果持久化 | 详细流程 |
@@ -34,7 +35,7 @@
 
 ![合同审查 Workflow 当前状态](contract-review-workflow-status.png)
 
-当前已落地的是合同上传、文件格式解析、私有存储、页级质量判断、隐私脱敏、条款切分、结构化事实提取、证据定位和事实确认基础模块。A 级法律检索、B 级案例补充、规则风险分级和最终报告仍按 [`../PLAN.md`](../PLAN.md) 的顺序开发。
+当前已落地的是合同上传、文件格式解析、私有存储、页级质量判断、隐私脱敏、条款切分、结构化事实提取、证据定位、事实确认和 Workflow v0.1 基础编排。A/B 法律资料仍需导入和人工复核，报告持久化与前端展示按 [`../PLAN.md`](../PLAN.md) 的顺序开发。
 
 法律资料的具体收集范围、官方来源、版本核验、数据目录和入库前清单见 [`labor-contract-legal-corpus-plan.md`](labor-contract-legal-corpus-plan.md)。真实法律原文、案例和合同测试样本放在被 Git 忽略的 `data/legal/labor_contract/`，不提交到公开仓库。
 
@@ -45,6 +46,8 @@
 ![合同事实提取详细流程](contract-fact-extraction-flow.png)
 
 ![合同事实确认模块流程](contract-fact-confirmation-flow.png)
+
+![合同审查 Workflow v0.1](contract-review-workflow.png)
 
 事实确认模块使用 `GET/PUT /api/contract-reviews/{review_id}/confirmation`。它把 `original_value`、`user_value`、`effective_value` 和 `evidence` 分层保存；用户无法直接编辑页码、引用或字符偏移。`correct` 必须通过本地 `EvidenceLocator` 找到脱敏合同证据，`supplement` 则明确标记为用户来源。
 

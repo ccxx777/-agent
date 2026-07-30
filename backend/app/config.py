@@ -28,6 +28,13 @@ class Settings:
 
     qdrant_url: str = field(default_factory=lambda: os.getenv("QDRANT_URL", "http://db_qdrant:6333"))
     rag_collection: str = field(default_factory=lambda: os.getenv("RAG_COLLECTION", "rag_chunks"))
+    # 合同 Workflow 使用独立的法律资料库；不能误用通用 RAG 或 watsonx 评测库。
+    legal_a_collection: str = field(
+        default_factory=lambda: os.getenv("LEGAL_A_COLLECTION", "legal_labor_a_v1")
+    )
+    legal_b_collection: str = field(
+        default_factory=lambda: os.getenv("LEGAL_B_COLLECTION", "legal_labor_b_v1")
+    )
 
     # ── Embedding 服务 ──
     embedding_url: str = field(

@@ -1,6 +1,6 @@
 # 劳动合同风险审查助手（Agent + RAG）
 
-这是一个面向中国大陆劳动合同场景的 Agent + RAG 项目。当前仓库已经完成通用 RAG 主链、检索评测闭环和合同文件上传/解析基础模块；劳动法规则库、案例库和最终风险评估 Workflow 仍在开发中。
+这是一个面向中国大陆劳动合同场景的 Agent + RAG 项目。当前仓库已经完成通用 RAG 主链、检索评测闭环、合同文件上传/解析、事实提取/确认，以及可运行的劳动合同审查 Workflow v0.1；法律资料库导入和规则卡片的专家复核仍在进行中。
 
 > 当前产品定位：给用户提供可追溯的风险事实、法律依据、修改建议和待确认问题，**不替用户决定是否签署，也不构成律师意见或结果保证**。
 
@@ -15,8 +15,9 @@
 | 检索基线与 RAGAS | 已完成一轮完整基线 | 30 道 watsonxDocsQA 测试题，结果见下文 |
 | 合同上传与解析 | 已实现基础模块 | PDF、DOC、DOCX；私有存储、异步任务、质量状态、脱敏 |
 | 条款切分与事实提取 | 首版已接入 | 确定性条款切分、结构化事实 Schema、模型候选事实、本地证据定位；默认关闭外部模型调用 |
+| 合同审查 Workflow v0.1 | 已实现骨架 | 事实确认门禁、劳动合同范围检查、A 级法律检索、规则卡片、B 级案例补充和结构化报告；资料库未配置时安全降级 |
 | 扫描 PDF OCR | 接口已预留 | 默认关闭，需配置 OCR 服务后启用 |
-| 劳动法条款识别与风险分级 | 规划中 | 需要先准备 A 级法律资料、B 级官方案例和人工复核样本 |
+| 劳动法规则卡片与风险分级 | v0.1 已接入 | 规则节点只输出“可能冲突/待确认/观察”，不替代律师作最终法律结论 |
 | Web 合同审查前端 | 规划中 | 现有 React 前端暂不作为合同产品验收依据 |
 
 ## 已验证的通用 RAG 能力
@@ -91,7 +92,7 @@
 
 扫描 PDF 的 OCR 需要单独配置外部 OCR 服务；DOC/DOCX 无法稳定恢复 Word 原始分页、页眉页脚和浮动文本框，因此相关任务可能进入 `needs_confirmation`。用户合同不会写入 `rag_chunks` 或任何公共评测 Collection。
 
-## 目标产品 Workflow（规划）
+## 合同审查 Workflow v0.1
 
 首版只做全国通用的中国大陆劳动合同规则，不做地方性判断。产品流程按固定节点编排，先作为 Workflow 实现，再考虑是否开放更自由的 Agent 行为：
 
@@ -110,12 +111,16 @@
 
 风险等级由确定性规则和证据状态共同决定；LLM 负责提取、检索、解释和报告表达，不直接替代规则引擎做最终判定。事实不充分时，系统应降低结论置信度并继续追问，而不是编造答案。
 
+当前入口为 `POST /api/contract-reviews/{review_id}/workflow`。它必须先通过事实确认接口的 `ready_for_legal_review=true` 门禁；未确认时只返回待补充问题。A 级法律资料和 B 级案例分别使用 `LEGAL_A_COLLECTION`、`LEGAL_B_COLLECTION`，不会读取 `rag_chunks` 或 `watsonx_docsqa_colab_v2`。资料库未配置或检索失败时报告标记为 `partial`，不会把“没有检索结果”解释成“没有风险”。
+
+![合同审查 Workflow v0.1](docs/contract-review-workflow.png)
+
 ## 技术架构
 
 ```mermaid
 flowchart TB
     U[用户问题或合同] --> API[FastAPI Backend]
-    API --> G[LangGraph Workflow]
+    API --> G[通用 LangGraph Agent]
     G --> RS[RetrievalService]
     RS --> E[BGE-M3 Embedding Service]
     RS --> Q[Qdrant]
@@ -130,6 +135,13 @@ flowchart TB
     CS --> CP[PDF/DOC/DOCX Parser]
     CP --> RED[本地脱敏]
     RED --> PG
+    C --> CW[合同审查 Workflow v0.1]
+    CW --> FC[事实确认门禁]
+    FC --> LA[A 级法律检索]
+    LA --> RE[确定性规则卡片]
+    RE --> LB[B 级案例补充]
+    LB --> RP[风险报告]
+    RP --> PG
 ```
 
 ### 主要目录
@@ -139,10 +151,10 @@ flowchart TB
 ├── backend/                 # FastAPI、LangGraph、检索和合同上传后端
 │   ├── app/
 │   │   ├── api/             # chat、session、eval、contract-reviews
-│   │   ├── agent/           # State、Nodes、Tools、Prompts、Graph
+│   │   ├── agent/           # 通用 Agent 与合同审查 Workflow 图
 │   │   ├── infrastructure/  # Qdrant、PostgreSQL、Parser、OCR、私有存储
 │   │   ├── schemas/         # API、检索、合同和事实提取数据契约
-│   │   └── services/        # 认证、会话、检索、合同解析、提取和事实确认
+│   │   └── services/        # 认证、会话、检索、合同解析、提取、确认和规则审查
 │   ├── sql/                 # 初始化表和迁移
 │   └── tests/               # 后端单元测试
 ├── data_worker/             # 公共资料增量解析、向量化、写入
@@ -201,6 +213,7 @@ uv run ruff check backend evaluation data_worker
 - [条款与事实提取模块流程](docs/contract-extraction-module.png)
 - [事实提取详细流程](docs/contract-fact-extraction-flow.png)
 - [事实确认模块流程](docs/contract-fact-confirmation-flow.png)
+- [合同审查 Workflow v0.1](docs/contract-review-workflow.png)
 - [整体开发状态流程图](docs/contract-review-workflow-status.png)
 - [自研三层检索算法](docs/self-developed-retrieval-algorithm.md)
 - [Qdrant v2 迁移记录](docs/retrieval-v2-migration.md)

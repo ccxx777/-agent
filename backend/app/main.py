@@ -22,6 +22,7 @@ load_dotenv(dotenv_path=os.getenv("DOTENV_PATH", "/app/.env"), override=True)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.agent.contract_review_workflow import build_contract_review_workflow
 from app.agent.graph import get_compiled_graph
 from app.api.auth import create_auth_router
 from app.api.chat import create_chat_router
@@ -42,6 +43,7 @@ from app.services.chat_service import ChatService
 from app.services.contract_confirmation_service import ContractFactConfirmationService
 from app.services.contract_extraction_service import ContractExtractionService
 from app.services.contract_review_service import ContractReviewService
+from app.services.contract_review_workflow_service import ContractReviewWorkflowService
 from app.services.retrieval_service import RetrievalService
 from app.services.session_service import SessionService
 
@@ -96,13 +98,31 @@ async def lifespan(app: FastAPI):
         extraction_service=extraction_service,
     )
     contract_confirmation_service = ContractFactConfirmationService(contract_repository)
+    embedding_client = EmbeddingClient(settings.embedding_endpoint)
+    qdrant_gateway = QdrantGateway(settings.qdrant_url)
     retrieval_service = RetrievalService(
-        embedding_client=EmbeddingClient(settings.embedding_endpoint),
-        qdrant=QdrantGateway(settings.qdrant_url),
+        embedding_client=embedding_client,
+        qdrant=qdrant_gateway,
         reranker_model=settings.reranker_model,
         reranker_api_url=settings.reranker_api_url,
         reranker_api_key=settings.reranker_api_key,
         collection_name=settings.rag_collection,
+    )
+    legal_a_retrieval_service = RetrievalService(
+        embedding_client=embedding_client,
+        qdrant=qdrant_gateway,
+        reranker_model=settings.reranker_model,
+        reranker_api_url=settings.reranker_api_url,
+        reranker_api_key=settings.reranker_api_key,
+        collection_name=settings.legal_a_collection,
+    )
+    legal_b_retrieval_service = RetrievalService(
+        embedding_client=embedding_client,
+        qdrant=qdrant_gateway,
+        reranker_model=settings.reranker_model,
+        reranker_api_url=settings.reranker_api_url,
+        reranker_api_key=settings.reranker_api_key,
+        collection_name=settings.legal_b_collection,
     )
     graph = get_compiled_graph(
         pg_pool,
@@ -111,6 +131,13 @@ async def lifespan(app: FastAPI):
     )
     chat_service = ChatService(graph)
     session_service = SessionService(graph)
+    contract_review_workflow = build_contract_review_workflow(
+        repository=contract_repository,
+        confirmation_service=contract_confirmation_service,
+        legal_retrieval_service=legal_a_retrieval_service,
+        case_retrieval_service=legal_b_retrieval_service,
+    )
+    contract_review_workflow_service = ContractReviewWorkflowService(contract_review_workflow)
 
     app.state.auth_service = auth_service
     app.state.retrieval_service = retrieval_service
@@ -118,6 +145,7 @@ async def lifespan(app: FastAPI):
     app.state.session_service = session_service
     app.state.contract_review_service = contract_review_service
     app.state.contract_confirmation_service = contract_confirmation_service
+    app.state.contract_review_workflow_service = contract_review_workflow_service
     contract_recovery_task = asyncio.create_task(contract_review_service.resume_pending())
     app.state.contract_recovery_task = contract_recovery_task
 
@@ -128,6 +156,7 @@ async def lifespan(app: FastAPI):
         create_contract_review_router(
             contract_review_service,
             contract_confirmation_service,
+            contract_review_workflow_service,
         )
     )
     app.include_router(create_eval_router(chat_service))

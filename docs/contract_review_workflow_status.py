@@ -1,7 +1,7 @@
 """生成劳动合同审查助手的当前状态流图。
 
 图中的蓝色/青色节点表示已经实现或可以直接复用的能力；
-灰色节点表示首版合同审查产品需要补齐的开发内容。
+灰色节点表示法律资料、专家复核、持久化和前端展示等仍需补齐的内容。
 该脚本只生成文档图，不会访问运行中的服务，也不会写入 data/。
 """
 
@@ -231,7 +231,7 @@ def build_svg() -> str:
     add(lines, "<title id=\"title\">劳动合同风险审查助手：当前状态与近期开发工作</title>")
     add(
         lines,
-        '<desc id="desc">上方为已经完成的通用 RAG 能力；下方展示劳动合同审查 Workflow，其中合同上传、PDF/DOC/DOCX 文档解析、隐私脱敏、任务状态、条款切分、结构化事实提取和证据定位已完成，其余节点仍待补齐。</desc>',
+        '<desc id="desc">上方为已经完成的通用 RAG 能力；下方展示劳动合同审查 Workflow v0.1，其中合同上传、解析、隐私脱敏、事实提取、事实确认门禁、A/B 检索适配、确定性规则和结构化报告已经接入；法律资料导入、专家复核、报告持久化和前端仍待补齐。</desc>',
     )
     add(
         lines,
@@ -277,7 +277,7 @@ def build_svg() -> str:
     add(lines, '<rect data-graph-role="container" x="50" y="112" width="1500" height="290" rx="14" fill="#f8fbff" stroke="#bfdbfe" stroke-width="1.4"/>')
     add(lines, '<rect data-graph-role="container" x="50" y="430" width="1500" height="500" rx="14" fill="#fafafa" stroke="#d1d5db" stroke-width="1.4"/>')
     text(lines, 76, 144, "当前已完成 / 已验证：通用 Agent + RAG 主链", size=16, fill="#1d4ed8", weight=600)
-    text(lines, 76, 470, "马上需要开发：劳动合同审查 Workflow（首版）", size=16, fill="#374151", weight=600)
+    text(lines, 76, 470, "当前状态：劳动合同审查 Workflow v0.1 与后续补齐项", size=16, fill="#374151", weight=600)
     text(lines, 1320, 144, "当前线上能力", size=12, fill="#2563eb", weight=600, anchor="end")
     text(lines, 1475, 470, "灰色 = 近期开发项", size=12, fill="#6b7280", weight=600, anchor="end")
 
@@ -301,7 +301,7 @@ def build_svg() -> str:
         label_y=378,
     )
 
-    # Future contract review flow edges.
+    # Contract review v0.1 path; gray/teal nodes below identify remaining work.
     edge(lines, "e-upload-parse", "M270 558 H315", color="#6b7280", marker="arrow-gray", source="contract-upload", target="parse")
     edge(lines, "e-parse-task", "M515 558 H560", color="#6b7280", marker="arrow-gray", source="parse", target="review-task")
     edge(lines, "e-task-clause", "M760 558 H805", color="#6b7280", marker="arrow-gray", source="review-task", target="clause-facts")
@@ -356,17 +356,17 @@ def build_svg() -> str:
     node(lines, "fact-placeholder", 1050, 510, 220, "事实确认", "五类动作 / revision / 审计", fill="#eff6ff", stroke="#93c5fd", badge="F", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
     decision(lines, "fact-decision", 1415, 558, 90, 52)
     node(lines, "clarification", 1180, 655, 300, "补充问题 / 暂停", "补充、标记不适用或暂不确认", fill="#eff6ff", stroke="#93c5fd", badge="?", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
-    node(lines, "contract-workflow", 80, 765, 240, "合同审查 Workflow", "LangGraph 节点解耦", fill="#f3f4f6", stroke="#9ca3af", badge="WG", badge_fill="#6b7280", status="需扩展", status_fill="#e5e7eb", status_text="#4b5563")
-    node(lines, "legal-rag", 370, 765, 240, "法律检索适配", "复用混合召回骨架", fill="#f0fdfa", stroke="#5eead4", badge="R", badge_fill="#0f766e", status="待接入", status_fill="#e5e7eb", status_text="#4b5563")
-    node(lines, "rule-engine", 660, 765, 240, "确定性规则引擎", "规则决定风险等级", fill="#f3f4f6", stroke="#9ca3af", badge="R", badge_fill="#6b7280", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
-    node(lines, "risk-report", 950, 765, 240, "风险事实 + 建议", "等级、置信度、法律依据", fill="#f3f4f6", stroke="#9ca3af", badge="REP", badge_fill="#6b7280", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
+    node(lines, "contract-workflow", 80, 765, 240, "合同审查 Workflow", "事实门禁 → 范围 → 检索 → 规则", fill="#eff6ff", stroke="#93c5fd", badge="WG", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
+    node(lines, "legal-rag", 370, 765, 240, "法律检索适配", "A 级法律 / B 级案例 Collection", fill="#f0fdfa", stroke="#5eead4", badge="R", badge_fill="#0f766e", status="已接入", status_fill="#ccfbf1", status_text="#0f766e")
+    node(lines, "rule-engine", 660, 765, 240, "确定性规则引擎", "17 张规则卡片 / 风险提示", fill="#eff6ff", stroke="#93c5fd", badge="R", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
+    node(lines, "risk-report", 950, 765, 240, "风险事实 + 建议", "等级、法律来源、待确认问题", fill="#eff6ff", stroke="#93c5fd", badge="REP", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "task-ui", 1240, 765, 240, "任务型 Web 前端", "上传 / 追问 / 报告", fill="#f3f4f6", stroke="#9ca3af", badge="UI", badge_fill="#6b7280", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
 
     # Parallel work notes.
     add(lines, '<rect x="80" y="875" width="700" height="42" rx="9" fill="#ffffff" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="7,5"/>')
-    text(lines, 102, 901, "并行支线：法律 A 级来源、官方 B 级案例、规则卡与人工复核（不阻塞骨架开发）", size=12, fill="#4b5563", weight=600)
+    text(lines, 102, 901, "灰色后续：A/B 法律资料导入、规则卡专家复核、报告持久化和前端展示", size=12, fill="#4b5563", weight=600)
     add(lines, '<rect x="830" y="875" width="680" height="42" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1.3"/>')
-    text(lines, 852, 901, "本轮已交付：上传 → 解析 → PII 脱敏 → 条款切分 → 事实提取 → 证据定位 → 事实确认（法律规则仍待接入）", size=12, fill="#374151", weight=600)
+    text(lines, 852, 901, "v0.1 已交付：上传 → 解析 → 脱敏 → 条款/事实 → 证据 → 确认 → A/B 检索 → 规则 → 报告", size=12, fill="#374151", weight=600)
 
     add(lines, "</svg>")
     return "\n".join(lines) + "\n"

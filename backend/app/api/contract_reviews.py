@@ -12,6 +12,7 @@ from app.schemas.contract_confirmation import (
     FactConfirmationRequest,
 )
 from app.schemas.contract_review import ContractReviewDetail, ContractReviewSummary
+from app.schemas.contract_review_workflow import ContractReviewWorkflowResponse
 from app.services.contract_confirmation_service import (
     ContractConfirmationError,
     ContractFactConfirmationService,
@@ -20,6 +21,10 @@ from app.services.contract_review_service import (
     ContractReviewService,
     ContractUploadError,
 )
+from app.services.contract_review_workflow_service import (
+    ContractReviewWorkflowError,
+    ContractReviewWorkflowService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +32,7 @@ logger = logging.getLogger(__name__)
 def create_contract_review_router(
     service: ContractReviewService,
     confirmation_service: ContractFactConfirmationService | None = None,
+    workflow_service: ContractReviewWorkflowService | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/contract-reviews", tags=["Contract Reviews"])
 
@@ -99,6 +105,25 @@ def create_contract_review_router(
         if result is None:
             raise HTTPException(status_code=404, detail="合同审查任务不存在")
         return result
+
+    @router.post("/{review_id}/workflow", response_model=ContractReviewWorkflowResponse)
+    async def run_contract_review_workflow(
+        review_id: str,
+        user: dict = Depends(get_current_user),  # noqa: B008 - FastAPI dependency declaration
+    ) -> ContractReviewWorkflowResponse:
+        """在事实确认门禁通过后运行劳动合同审查 Workflow。"""
+
+        if workflow_service is None:
+            raise HTTPException(status_code=503, detail="合同审查 Workflow 尚未启用")
+        try:
+            return await workflow_service.run(review_id, user["user_id"])
+        except ContractReviewWorkflowError as error:
+            message = str(error)
+            status_code = 404 if "不存在" in message or "无权" in message else 409
+            raise HTTPException(status_code=status_code, detail=message) from error
+        except Exception as error:
+            logger.exception("Contract review workflow API failed: review_id=%s", review_id)
+            raise HTTPException(status_code=500, detail="合同审查暂时失败，请稍后重试") from error
 
     @router.get("/{review_id}", response_model=ContractReviewDetail)
     async def get_contract_review(

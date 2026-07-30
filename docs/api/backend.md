@@ -1,6 +1,6 @@
 # Backend API：FastAPI + LangGraph
 
-> 本文描述当前源码已经挂载的接口。合同法律规则和最终报告节点尚未实现；当前合同接口已覆盖上传、解析、脱敏、事实提取和事实确认基础层。
+> 本文描述当前源码已经挂载的接口。合同接口已覆盖上传、解析、脱敏、事实提取、事实确认和 Workflow v0.1；法律资料导入、规则卡片专家复核、报告持久化和前端展示仍在进行中。
 
 | 服务 | 端口 | 职责 |
 |---|---:|---|
@@ -173,6 +173,54 @@ curl -X PUT http://127.0.0.1:8000/api/contract-reviews/$REVIEW_ID/confirmation \
 
 提交成功后，`confirmation_status` 为 `pending`、`in_progress` 或 `completed`；只有 `completed` 且没有 `unresolved_questions` 时，`ready_for_legal_review` 才为 `true`。确认层不替用户决定是否签署合同。
 
+## POST /api/contract-reviews/{review_id}/workflow
+
+运行首版劳动合同审查 Workflow。该接口不会重新读取原始文件，而是读取经过证据定位和用户确认的事实快照。
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/contract-reviews/$REVIEW_ID/workflow \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+执行路径为：事实加载 → 确认门禁 → 全国劳动合同范围检查 → A 级法律检索 → 确定性规则卡片 → B 级官方案例补充 → 结构化报告。
+
+### 状态和安全行为
+
+| `workflow_status` | 含义 |
+|---|---|
+| `awaiting_confirmation` | 事实尚未确认，只返回 `pending_questions`，不生成确定性风险结论 |
+| `completed` | 规则、法律检索和可选案例节点正常完成 |
+| `partial` | 资料库未配置或检索失败；保留事实层提示并显示 `warnings` |
+| `out_of_scope` | 当前版本无法识别为全国通用劳动合同 |
+
+响应示例：
+
+```json
+{
+  "review_id": "...",
+  "workflow_status": "partial",
+  "report": {
+    "scope": "labor_contract_national",
+    "findings": [
+      {
+        "rule_id": "LC-010",
+        "risk_level": "high",
+        "finding_type": "possible_conflict",
+        "summary": "合同出现不缴纳或放弃社会保险的表述。",
+        "legal_references": ["社会保险法第四条、第五十八条、第六十条"],
+        "recommendation": "确认实际参保主体、参保地和缴费记录。"
+      }
+    ],
+    "pending_questions": [],
+    "legal_sources": [],
+    "case_sources": [],
+    "warnings": ["A 级资料检索暂时不可用"]
+  }
+}
+```
+
+报告中的 `risk_level` 是当前证据下的提示强度，不等于司法结论；`disclaimer` 明确说明不构成律师意见、签署决定或结果担保。原始合同仍只保存在私有目录，不进入法律资料 Collection。
+
 ## 合同隐私处理
 
 在文本进入 Embedding、Reranker、LLM 或日志之前执行：
@@ -196,6 +244,8 @@ curl -X PUT http://127.0.0.1:8000/api/contract-reviews/$REVIEW_ID/confirmation \
 - `CONTRACT_DOCUMENT_TIMEOUT`
 - `CONTRACT_OCR_ENABLED`、`CONTRACT_OCR_BASE_URL`、`CONTRACT_OCR_API_KEY`、`CONTRACT_OCR_MODEL`
 - `CONTRACT_EXTRACTION_ENABLED`（默认 `false`）、`CONTRACT_EXTRACTION_BATCH_CLAUSES`（默认 `6`）、`CONTRACT_EXTRACTION_MAX_CHARS`（默认 `12000`）
+- `LEGAL_A_COLLECTION`（默认 `legal_labor_a_v1`）：全国通用 A 级法律资料
+- `LEGAL_B_COLLECTION`（默认 `legal_labor_b_v1`）：官方 B 级案例资料
 
 旧 PostgreSQL 需要按顺序执行 `backend/sql/migrations/002-contract-review.sql`、`backend/sql/migrations/003-contract-extraction.sql` 和 `backend/sql/migrations/004-contract-confirmation.sql`；新建数据库会执行 `backend/sql/init/03-contract-review.sql`。
 
