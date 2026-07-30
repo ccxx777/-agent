@@ -19,6 +19,7 @@ from app.schemas.contract_extraction import (
     ContractExtractionResult,
     ContractFactDraft,
     ExtractionStatus,
+    FactStatus,
 )
 from app.services.contract_clause_extractor import (
     ContractClauseSplitter,
@@ -238,6 +239,28 @@ class ContractExtractionService:
 
             facts = self.normalizer.mark_contradictions(facts)
             questions = self.normalizer.confirmation_questions(facts)
+            question_items = []
+            uncertain_facts = [fact for fact in facts if fact.needs_confirmation]
+            for fact, question in zip(uncertain_facts, questions, strict=False):
+                reason = "low_confidence"
+                if fact.status is FactStatus.MISSING:
+                    reason = "missing"
+                elif fact.status is FactStatus.CONTRADICTED:
+                    reason = "contradicted"
+                elif fact.status is FactStatus.AMBIGUOUS:
+                    reason = "ambiguous"
+                elif not fact.evidence:
+                    reason = "no_evidence"
+                question_items.append(
+                    {
+                        "question_id": f"question:{fact.fact_id}",
+                        "fact_id": fact.fact_id,
+                        "reason": reason,
+                        "question_text": question,
+                        "input_type": "text",
+                        "required": True,
+                    }
+                )
             if not clauses and "请确认合同文本是否完整且可读取。" not in questions:
                 questions.append("请确认合同文本是否完整且可读取。")
             elif clauses and not facts and "请确认合同中是否包含可识别的劳动合同事实。" not in questions:
@@ -248,6 +271,7 @@ class ContractExtractionService:
                 clauses=clauses,
                 facts=facts,
                 confirmation_questions=questions,
+                confirmation_question_items=question_items,
                 warnings=warnings,
                 model=self.model_name,
                 extracted_at=datetime.now(UTC),

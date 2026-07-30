@@ -1,6 +1,6 @@
 # Backend API：FastAPI + LangGraph
 
-> 本文描述当前源码已经挂载的接口。合同审查 Workflow 的法律规则节点尚未实现，当前合同接口只负责上传、解析、脱敏和质量状态。
+> 本文描述当前源码已经挂载的接口。合同法律规则和最终报告节点尚未实现；当前合同接口已覆盖上传、解析、脱敏、事实提取和事实确认基础层。
 
 | 服务 | 端口 | 职责 |
 |---|---:|---|
@@ -132,6 +132,47 @@ queued → extracting → ready
 
 `needs_confirmation` 表示文本层不足、OCR 未配置/失败或页边界无法可靠恢复；它不等于“合同没有风险”。
 
+## GET /api/contract-reviews/{review_id}/confirmation
+
+读取事实确认表单。响应中的 `original_value` 是模型在脱敏合同上的原始提取结果，`user_value` 是用户输入，`effective_value` 才是后续规则层允许读取的值；三者不会互相覆盖。
+
+```bash
+curl http://127.0.0.1:8000/api/contract-reviews/$REVIEW_ID/confirmation \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+`questions` 与 `unresolved_questions` 是绑定到 `fact_id` 的结构化问题。只有事实提取完成后才会有可确认内容；提取尚未完成时返回 `409`。
+
+## PUT /api/contract-reviews/{review_id}/confirmation
+
+保存确认草稿或提交确认。`base_revision` 必须等于当前响应中的 `confirmation_revision`，否则返回 `409`，客户端应重新读取表单。`request_id` 可选，但建议由客户端为每次提交生成稳定值，以支持网络重试幂等。
+
+```bash
+curl -X PUT http://127.0.0.1:8000/api/contract-reviews/$REVIEW_ID/confirmation \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "base_revision": 0,
+    "submit": true,
+    "request_id": "confirm-term-20260730-01",
+    "items": [
+      {"fact_id": "fact_002", "action": "supplement", "value": "12个月"}
+    ]
+  }'
+```
+
+每条 `items` 只允许以下五种动作：
+
+| `action` | 行为 | 证据与有效来源 |
+|---|---|---|
+| `confirm` | 接受原始提取值 | 必须已有合同证据，来源为 `contract` |
+| `correct` | 用户指出合同中的正确值 | 服务会在脱敏合同中重新定位；找不到时返回 `422`，提示改用 `supplement` |
+| `supplement` | 合同缺失，由用户补充背景事实 | 保存 `user_value`，来源为 `user`，不生成合同证据 |
+| `not_applicable` | 明确该字段对本合同不适用 | 有效值为空，来源为 `none` |
+| `defer` | 暂不确认 | 保留待办，不允许进入最终法律结论 |
+
+提交成功后，`confirmation_status` 为 `pending`、`in_progress` 或 `completed`；只有 `completed` 且没有 `unresolved_questions` 时，`ready_for_legal_review` 才为 `true`。确认层不替用户决定是否签署合同。
+
 ## 合同隐私处理
 
 在文本进入 Embedding、Reranker、LLM 或日志之前执行：
@@ -156,7 +197,7 @@ queued → extracting → ready
 - `CONTRACT_OCR_ENABLED`、`CONTRACT_OCR_BASE_URL`、`CONTRACT_OCR_API_KEY`、`CONTRACT_OCR_MODEL`
 - `CONTRACT_EXTRACTION_ENABLED`（默认 `false`）、`CONTRACT_EXTRACTION_BATCH_CLAUSES`（默认 `6`）、`CONTRACT_EXTRACTION_MAX_CHARS`（默认 `12000`）
 
-旧 PostgreSQL 需要执行 `backend/sql/migrations/002-contract-review.sql` 和 `backend/sql/migrations/003-contract-extraction.sql`；新建数据库会执行 `backend/sql/init/03-contract-review.sql`。
+旧 PostgreSQL 需要按顺序执行 `backend/sql/migrations/002-contract-review.sql`、`backend/sql/migrations/003-contract-extraction.sql` 和 `backend/sql/migrations/004-contract-confirmation.sql`；新建数据库会执行 `backend/sql/init/03-contract-review.sql`。
 
 ## 运行与验证
 

@@ -7,6 +7,7 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.contract_confirmation import ConfirmationStatus
 from app.schemas.contract_extraction import ContractExtractionResult, ExtractionStatus
 
 
@@ -69,6 +70,8 @@ class ContractReviewSummary(BaseModel):
     quality: ContractQuality | None = None
     privacy: PrivacyReport | None = None
     extraction_status: ExtractionStatus = ExtractionStatus.NOT_STARTED
+    confirmation_status: ConfirmationStatus = ConfirmationStatus.NOT_STARTED
+    confirmation_revision: int = Field(default=0, ge=0)
     error_message: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

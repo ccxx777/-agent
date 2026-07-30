@@ -105,7 +105,11 @@ class ContractFactDraft(BaseModel):
 
 
 class ContractFact(BaseModel):
-    """经过本地校验和证据定位后的结构化事实。"""
+    """经过本地校验和证据定位后的结构化事实。
+
+    ``value`` 是不可变的模型原始值。确认层可以在旁边写入用户值和有效值，
+    但不会回写或删除该原始值及其证据。
+    """
 
     fact_id: str
     category: str
@@ -118,6 +122,11 @@ class ContractFact(BaseModel):
     source_clause_ids: list[str] = Field(default_factory=list)
     needs_confirmation: bool = False
     note: str | None = None
+    user_value: Any = None
+    effective_value: Any = None
+    effective_source: str = "none"
+    confirmation_state: str = "unreviewed"
+    confirmation_note: str | None = None
 
 
 class ContractExtractionResult(BaseModel):
@@ -127,7 +136,7 @@ class ContractExtractionResult(BaseModel):
     clauses: list[ContractClause] = Field(default_factory=list)
     facts: list[ContractFact] = Field(default_factory=list)
     confirmation_questions: list[str] = Field(default_factory=list)
+    confirmation_question_items: list[dict[str, Any]] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     model: str | None = None
     extracted_at: datetime | None = None
-

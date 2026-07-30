@@ -39,6 +39,7 @@ from app.infrastructure.postgres import close_postgres_pool, create_postgres_poo
 from app.infrastructure.qdrant import QdrantGateway
 from app.services.auth_service import AuthService
 from app.services.chat_service import ChatService
+from app.services.contract_confirmation_service import ContractFactConfirmationService
 from app.services.contract_extraction_service import ContractExtractionService
 from app.services.contract_review_service import ContractReviewService
 from app.services.retrieval_service import RetrievalService
@@ -94,6 +95,7 @@ async def lifespan(app: FastAPI):
         max_pages=settings.contract_max_pages,
         extraction_service=extraction_service,
     )
+    contract_confirmation_service = ContractFactConfirmationService(contract_repository)
     retrieval_service = RetrievalService(
         embedding_client=EmbeddingClient(settings.embedding_endpoint),
         qdrant=QdrantGateway(settings.qdrant_url),
@@ -115,13 +117,19 @@ async def lifespan(app: FastAPI):
     app.state.chat_service = chat_service
     app.state.session_service = session_service
     app.state.contract_review_service = contract_review_service
+    app.state.contract_confirmation_service = contract_confirmation_service
     contract_recovery_task = asyncio.create_task(contract_review_service.resume_pending())
     app.state.contract_recovery_task = contract_recovery_task
 
     app.include_router(create_auth_router(auth_service))
     app.include_router(create_chat_router(chat_service))
     app.include_router(create_sessions_router(session_service))
-    app.include_router(create_contract_review_router(contract_review_service))
+    app.include_router(
+        create_contract_review_router(
+            contract_review_service,
+            contract_confirmation_service,
+        )
+    )
     app.include_router(create_eval_router(chat_service))
 
     logger.info("Backend ready")

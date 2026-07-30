@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import uuid4
 
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import AsyncConnectionPool
+
+
+class ConfirmationRevisionConflict(RuntimeError):
+    """事实确认提交基于过期 revision，调用方应重新读取表单。"""
 
 
 class ContractReviewRepository:
@@ -128,6 +133,8 @@ class ContractReviewRepository:
                     SELECT review_id, user_id, filename, content_type, size_bytes,
                            sha256, storage_path, status, page_count, quality,
                            privacy, extraction_status, extraction_result,
+                           confirmation_status, confirmation_revision,
+                           confirmation_result, confirmed_at,
                            error_message, created_at, updated_at
                     FROM contract_review_tasks
                     WHERE review_id = %s AND user_id = %s
@@ -149,6 +156,92 @@ class ContractReviewRepository:
                 )
                 task["pages"] = await cur.fetchall()
                 return dict(task)
+
+    async def get_confirmation_request(
+        self,
+        review_id: str,
+        user_id: str,
+        request_id: str,
+    ) -> dict[str, Any] | None:
+        """查询已经处理过的 request_id，用于客户端重试幂等。"""
+
+        async with self._pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT c.confirmation_id, c.request_id, t.confirmation_revision,
+                       t.confirmation_status, t.confirmation_result
+                FROM contract_review_fact_confirmations c
+                JOIN contract_review_tasks t ON t.review_id = c.review_id
+                WHERE c.review_id = %s AND t.user_id = %s AND c.request_id = %s
+                ORDER BY c.created_at DESC
+                LIMIT 1
+                """,
+                (review_id, user_id, request_id),
+            )
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+    async def save_confirmation_state(
+        self,
+        review_id: str,
+        user_id: str,
+        *,
+        expected_revision: int,
+        status: str,
+        snapshot: dict[str, Any],
+        events: list[dict[str, Any]],
+        request_id: str | None,
+    ) -> int:
+        """以乐观锁原子写入快照和追加式确认事件。"""
+
+        async with self._pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
+            await cur.execute(
+                """
+                UPDATE contract_review_tasks
+                SET confirmation_status = %s,
+                    confirmation_revision = confirmation_revision + 1,
+                    confirmation_result = %s,
+                    confirmed_at = CASE WHEN %s = 'completed' THEN NOW() ELSE confirmed_at END,
+                    updated_at = NOW()
+                WHERE review_id = %s AND user_id = %s
+                  AND confirmation_revision = %s
+                RETURNING confirmation_revision
+                """,
+                (
+                    status,
+                    Jsonb(snapshot),
+                    status,
+                    review_id,
+                    user_id,
+                    expected_revision,
+                ),
+            )
+            row = await cur.fetchone()
+            if row is None:
+                raise ConfirmationRevisionConflict(review_id)
+            new_revision = int(row[0])
+
+            for event in events:
+                await cur.execute(
+                    """
+                    INSERT INTO contract_review_fact_confirmations
+                        (confirmation_id, review_id, fact_id, action, user_value,
+                         note, base_revision, request_id, created_by)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        str(uuid4()),
+                        review_id,
+                        event["fact_id"],
+                        event["action"],
+                        Jsonb(event.get("user_value")) if event.get("user_value") is not None else None,
+                        event.get("note"),
+                        expected_revision,
+                        request_id,
+                        user_id,
+                    ),
+                )
+            return new_revision
 
     async def get_pages(self, review_id: str) -> list[dict[str, Any]]:
         """恢复事实提取时读取已经保存的脱敏页文本。"""

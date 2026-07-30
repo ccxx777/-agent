@@ -94,6 +94,17 @@
 - [ ] 检查真实合同不会进入 `data_worker`、Qdrant 或公开评测结果。
 - [ ] 检查脱敏前后字段、零宽字符计数、日志和 API 响应均不泄露原始敏感值。
 
+### 3.6 事实确认基础模块
+
+- [x] 新增 `contract_confirmation.py`：定义五类用户动作、确认状态、有效来源、结构化问题、revision 请求和表单响应。
+- [x] 扩展 `ContractFact`：保留原始 `value`，并分层保存 `user_value`、`effective_value`、`effective_source` 和确认状态。
+- [x] 新增 `ContractFactConfirmationService`：提供确认、合同内修正、用户补充、不适用和暂不确认的确定性状态转换。
+- [x] `correct` 必须通过本地 `EvidenceLocator` 在脱敏合同中重新找到证据；找不到时不能伪造合同事实。
+- [x] 新增 `GET/PUT /api/contract-reviews/{review_id}/confirmation`，使用 `base_revision` 乐观锁和 `request_id` 幂等重试。
+- [x] 新增 `004-contract-confirmation.sql` 及初始化表结构，保存确认快照和追加式事件审计。
+- [x] 只有必答问题解决并显式提交后才允许 `ready_for_legal_review=true`；事实确认不输出法律风险结论。
+- [x] 新增确认层单元测试，覆盖五类动作、证据失败、原始值保留、版本冲突和幂等。
+
 ### P1：合同审查 Workflow 第一版
 
 - [x] 建立劳动合同条款与事实 Schema：主体、期限、试用期、工作地点、岗位、薪资、工时休息、社保、解除、违约金、竞业、保密等。

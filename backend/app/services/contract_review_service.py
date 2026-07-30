@@ -250,6 +250,8 @@ class ContractReviewService:
             quality=record.get("quality"),
             privacy=record.get("privacy"),
             extraction_status=record.get("extraction_status") or ExtractionStatus.NOT_STARTED.value,
+            confirmation_status=record.get("confirmation_status") or "not_started",
+            confirmation_revision=int(record.get("confirmation_revision") or 0),
             error_message=record.get("error_message"),
             created_at=record.get("created_at"),
             updated_at=record.get("updated_at"),

@@ -353,9 +353,9 @@ def build_svg() -> str:
     node(lines, "parse", 315, 510, 200, "解析与质量检查", "PDF / OOXML / antiword / OCR 门禁", fill="#eff6ff", stroke="#93c5fd", badge="P", badge_fill="#2563eb", status="已完成", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "review-task", 560, 510, 200, "审查任务状态", "PostgreSQL / 两套状态 / 恢复", fill="#eff6ff", stroke="#93c5fd", badge="T", badge_fill="#2563eb", status="已完成", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "clause-facts", 805, 510, 200, "条款与事实提取", "结构化 + 脱敏证据定位", fill="#eff6ff", stroke="#93c5fd", badge="C", badge_fill="#2563eb", status="已完成", status_fill="#dbeafe", status_text="#1d4ed8")
-    node(lines, "fact-placeholder", 1050, 510, 220, "事实确认", "缺失 / 冲突字段可暂停", fill="#f3f4f6", stroke="#9ca3af", badge="F", badge_fill="#6b7280", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
+    node(lines, "fact-placeholder", 1050, 510, 220, "事实确认", "五类动作 / revision / 审计", fill="#eff6ff", stroke="#93c5fd", badge="F", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
     decision(lines, "fact-decision", 1415, 558, 90, 52)
-    node(lines, "clarification", 1180, 655, 300, "补充问题 / 暂停", "用户补充事实后恢复任务", fill="#f3f4f6", stroke="#9ca3af", badge="?", badge_fill="#7c3aed", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
+    node(lines, "clarification", 1180, 655, 300, "补充问题 / 暂停", "补充、标记不适用或暂不确认", fill="#eff6ff", stroke="#93c5fd", badge="?", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "contract-workflow", 80, 765, 240, "合同审查 Workflow", "LangGraph 节点解耦", fill="#f3f4f6", stroke="#9ca3af", badge="WG", badge_fill="#6b7280", status="需扩展", status_fill="#e5e7eb", status_text="#4b5563")
     node(lines, "legal-rag", 370, 765, 240, "法律检索适配", "复用混合召回骨架", fill="#f0fdfa", stroke="#5eead4", badge="R", badge_fill="#0f766e", status="待接入", status_fill="#e5e7eb", status_text="#4b5563")
     node(lines, "rule-engine", 660, 765, 240, "确定性规则引擎", "规则决定风险等级", fill="#f3f4f6", stroke="#9ca3af", badge="R", badge_fill="#6b7280", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
@@ -366,7 +366,7 @@ def build_svg() -> str:
     add(lines, '<rect x="80" y="875" width="700" height="42" rx="9" fill="#ffffff" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="7,5"/>')
     text(lines, 102, 901, "并行支线：法律 A 级来源、官方 B 级案例、规则卡与人工复核（不阻塞骨架开发）", size=12, fill="#4b5563", weight=600)
     add(lines, '<rect x="830" y="875" width="680" height="42" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1.3"/>')
-    text(lines, 852, 901, "本轮已交付：上传 → PDF/DOC/DOCX 解析 → PII 脱敏 → 条款切分 → 事实提取 → 证据定位（法律规则仍待接入）", size=12, fill="#374151", weight=600)
+    text(lines, 852, 901, "本轮已交付：上传 → 解析 → PII 脱敏 → 条款切分 → 事实提取 → 证据定位 → 事实确认（法律规则仍待接入）", size=12, fill="#374151", weight=600)
 
     add(lines, "</svg>")
     return "\n".join(lines) + "\n"

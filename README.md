@@ -75,6 +75,18 @@
 
 ![合同事实提取详细流程](docs/contract-fact-extraction-flow.png)
 
+### 事实确认模块（已实现基础版）
+
+事实提取完成后不会直接进入法律规则判断。确认模块会把每条事实的原始提取值、脱敏合同证据和待确认问题组成表单，用户可以执行五类动作：确认、修改、补充、标记不适用、暂不确认。
+
+- 原始提取值（`original_value`）和原始证据始终保留，不被用户输入覆盖。
+- “修改”必须在脱敏合同中重新定位到证据；找不到证据时拒绝伪造合同事实，并提示改用“补充”。
+- “补充”单独保存 `user_value`，有效来源标记为 `user`，不能伪装成合同原文。
+- 每次提交携带 `base_revision` 和可选 `request_id`，通过 PostgreSQL 乐观锁和追加式事件表防止并发覆盖并支持重试幂等。
+- 只有必答事实全部解决并显式提交后，`ready_for_legal_review` 才会为 `true`；确认层不输出违法或是否签署结论。
+
+![合同事实确认模块流程](docs/contract-fact-confirmation-flow.png)
+
 ### 当前限制
 
 扫描 PDF 的 OCR 需要单独配置外部 OCR 服务；DOC/DOCX 无法稳定恢复 Word 原始分页、页眉页脚和浮动文本框，因此相关任务可能进入 `needs_confirmation`。用户合同不会写入 `rag_chunks` 或任何公共评测 Collection。
@@ -130,7 +142,7 @@ flowchart TB
 │   │   ├── agent/           # State、Nodes、Tools、Prompts、Graph
 │   │   ├── infrastructure/  # Qdrant、PostgreSQL、Parser、OCR、私有存储
 │   │   ├── schemas/         # API、检索、合同和事实提取数据契约
-│   │   └── services/        # 认证、会话、检索、合同解析、条款和事实提取
+│   │   └── services/        # 认证、会话、检索、合同解析、提取和事实确认
 │   ├── sql/                 # 初始化表和迁移
 │   └── tests/               # 后端单元测试
 ├── data_worker/             # 公共资料增量解析、向量化、写入
@@ -188,6 +200,7 @@ uv run ruff check backend evaluation data_worker
 - [合同上传模块流程](docs/contract-upload-module.png)
 - [条款与事实提取模块流程](docs/contract-extraction-module.png)
 - [事实提取详细流程](docs/contract-fact-extraction-flow.png)
+- [事实确认模块流程](docs/contract-fact-confirmation-flow.png)
 - [整体开发状态流程图](docs/contract-review-workflow-status.png)
 - [自研三层检索算法](docs/self-developed-retrieval-algorithm.md)
 - [Qdrant v2 迁移记录](docs/retrieval-v2-migration.md)

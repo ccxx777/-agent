@@ -1,0 +1,229 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1180" viewBox="0 0 1800 1180" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-schema-version="1" data-style-id="1" data-visual-theme="flat-icon" data-diagram-type="flowchart" data-semantic-profile="generic" data-quality-profile="standard" data-min-node-gap="40" data-min-container-gutter="20" data-min-label-clearance="4" data-min-segment-length="16">
+<title id="title">合同事实确认模块流程</title>
+<desc id="desc">展示合同事实提取结果如何进入确认表单，经过确认、修改、补充、不适用、暂不确认五类操作，完成证据校验、有效事实快照、版本控制和审计持久化。</desc>
+<style>text{font-family:'Helvetica Neue',Helvetica,Arial,'PingFang SC','Microsoft YaHei','Microsoft JhengHei','SimHei',sans-serif;}</style>
+<defs>
+<marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#9333ea"/></marker>
+<marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#059669"/></marker>
+<marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ea580c"/></marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/></marker>
+</defs>
+<rect data-graph-role="background" width="1800" height="1180" fill="#ffffff"/>
+<text data-graph-role="label" x="60" y="48" font-size="28px" fill="#111827" font-weight="600" text-anchor="start">合同事实确认模块流程</text>
+<text data-graph-role="label" x="60" y="80" font-size="14px" fill="#6b7280" font-weight="400" text-anchor="start">把模型识别结果变成用户可确认的事实表单，并保留原始值、用户值与证据来源</text>
+<text data-graph-role="label" x="1310" y="43" font-size="12px" fill="#6b7280" font-weight="600" text-anchor="start">图例</text>
+<line x1="1310" y1="64" x2="1340" y2="64" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" x="1350" y="68" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">确定性流程</text>
+<line x1="1460" y1="64" x2="1490" y2="64" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="1500" y="68" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">用户/状态变换</text>
+<line x1="1630" y1="64" x2="1660" y2="64" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="1670" y="68" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">持久化/门禁</text>
+<rect data-graph-role="container" x="45" y="105" width="1710" height="210" rx="14" fill="#f8fbff" stroke="#bfdbfe" stroke-width="1.4"/>
+<rect data-graph-role="container" x="45" y="350" width="1710" height="420" rx="14" fill="#faf8ff" stroke="#ddd6fe" stroke-width="1.4"/>
+<rect data-graph-role="container" x="45" y="805" width="1710" height="335" rx="14" fill="#fffdf8" stroke="#fed7aa" stroke-width="1.4"/>
+<text data-graph-role="label" x="70" y="135" font-size="16px" fill="#1d4ed8" font-weight="600" text-anchor="start">① 进入确认表单</text>
+<text data-graph-role="label" x="70" y="380" font-size="16px" fill="#6b21a8" font-weight="600" text-anchor="start">② 五类用户操作与证据边界</text>
+<text data-graph-role="label" x="70" y="835" font-size="16px" fill="#9a3412" font-weight="600" text-anchor="start">③ 有效事实快照、审计与法律分析门禁</text>
+<path id="e-extraction-form" data-edge-id="e-extraction-form" data-graph-role="edge" data-source="extraction-result" data-target="confirmation-form" d="M410 215 H505" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" x="458" y="192" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">facts + questions</text>
+<path id="e-form-actions" data-edge-id="e-form-actions" data-graph-role="edge" data-source="confirmation-form" data-target="user-actions" d="M845 215 H935" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="890" y="192" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">展示原始值/证据</text>
+<path id="e-actions-router" data-edge-id="e-actions-router" data-graph-role="edge" data-source="user-actions" data-target="action-router" d="M1435 260 V330 H905 V495" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="1180" y="315" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">选择一项操作</text>
+<path id="e-router-confirm" data-edge-id="e-router-confirm" data-graph-role="edge" data-source="action-router" data-target="confirm-contract" d="M805 540 V480 H610" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="708" y="520" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">confirm</text>
+<path id="e-router-correct" data-edge-id="e-router-correct" data-graph-role="edge" data-source="action-router" data-target="correct-search" d="M905 495 V455 H860" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="875" y="475" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">correct</text>
+<path id="e-router-supplement" data-edge-id="e-router-supplement" data-graph-role="edge" data-source="action-router" data-target="supplement-user" d="M1005 540 V590 H1115" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="1050" y="570" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">supplement</text>
+<path id="e-router-na" data-edge-id="e-router-na" data-graph-role="edge" data-source="action-router" data-target="not-applicable" d="M905 585 V700 H610 V686" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<text data-graph-role="label" x="770" y="715" font-size="11px" fill="#6b7280" font-weight="600" text-anchor="middle">not_applicable</text>
+<path id="e-router-defer" data-edge-id="e-router-defer" data-graph-role="edge" data-source="action-router" data-target="defer-review" d="M1005 585 V690 H1405 V743 H1395" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<text data-graph-role="label" x="1080" y="670" font-size="11px" fill="#6b7280" font-weight="600" text-anchor="middle">defer</text>
+<path id="e-correct-found" data-edge-id="e-correct-found" data-graph-role="edge" data-source="correct-search" data-target="evidence-found" d="M860 430 H1150" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<path id="e-found-yes" data-edge-id="e-found-yes" data-graph-role="edge" data-source="evidence-found" data-target="corrected-contract" d="M1230 470 V485" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="1260" y="478" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">是</text>
+<path id="e-found-no" data-edge-id="e-found-no" data-graph-role="edge" data-source="evidence-found" data-target="correction-rejected" d="M1310 430 H1530 V485" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
+<text data-graph-role="label" x="1410" y="415" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">否：转补充</text>
+<path id="e-confirm-snapshot" data-edge-id="e-confirm-snapshot" data-graph-role="edge" data-source="confirm-contract" data-target="effective-snapshot" d="M610 500 H630 V750 H680 V840" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="650" y="725" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">合同原值</text>
+<path id="e-corrected-snapshot" data-edge-id="e-corrected-snapshot" data-graph-role="edge" data-source="corrected-contract" data-target="effective-snapshot" d="M1010 533 H930 V790 H745 V840" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="820" y="775" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">合同修正值 + 新证据</text>
+<path id="e-supplement-snapshot" data-edge-id="e-supplement-snapshot" data-graph-role="edge" data-source="supplement-user" data-target="effective-snapshot" d="M1115 638 H1040 V790 H745 V840" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="980" y="775" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">用户补充值</text>
+<path id="e-na-snapshot" data-edge-id="e-na-snapshot" data-graph-role="edge" data-source="not-applicable" data-target="effective-snapshot" d="M610 638 H650 V790 H745 V840" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<text data-graph-role="label" x="680" y="775" font-size="11px" fill="#6b7280" font-weight="600" text-anchor="middle">无适用值</text>
+<path id="e-defer-status" data-edge-id="e-defer-status" data-graph-role="edge" data-source="defer-review" data-target="status-gate" d="M1395 743 H1580 V960 H1570" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<text data-graph-role="label" x="1510" y="770" font-size="11px" fill="#6b7280" font-weight="600" text-anchor="middle">保留待处理</text>
+<path id="e-reject-supplement" data-edge-id="e-reject-supplement" data-graph-role="edge" data-source="correction-rejected" data-target="supplement-user" d="M1530 581 V620 H1405 V638 H1395" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arrow-orange)"/>
+<text data-graph-role="label" x="1510" y="610" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">不得伪造合同证据</text>
+<path id="e-snapshot-audit" data-edge-id="e-snapshot-audit" data-graph-role="edge" data-source="effective-snapshot" data-target="audit-event" d="M880 895 H990" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="935" y="872" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">保留三层 provenance</text>
+<path id="e-audit-revision" data-edge-id="e-audit-revision" data-graph-role="edge" data-source="audit-event" data-target="revision-store" d="M1200 895 H1300" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="1250" y="872" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">事件 + revision</text>
+<path id="e-revision-gate" data-edge-id="e-revision-gate" data-graph-role="edge" data-source="revision-store" data-target="status-gate" d="M1510 895 H1600 V960 H1500" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="1580" y="930" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">幂等/乐观锁</text>
+<path id="e-gate-ready" data-edge-id="e-gate-ready" data-graph-role="edge" data-source="status-gate" data-target="legal-gate" d="M1570 1016 H1600" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="1585" y="988" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">全部必答项已解决</text>
+<path id="e-gate-pending" data-edge-id="e-gate-pending" data-graph-role="edge" data-source="status-gate" data-target="pending-questions" d="M1320 1016 H1270 V1080 H1210" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
+<text data-graph-role="label" x="1260" y="1100" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">仍缺失/暂不确认</text>
+<g id="extraction-result" data-node-id="extraction-result" data-graph-role="node" data-graph-bounds="90 165 410 277">
+<rect data-node-id="extraction-result" x="90" y="165" width="320" height="112" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle data-node-id="extraction-result" cx="122" cy="199" r="20" fill="#2563eb"/>
+<text data-graph-role="node" x="122" y="204" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">F</text>
+<text data-graph-role="node" x="157" y="197" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">提取结果</text>
+<text data-graph-role="node" x="157" y="225" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">ContractFact[] + 结构化问题</text>
+<rect data-node-id="extraction-result" x="306" y="246" width="90" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="351" y="261" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">输入</text>
+</g>
+<g id="confirmation-form" data-node-id="confirmation-form" data-graph-role="node" data-graph-bounds="505 165 845 277">
+<rect data-node-id="confirmation-form" x="505" y="165" width="340" height="112" rx="12" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<circle data-node-id="confirmation-form" cx="537" cy="199" r="20" fill="#9333ea"/>
+<text data-graph-role="node" x="537" y="204" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">UI</text>
+<text data-graph-role="node" x="572" y="197" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">事实确认表单</text>
+<text data-graph-role="node" x="572" y="225" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">工资 / 期限 / 社保 / … + 原始证据</text>
+<rect data-node-id="confirmation-form" x="741" y="246" width="90" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="786" y="261" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">用户可编辑</text>
+</g>
+<g id="user-actions" data-node-id="user-actions" data-graph-role="node" data-graph-bounds="935 165 1435 277">
+<rect data-node-id="user-actions" x="935" y="165" width="500" height="112" rx="12" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<circle data-node-id="user-actions" cx="967" cy="199" r="20" fill="#9333ea"/>
+<text data-graph-role="node" x="967" y="204" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">5</text>
+<text data-graph-role="node" x="1002" y="197" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">用户动作</text>
+<text data-graph-role="node" x="1002" y="225" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">确认 · 修改 · 补充 · 不适用 · 暂不确认</text>
+<rect data-node-id="user-actions" x="1331" y="246" width="90" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="1376" y="261" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">显式选择</text>
+</g>
+<g id="action-router" data-node-id="action-router" data-graph-role="decision" data-graph-bounds="805 495 1005 585">
+<polygon points="905,495 1005,540 905,585 805,540" fill="#fff7ed" stroke="#ea580c" stroke-width="1.7"/>
+<text data-graph-role="node" x="905" y="537" font-size="13px" fill="#111827" font-weight="600" text-anchor="middle">动作类型</text>
+<text data-graph-role="node" x="905" y="558" font-size="11px" fill="#9a3412" font-weight="400" text-anchor="middle">本地校验</text>
+</g>
+<g id="confirm-contract" data-node-id="confirm-contract" data-graph-role="node" data-graph-bounds="360 430 610 526">
+<rect data-node-id="confirm-contract" x="360" y="430" width="250" height="96" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="confirm-contract" cx="392" cy="464" r="20" fill="#059669"/>
+<text data-graph-role="node" x="392" y="469" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">✓</text>
+<text data-graph-role="node" x="427" y="462" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">确认</text>
+<text data-graph-role="node" x="427" y="490" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">采用原始提取值与原证据</text>
+<rect data-node-id="confirm-contract" x="506" y="495" width="90" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="551" y="510" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">contract</text>
+</g>
+<g id="correct-search" data-node-id="correct-search" data-graph-role="node" data-graph-bounds="620 370 860 466">
+<rect data-node-id="correct-search" x="620" y="370" width="240" height="96" rx="12" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<circle data-node-id="correct-search" cx="652" cy="404" r="20" fill="#9333ea"/>
+<text data-graph-role="node" x="652" y="409" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">C</text>
+<text data-graph-role="node" x="687" y="402" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">修改</text>
+<text data-graph-role="node" x="687" y="430" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">在脱敏合同中重新定位用户值</text>
+<rect data-node-id="correct-search" x="756" y="435" width="90" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="801" y="450" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">需证据</text>
+</g>
+<g id="evidence-found" data-node-id="evidence-found" data-graph-role="decision" data-graph-bounds="1150 390 1310 470">
+<polygon points="1230,390 1310,430 1230,470 1150,430" fill="#fff7ed" stroke="#ea580c" stroke-width="1.7"/>
+<text data-graph-role="node" x="1230" y="427" font-size="13px" fill="#111827" font-weight="600" text-anchor="middle">找到证据?</text>
+<text data-graph-role="node" x="1230" y="448" font-size="11px" fill="#9a3412" font-weight="400" text-anchor="middle">本地校验</text>
+</g>
+<g id="corrected-contract" data-node-id="corrected-contract" data-graph-role="node" data-graph-bounds="1010 485 1290 581">
+<rect data-node-id="corrected-contract" x="1010" y="485" width="280" height="96" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="corrected-contract" cx="1042" cy="519" r="20" fill="#059669"/>
+<text data-graph-role="node" x="1042" y="524" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">E</text>
+<text data-graph-role="node" x="1077" y="517" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">合同修正值</text>
+<text data-graph-role="node" x="1077" y="545" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">更新有效值，不覆盖原始提取</text>
+<rect data-node-id="corrected-contract" x="1186" y="550" width="90" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1231" y="565" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">contract</text>
+</g>
+<g id="correction-rejected" data-node-id="correction-rejected" data-graph-role="node" data-graph-bounds="1380 485 1680 581">
+<rect data-node-id="correction-rejected" x="1380" y="485" width="300" height="96" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
+<circle data-node-id="correction-rejected" cx="1412" cy="519" r="20" fill="#ea580c"/>
+<text data-graph-role="node" x="1412" y="524" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">!</text>
+<text data-graph-role="node" x="1447" y="517" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">证据未找到</text>
+<text data-graph-role="node" x="1447" y="545" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">拒绝伪造证据，提示改用补充</text>
+<rect data-node-id="correction-rejected" x="1576" y="550" width="90" height="21" rx="11" fill="#fed7aa"/>
+<text data-graph-role="node" x="1621" y="565" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">需补充</text>
+</g>
+<g id="supplement-user" data-node-id="supplement-user" data-graph-role="node" data-graph-bounds="1115 590 1395 686">
+<rect data-node-id="supplement-user" x="1115" y="590" width="280" height="96" rx="12" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<circle data-node-id="supplement-user" cx="1147" cy="624" r="20" fill="#9333ea"/>
+<text data-graph-role="node" x="1147" y="629" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">U</text>
+<text data-graph-role="node" x="1182" y="622" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">补充</text>
+<text data-graph-role="node" x="1182" y="650" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">保存用户值，来源标记为 user</text>
+<rect data-node-id="supplement-user" x="1291" y="655" width="90" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="1336" y="670" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">user</text>
+</g>
+<g id="not-applicable" data-node-id="not-applicable" data-graph-role="node" data-graph-bounds="360 590 610 686">
+<rect data-node-id="not-applicable" x="360" y="590" width="250" height="96" rx="12" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle data-node-id="not-applicable" cx="392" cy="624" r="20" fill="#6b7280"/>
+<text data-graph-role="node" x="392" y="629" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">—</text>
+<text data-graph-role="node" x="427" y="622" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">标记不适用</text>
+<text data-graph-role="node" x="427" y="650" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">有效值为空，保留原因备注</text>
+<rect data-node-id="not-applicable" x="506" y="655" width="90" height="21" rx="11" fill="#e5e7eb"/>
+<text data-graph-role="node" x="551" y="670" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">none</text>
+</g>
+<g id="defer-review" data-node-id="defer-review" data-graph-role="node" data-graph-bounds="1115 695 1395 791">
+<rect data-node-id="defer-review" x="1115" y="695" width="280" height="96" rx="12" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle data-node-id="defer-review" cx="1147" cy="729" r="20" fill="#6b7280"/>
+<text data-graph-role="node" x="1147" y="734" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">…</text>
+<text data-graph-role="node" x="1182" y="727" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">暂不确认</text>
+<text data-graph-role="node" x="1182" y="755" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">不进入法律结论，保留待办</text>
+<rect data-node-id="defer-review" x="1291" y="760" width="90" height="21" rx="11" fill="#e5e7eb"/>
+<text data-graph-role="node" x="1336" y="775" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">deferred</text>
+</g>
+<rect data-graph-role="note" x="70" y="735" width="1040" height="28" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>
+<text data-graph-role="note" x="90" y="754" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">边界：用户不能直接编辑 page_no、quote 或 char_start/end；证据只能由本地定位器产生。</text>
+<g id="effective-snapshot" data-node-id="effective-snapshot" data-graph-role="node" data-graph-bounds="610 840 880 952">
+<rect data-node-id="effective-snapshot" x="610" y="840" width="270" height="112" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle data-node-id="effective-snapshot" cx="642" cy="874" r="20" fill="#2563eb"/>
+<text data-graph-role="node" x="642" y="879" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">S</text>
+<text data-graph-role="node" x="677" y="872" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">有效事实快照</text>
+<text data-graph-role="node" x="677" y="900" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">effective_value + source + state</text>
+<rect data-node-id="effective-snapshot" x="776" y="921" width="90" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="821" y="936" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">可供规则层</text>
+</g>
+<g id="audit-event" data-node-id="audit-event" data-graph-role="node" data-graph-bounds="990 840 1200 952">
+<rect data-node-id="audit-event" x="990" y="840" width="210" height="112" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="audit-event" cx="1022" cy="874" r="20" fill="#059669"/>
+<text data-graph-role="node" x="1022" y="879" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">A</text>
+<text data-graph-role="node" x="1057" y="872" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">确认事件</text>
+<text data-graph-role="node" x="1057" y="900" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">append-only JSONB</text>
+<rect data-node-id="audit-event" x="1096" y="921" width="90" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1141" y="936" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">可追溯</text>
+</g>
+<g id="revision-store" data-node-id="revision-store" data-graph-role="node" data-graph-bounds="1300 840 1510 952">
+<rect data-node-id="revision-store" x="1300" y="840" width="210" height="112" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="revision-store" cx="1332" cy="874" r="20" fill="#059669"/>
+<text data-graph-role="node" x="1332" y="879" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">R</text>
+<text data-graph-role="node" x="1367" y="872" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">版本控制</text>
+<text data-graph-role="node" x="1367" y="900" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">base_revision + request_id</text>
+<rect data-node-id="revision-store" x="1406" y="921" width="90" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1451" y="936" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">幂等</text>
+</g>
+<g id="status-gate" data-node-id="status-gate" data-graph-role="node" data-graph-bounds="1320 960 1570 1072">
+<rect data-node-id="status-gate" x="1320" y="960" width="250" height="112" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
+<circle data-node-id="status-gate" cx="1352" cy="994" r="20" fill="#ea580c"/>
+<text data-graph-role="node" x="1352" y="999" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">G</text>
+<text data-graph-role="node" x="1387" y="992" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">确认状态门禁</text>
+<text data-graph-role="node" x="1387" y="1020" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">pending / in_progress / completed</text>
+<rect data-node-id="status-gate" x="1466" y="1041" width="90" height="21" rx="11" fill="#fed7aa"/>
+<text data-graph-role="node" x="1511" y="1056" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">状态机</text>
+</g>
+<g id="legal-gate" data-node-id="legal-gate" data-graph-role="node" data-graph-bounds="1600 960 1720 1072">
+<rect data-node-id="legal-gate" x="1600" y="960" width="120" height="112" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="legal-gate" cx="1632" cy="994" r="20" fill="#059669"/>
+<text data-graph-role="node" x="1632" y="999" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">→</text>
+<text data-graph-role="node" x="1667" y="992" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">法律分析</text>
+<text data-graph-role="node" x="1667" y="1020" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">仅接收已确认事实</text>
+<rect data-node-id="legal-gate" x="1616" y="1041" width="90" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1661" y="1056" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">ready</text>
+</g>
+<g id="pending-questions" data-node-id="pending-questions" data-graph-role="node" data-graph-bounds="930 1000 1210 1112">
+<rect data-node-id="pending-questions" x="930" y="1000" width="280" height="112" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
+<circle data-node-id="pending-questions" cx="962" cy="1034" r="20" fill="#ea580c"/>
+<text data-graph-role="node" x="962" y="1039" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">?</text>
+<text data-graph-role="node" x="997" y="1032" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">待补充问题</text>
+<text data-graph-role="node" x="997" y="1060" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">缺失 / 冲突 / 暂不确认项</text>
+<rect data-node-id="pending-questions" x="1106" y="1081" width="90" height="21" rx="11" fill="#fed7aa"/>
+<text data-graph-role="node" x="1151" y="1096" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">阻断</text>
+</g>
+<rect data-graph-role="note" x="70" y="1080" width="800" height="26" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>
+<text data-graph-role="note" x="90" y="1098" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">原始值、用户值、证据来源分层保存；报告必须显示来源，不能把补充值伪装成合同事实。</text>
+</svg>

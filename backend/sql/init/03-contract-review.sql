@@ -17,6 +17,12 @@ CREATE TABLE IF NOT EXISTS contract_review_tasks (
         extraction_status IN ('not_started', 'running', 'ready', 'needs_confirmation', 'failed')
     ),
     extraction_result JSONB,
+    confirmation_status TEXT NOT NULL DEFAULT 'not_started' CHECK (
+        confirmation_status IN ('not_started', 'pending', 'in_progress', 'completed')
+    ),
+    confirmation_revision INTEGER NOT NULL DEFAULT 0,
+    confirmation_result JSONB,
+    confirmed_at TIMESTAMP,
     error_message TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -37,3 +43,26 @@ CREATE TABLE IF NOT EXISTS contract_review_pages (
     quality_flags TEXT[] NOT NULL DEFAULT '{}',
     PRIMARY KEY (review_id, page_no)
 );
+
+CREATE TABLE IF NOT EXISTS contract_review_fact_confirmations (
+    confirmation_id UUID PRIMARY KEY,
+    review_id UUID NOT NULL REFERENCES contract_review_tasks(review_id) ON DELETE CASCADE,
+    fact_id TEXT NOT NULL,
+    action TEXT NOT NULL CHECK (action IN ('confirm', 'correct', 'supplement', 'not_applicable', 'defer')),
+    user_value JSONB,
+    note TEXT,
+    base_revision INTEGER NOT NULL CHECK (base_revision >= 0),
+    request_id TEXT,
+    created_by UUID NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_contract_confirmation_review_created
+    ON contract_review_fact_confirmations(review_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_contract_confirmation_review_fact
+    ON contract_review_fact_confirmations(review_id, fact_id, created_at);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_contract_confirmation_request_fact
+    ON contract_review_fact_confirmations(review_id, request_id, fact_id)
+    WHERE request_id IS NOT NULL;

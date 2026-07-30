@@ -14,6 +14,7 @@
 | [`contract-upload-module.png`](contract-upload-module.png) | PDF/DOC/DOCX 上传、解析、脱敏和质量门禁 | 已实现基础模块 |
 | [`contract-extraction-module.png`](contract-extraction-module.png) | 条款切分、结构化事实提取、证据定位和确认门禁 | 已实现基础模块 |
 | [`contract-fact-extraction-flow.png`](contract-fact-extraction-flow.png) | 事实提取内部步骤、状态门禁、冲突检测和结果持久化 | 详细流程 |
+| [`contract-fact-confirmation-flow.png`](contract-fact-confirmation-flow.png) | 五类用户动作、证据复核、有效事实快照、revision 和审计门禁 | 已实现基础模块 |
 | [`api/backend.md`](api/backend.md) | Backend、RAG 和合同上传 API | 当前 API |
 | [`self-developed-retrieval-algorithm.md`](self-developed-retrieval-algorithm.md) | L1/L2/L3 Cascade Funnel 的设计和边界 | 当前 v2 |
 | [`retrieval-v2-migration.md`](retrieval-v2-migration.md) | Qdrant 升级、离线迁移、门禁和回滚 | 已执行，可复用 |
@@ -32,13 +33,17 @@
 
 ![合同审查 Workflow 当前状态](contract-review-workflow-status.png)
 
-当前已落地的是合同上传、文件格式解析、私有存储、页级质量判断、隐私脱敏、条款切分、结构化事实提取和证据定位。A 级法律检索、B 级案例补充、规则风险分级和最终报告仍按 [`../PLAN.md`](../PLAN.md) 的顺序开发。
+当前已落地的是合同上传、文件格式解析、私有存储、页级质量判断、隐私脱敏、条款切分、结构化事实提取、证据定位和事实确认基础模块。A 级法律检索、B 级案例补充、规则风险分级和最终报告仍按 [`../PLAN.md`](../PLAN.md) 的顺序开发。
 
 ![合同条款与事实提取模块](contract-extraction-module.png)
 
 上图只描述当前已实现的“脱敏文本 → 条款切分 → Schema 候选事实 → 本地证据定位 → 缺失/冲突确认”数据流；它不代表已经接入法律条文检索或风险判定。
 
 ![合同事实提取详细流程](contract-fact-extraction-flow.png)
+
+![合同事实确认模块流程](contract-fact-confirmation-flow.png)
+
+事实确认模块使用 `GET/PUT /api/contract-reviews/{review_id}/confirmation`。它把 `original_value`、`user_value`、`effective_value` 和 `evidence` 分层保存；用户无法直接编辑页码、引用或字符偏移。`correct` 必须通过本地 `EvidenceLocator` 找到脱敏合同证据，`supplement` 则明确标记为用户来源。
 
 详细图进一步展开：条款标题由确定性规则识别，模型只返回候选 JSON；候选事实经过 Schema 校验、本地 exact/空白规范化匹配、证据与置信度门禁、同名事实冲突检查后，才写入 `extraction_result`。
 
