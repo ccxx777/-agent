@@ -38,6 +38,27 @@ FORMAT_VERSION = 1
 PLACEHOLDER = "PENDING_MANUAL_VERIFICATION"
 OFFICIAL_URL_PLACEHOLDER = "UNVERIFIED_OFFICIAL_URL"
 
+# 这些字段不由本地 DOCX 转换推断。重新执行 --overwrite 时必须保留人工或
+# 官方数据库回填的值，避免已核验 metadata 被新的占位符覆盖。
+EXTERNAL_METADATA_FIELDS = (
+    "document_type",
+    "issuing_authority",
+    "jurisdiction",
+    "national_applicability",
+    "publication_date",
+    "effective_date",
+    "amendment_or_repeal_status",
+    "official_url",
+    "license_status",
+    "pii_status",
+    "review_status",
+    "official_source_id",
+    "official_metadata_source",
+    "official_metadata_checked_at",
+    "official_status_code",
+    "content_match_status",
+)
+
 _FILENAME_DATE = re.compile(r"_(\d{8})$")
 _CHAPTER = re.compile(r"^第[一二三四五六七八九十百零〇0-9]+章")
 _SECTION = re.compile(r"^第[一二三四五六七八九十百零〇0-9]+节")
@@ -172,6 +193,56 @@ def _metadata(record: PreparedDocument, *, base: Path) -> dict[str, Any]:
     }
 
 
+def _load_existing_metadata(path: Path) -> dict[str, dict[str, Any]]:
+    """按 doc_id 读取已有 JSONL；损坏行直接拒绝，避免静默丢失核验结果。"""
+
+    if not path.is_file():
+        return {}
+    records: dict[str, dict[str, Any]] = {}
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as error:
+            raise ValueError(f"已有 metadata 第 {line_number} 行不是有效 JSON") from error
+        doc_id = value.get("doc_id")
+        if not isinstance(doc_id, str) or not doc_id:
+            raise ValueError(f"已有 metadata 第 {line_number} 行缺少 doc_id")
+        if doc_id in records:
+            raise ValueError(f"已有 metadata 存在重复 doc_id：{doc_id}")
+        records[doc_id] = value
+    return records
+
+
+def _load_existing_manifest(path: Path) -> dict[str, Any]:
+    """重建文本产物时保留已经记录的官方 metadata 核验批次。"""
+
+    if not path.is_file():
+        return {}
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError("已有 manifest 不是有效 JSON") from error
+    if not isinstance(value, dict):
+        raise TypeError("已有 manifest 必须是 JSON 对象")
+    return value
+
+
+def _merge_external_metadata(
+    generated: dict[str, Any], existing: dict[str, Any] | None
+) -> dict[str, Any]:
+    """只保留不应从文件名或 DOCX 内容推断的外部核验字段。"""
+
+    if not existing:
+        return generated
+    result = dict(generated)
+    for field in EXTERNAL_METADATA_FIELDS:
+        if field in existing:
+            result[field] = existing[field]
+    return result
+
+
 def _front_matter(metadata: dict[str, Any]) -> str:
     """以 JSON front matter 写入 Markdown，避免 YAML 引号和中文转义歧义。"""
 
@@ -196,6 +267,7 @@ def _front_matter(metadata: dict[str, Any]) -> str:
             "raw_file",
             "raw_sha256",
         )
+        if key in metadata
     }
     return "---json\n" + json.dumps(selected, ensure_ascii=False, indent=2) + "\n---"
 
@@ -239,8 +311,9 @@ def _manual_review_markdown(records: list[PreparedDocument]) -> str:
     rows = [
         "# A 级法律资料人工核验清单",
         "",
-        "以下文件的 SHA-256、文件名日期和本地路径已由脚本生成；其余法律属性均为待核验占位符。",
-        "在填写完成并经人工复核前，禁止将这些资料导入 `legal_labor_a_v1` 作为正式法律依据。",
+        "以下文件的 SHA-256、文件名日期和本地路径已由脚本生成。",
+        "部分字段可能已由官方数据库回填；所有仍标为待核验的字段，以及正文一致性和适用范围，",
+        "都必须在进入 `legal_labor_a_v1` 之前完成人工复核。",
         "",
         "| 文档 ID | 文件名 | 需要人工补齐 |",
         "|---|---|---|",
@@ -287,6 +360,9 @@ def prepare(*, raw_dir: Path, base_dir: Path, overwrite: bool) -> dict[str, Any]
             joined = ", ".join(str(path) for path in existing)
             raise FileExistsError(f"输出已存在；如需重建请添加 --overwrite：{joined}")
 
+    existing_metadata = _load_existing_metadata(metadata_file) if overwrite else {}
+    existing_manifest = _load_existing_manifest(manifest_file) if overwrite else {}
+
     normalized_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
     manifest_dir.mkdir(parents=True, exist_ok=True)
@@ -310,7 +386,10 @@ def prepare(*, raw_dir: Path, base_dir: Path, overwrite: bool) -> dict[str, Any]
             paragraph_count=0,
             table_count=0,
         )
-        provisional_metadata = _metadata(provisional, base=base_dir)
+        provisional_metadata = _merge_external_metadata(
+            _metadata(provisional, base=base_dir),
+            existing_metadata.get(doc_id),
+        )
         markdown, paragraph_count, table_count = _render_markdown(
             title,
             list(_iter_blocks(document)),
@@ -329,7 +408,12 @@ def prepare(*, raw_dir: Path, base_dir: Path, overwrite: bool) -> dict[str, Any]
             table_count=table_count,
         )
         records.append(final_record)
-        metadata_rows.append(_metadata(final_record, base=base_dir))
+        metadata_rows.append(
+            _merge_external_metadata(
+                _metadata(final_record, base=base_dir),
+                existing_metadata.get(doc_id),
+            )
+        )
 
     metadata_file.write_text(
         "".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in metadata_rows),
@@ -350,6 +434,14 @@ def prepare(*, raw_dir: Path, base_dir: Path, overwrite: bool) -> dict[str, Any]
             "Do not use these documents as formal legal authority before source and effective-date validation.",
         ],
     }
+    if "official_metadata_verification" in existing_manifest:
+        manifest["official_metadata_verification"] = existing_manifest[
+            "official_metadata_verification"
+        ]
+        manifest["status"] = existing_manifest.get(
+            "status",
+            "OFFICIAL_METADATA_FETCHED_PENDING_CONTENT_AND_SCOPE_REVIEW",
+        )
     manifest_file.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {
         "status": "prepared",
@@ -382,7 +474,7 @@ def main() -> int:
     raw_dir = (args.raw or base_dir / "raw" / "a_level").resolve()
     try:
         result = prepare(raw_dir=raw_dir, base_dir=base_dir, overwrite=args.overwrite)
-    except (FileNotFoundError, FileExistsError, ValueError) as error:
+    except (FileNotFoundError, FileExistsError, TypeError, ValueError) as error:
         print(f"[FAIL] {error}")
         return 1
     print(json.dumps(result, ensure_ascii=False, indent=2))
