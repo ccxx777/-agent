@@ -1,8 +1,8 @@
 # 劳动合同风险审查助手：开发计划与验收门禁
 
-> 更新日期：2026-07-30
+> 更新日期：2026-07-31
 >
-> 当前阶段：通用 RAG 已完成 v2 检索门禁和端到端基线；合同上传（PDF/DOC/DOCX）、私有存储、异步任务、质量状态、隐私脱敏、条款切分、事实提取/确认和合同审查 Workflow v0.1 已实现，正在进行法律资料导入与服务器运行时验证。
+> 当前阶段：通用 RAG 已完成 v2 检索门禁和端到端基线；合同上传（PDF/DOC/DOCX）、私有存储、异步任务、质量状态、隐私脱敏、条款切分、事实提取/确认和合同审查 Workflow v0.1 已实现。7 份 A 级法律资料已完成本地法条切片与 prepared artifact 校验，正在进行服务器隔离 Collection 导入与法律治理验证。
 
 ## 一、产品目标与边界
 
@@ -123,14 +123,18 @@
 - [x] 高/中风险仅由确定性触发条件产生；缺失或未确认信息使用 `unconfirmed`，不凭空升级风险等级。
 - [x] 法律来源与案例来源分别记录查询语句、文档/片段标识、标题、来源 URL、排名和引用片段。
 - [x] 法律资料库不可用时保留事实层提示并标记 `partial`，不把检索失败解释成无风险。
-- [ ] 将已收集的 A 级法律文档导入 `LEGAL_A_COLLECTION`，完成版本、生效日期和废止状态核验。
+- [x] 从本地官方 Word 生成 A 级法条级 artifact，保留章节、节、条号、原文偏移、来源 URL、哈希与生效日期；禁止混入通用 RAG Collection。
+- [ ] 将已收集的 A 级法律 artifact 导入隔离的 `legal_labor_a_v1`，完成服务器 Qdrant schema、检索 Smoke 与回滚记录。
+- [ ] 完成法律专业复核后，才将已激活的 Collection 配置为 `LEGAL_A_COLLECTION`。
 - [ ] 导入 B 级官方案例并为规则卡片增加人工复核的适用前提和例外条件。
 - [ ] 为报告增加 PostgreSQL 持久化、版本号、人工复核状态和前端表单展示。
 
 ### P1：法律资料准备
 
-- [ ] 按 [`docs/labor-contract-legal-corpus-plan.md`](docs/labor-contract-legal-corpus-plan.md) 收集 P0 法律最小包、建立版本 metadata 和导入 manifest。
-- [ ] 收集并核验 A 级法律和司法解释的版本、生效日期、来源 URL、废止状态。
+- [x] 按 [`docs/labor-contract-legal-corpus-plan.md`](docs/labor-contract-legal-corpus-plan.md) 在本地收集 7 份 P0 法律最小包，建立版本 metadata、文档哈希和 prepared manifest。
+- [x] 生成法条级 `articles.jsonl` / `article_chunks.jsonl`，并校验条号、偏移、数量和文件哈希；前言/目录明确标记为不可作为正式法条引用。
+- [ ] 在服务器以只读法律资料挂载和独立状态卷执行 `legal_labor_a_v1` 隔离入库；不得使用 `rag_chunks` 或评测 Collection。
+- [ ] 收集并完成 A 级法律和司法解释的法律专业复核：全国适用范围、授权状态、版本/废止衔接与激活记录。
 - [ ] 收集 B 级官方案例，保留案号、法院、裁判日期、争议焦点和官方来源。
 - [ ] 为每条规则建立人工复核卡：适用前提、例外条件、证据需求和预期输出。
 - [ ] 数据入库前做版权、授权、转载限制和个人信息检查。

@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv pip install --system -r requirements.txt
 
 # 代码层最后复制；容器通过 Python package 入口启动。
-COPY __init__.py config.py cli.py watcher.py ./data_worker/
+COPY __init__.py config.py cli.py legal_cli.py watcher.py ./data_worker/
 COPY ingest/ ./data_worker/ingest/
 
 ENV PYTHONUNBUFFERED=1

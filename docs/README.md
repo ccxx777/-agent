@@ -1,6 +1,6 @@
 # 项目文档索引
 
-> 更新时间：2026-07-30
+> 更新时间：2026-07-31
 >
 > 本目录区分当前实现、可执行 Runbook、评测记录和历史经验。文档中的“已完成”必须能在当前源码、Compose 配置或评测 `summary.json` 中找到证据。
 
@@ -20,7 +20,7 @@
 | [`self-developed-retrieval-algorithm.md`](self-developed-retrieval-algorithm.md) | L1/L2/L3 Cascade Funnel 的设计和边界 | 当前 v2 |
 | [`retrieval-v2-migration.md`](retrieval-v2-migration.md) | Qdrant 升级、离线迁移、门禁和回滚 | 已执行，可复用 |
 | [`watsonx-docsqa-full-baseline.md`](watsonx-docsqa-full-baseline.md) | 30 题检索、生成、人工抽查和 RAGAS 结果 | v2 完整基线 |
-| [`labor-contract-legal-corpus-plan.md`](labor-contract-legal-corpus-plan.md) | 劳动合同法律知识库的资料分层、来源核验、目录和入库清单 | 当前采集计划 |
+| [`labor-contract-legal-corpus-plan.md`](labor-contract-legal-corpus-plan.md) | 劳动合同法律知识库的资料分层、来源核验、法条切片、隔离入库和激活门禁 | 当前采集计划 |
 | [`pitfall-guide.md`](pitfall-guide.md) | Docker、依赖、评测和历史迁移中的常见问题 | 历史经验 |
 
 ## API 与基础设施
@@ -35,9 +35,9 @@
 
 ![合同审查 Workflow 当前状态](contract-review-workflow-status.png)
 
-当前已落地的是合同上传、文件格式解析、私有存储、页级质量判断、隐私脱敏、条款切分、结构化事实提取、证据定位、事实确认和 Workflow v0.1 基础编排。A/B 法律资料仍需导入和人工复核，报告持久化与前端展示按 [`../PLAN.md`](../PLAN.md) 的顺序开发。
+当前已落地的是合同上传、文件格式解析、私有存储、页级质量判断、隐私脱敏、条款切分、结构化事实提取、证据定位、事实确认和 Workflow v0.1 基础编排。A 级法律资料已经支持从本地官方 Word 生成可复现的法条级 artifact；服务器独立 Collection 入库、法律专业激活和 B 级案例复核仍待完成。报告持久化与前端展示按 [`../PLAN.md`](../PLAN.md) 的顺序开发。
 
-法律资料的具体收集范围、官方来源、版本核验、数据目录和入库前清单见 [`labor-contract-legal-corpus-plan.md`](labor-contract-legal-corpus-plan.md)。真实法律原文、案例和合同测试样本放在被 Git 忽略的 `data/legal/labor_contract/`，不提交到公开仓库。
+法律资料的具体收集范围、官方来源、版本核验、法条切片、数据目录和入库前清单见 [`labor-contract-legal-corpus-plan.md`](labor-contract-legal-corpus-plan.md)。真实法律原文、案例、prepared artifact 和合同测试样本放在被 Git 忽略的 `data/legal/labor_contract/`，不提交到公开仓库。
 
 ![合同条款与事实提取模块](contract-extraction-module.png)
 

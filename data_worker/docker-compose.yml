@@ -26,8 +26,12 @@ services:
       # 与 Backend 使用同一个显式 Collection；默认仍保持生产 v1，避免误把评测库当作入库目标。
       RAG_COLLECTION: ${RAG_COLLECTION:-rag_chunks}
       EMBED_URL: http://embedding_service:8001/embed
+      # 法律资料保持只读；可恢复的导入状态单独写入 named volume。
+      LEGAL_INGEST_STATE_DIR: /app/legal-ingest-state
     volumes:
       - ../data/raw:/app/data/raw:ro
+      - ../data/legal:/app/data/legal:ro
+      - legal_ingest_state:/app/legal-ingest-state
     networks:
       - ai_net
     deploy:
@@ -40,3 +44,6 @@ networks:
   ai_net:
     external: true
     name: my-ai-research_ai_net
+
+volumes:
+  legal_ingest_state:

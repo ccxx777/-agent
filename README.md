@@ -18,6 +18,7 @@
 | 合同审查 Workflow v0.1 | 已实现骨架 | 事实确认门禁、劳动合同范围检查、A 级法律检索、规则卡片、B 级案例补充和结构化报告；资料库未配置时安全降级 |
 | 扫描 PDF OCR | 接口已预留 | 默认关闭，需配置 OCR 服务后启用 |
 | 劳动法规则卡片与风险分级 | v0.1 已接入 | 规则节点只输出“可能冲突/待确认/观察”，不替代律师作最终法律结论 |
+| A 级法律法条切片与入库准备 | 已实现 | 从官方 Word 派生条级 artifact；保留章节、节、条号、原文、哈希和生效时间；只写入独立法律 Collection |
 | Web 合同审查前端 | 规划中 | 现有 React 前端暂不作为合同产品验收依据 |
 
 ## 已验证的通用 RAG 能力
@@ -195,6 +196,34 @@ docker-compose -f data_worker/docker-compose.yml up -d --build
 
 Backend 和 Data Worker 必须使用同一个生产 `RAG_COLLECTION`。评测 Collection（如 `watsonx_docsqa_colab_v2`）只在评测命令中显式传入，不用于生产写入。
 
+### 准备劳动法律 A 级语料
+
+法律原文不是通用 RAG 的固定长度 Chunk。先在本地从已核验的 Word/Markdown 生成条级 artifact；每条记录保留章节、节、条号、原文偏移、原始文件 SHA-256、官方 URL 与生效日期：
+
+```bash
+uv run python -m data_worker.legal_cli prepare \
+  --base data/legal/labor_contract \
+  --overwrite
+
+uv run python -m data_worker.legal_cli validate \
+  --base data/legal/labor_contract
+```
+
+输出位于 Git 忽略的 `data/legal/labor_contract/prepared/a_level/`，包含 `articles.jsonl`、`article_chunks.jsonl`、`manifest.json` 与 `validation.json`。当前 artifact 可以上传到服务器并进行隔离 Collection 的导入测试，但 `legal_activation_status=PENDING_LEGAL_REVIEW` 时不能切换 `LEGAL_A_COLLECTION`，也不能作为正式高风险结论的唯一法律依据。
+
+服务器只需重建 **Data Worker** 镜像；不需要重建 Backend 或 Embedding Service。上传 `data/legal/` 后，先执行 dry-run：
+
+```bash
+cd data_worker
+docker-compose up -d --build
+docker exec sentinel python -m data_worker.legal_cli ingest \
+  --base /app/data/legal/labor_contract \
+  --allow-pending-governance \
+  --dry-run
+```
+
+实际导入会新建或续传 `legal_labor_a_v1`，并明确拒绝写入 `rag_chunks` 与 watsonxDocsQA Collection。完成法律复核和检索门禁前，不能修改 Backend 的 `LEGAL_A_COLLECTION`。
+
 ### 运行测试
 
 ```bash
@@ -215,6 +244,7 @@ uv run ruff check backend evaluation data_worker
 - [事实确认模块流程](docs/contract-fact-confirmation-flow.png)
 - [合同审查 Workflow v0.1](docs/contract-review-workflow.png)
 - [整体开发状态流程图](docs/contract-review-workflow-status.png)
+- [劳动合同法律语料计划](docs/labor-contract-legal-corpus-plan.md)
 - [自研三层检索算法](docs/self-developed-retrieval-algorithm.md)
 - [Qdrant v2 迁移记录](docs/retrieval-v2-migration.md)
 - [watsonxDocsQA 完整基线](docs/watsonx-docsqa-full-baseline.md)

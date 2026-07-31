@@ -2,7 +2,7 @@
 
 > 文档状态：首版采集计划
 >
-> 更新时间：2026-07-30
+> 更新时间：2026-07-31
 >
 > 适用范围：中国大陆、全国通用规则、个人用户劳动合同签署前辅助审查
 
@@ -217,6 +217,12 @@ data/
         │   └── b_level/          # 官方案例原文或官方页面存档
         ├── normalized/            # 统一编码、清理后的 Markdown/JSONL
         ├── metadata/              # 来源、版本、生效状态、哈希、授权记录
+        ├── prepared/              # 条级切片、导入 manifest 与校验结果
+        │   └── a_level/
+        │       ├── articles.jsonl         # 一条法律条文一条记录，可定位到章节/节/条
+        │       ├── article_chunks.jsonl   # 面向 Embedding/Qdrant 的条内 Chunk
+        │       ├── manifest.json          # 不可混用的导入签名、数量与治理状态
+        │       └── validation.json        # 哈希、条号、偏移与数量校验结果
         ├── rules/                 # 结构化规则卡片和人工复核记录
         ├── eval/                  # 检索问题、脱敏合同和参考报告
         └── manifests/             # 清单、校验结果和导入批次记录
@@ -283,7 +289,39 @@ legal_labor_b_v1       # B 级案例按需补充
 
 ### 第三步：只导入 A 级法律并做检索 Smoke Test
 
-先验证 Workflow 能否稳定找到正确的法律文档和条款，再导入 B 级案例。这样可以避免案例相似文本抢走法律原文的排名。
+先执行法条垂直切片，再验证 Workflow 能否稳定找到正确的法律文档和条款，最后才导入 B 级案例。这样可以避免案例相似文本抢走法律原文的排名。
+
+#### 3.1 本地生成条级 prepared artifact
+
+```bash
+uv run python -m data_worker.legal_cli prepare \
+  --base data/legal/labor_contract \
+  --overwrite
+
+uv run python -m data_worker.legal_cli validate \
+  --base data/legal/labor_contract
+```
+
+切片单位是“条”，不是通用固定长度文本块。单条过长时仅在该条内部继续分段，并保留 `article_no`、`chapter`、`section`、原文起止偏移、完整条文 SHA-256 与稳定 Point ID。前言、目录等无法作为正式法条引用的内容会被保留，但标记为 `citation_eligible=false`。
+
+维护人已确认 `raw/a_level/` 的 Word/WPS 文件从官方页面下载；脚本会校验原始 Word 和标准化 Markdown 的 SHA-256。此来源声明不等于法律专业激活，仍不能跳过适用范围、授权和规则复核。
+
+#### 3.2 服务器端隔离入库
+
+上传 `data/legal/` 到服务器同一路径后，仅重建 Data Worker 镜像。其法律目录以只读方式挂载，入库恢复状态写入独立 Docker volume：
+
+```bash
+cd data_worker
+docker-compose up -d --build
+docker exec sentinel python -m data_worker.legal_cli ingest \
+  --base /app/data/legal/labor_contract \
+  --allow-pending-governance \
+  --dry-run
+```
+
+通过 dry-run 后才执行同一命令（去掉 `--dry-run`）。该 CLI 只允许目标为 `legal_labor_a_v1`，拒绝写入 `rag_chunks` 和 watsonxDocsQA Collection；Collection 已存在时必须显式 `--resume`，并要求 manifest 签名一致。
+
+即使导入完成，`legal_activation_status=PENDING_LEGAL_REVIEW` 时也只能作为隔离检索测试资料，不能切换 `LEGAL_A_COLLECTION` 或支持正式高风险结论。
 
 ### 第四步：建立第一批规则卡片并人工复核
 
