@@ -47,6 +47,9 @@ EXTERNAL_METADATA_FIELDS = (
     "national_applicability",
     "publication_date",
     "effective_date",
+    "effective_date_source",
+    "effective_date_source_url",
+    "effective_date_verified_at",
     "amendment_or_repeal_status",
     "official_url",
     "license_status",
@@ -260,6 +263,9 @@ def _front_matter(metadata: dict[str, Any]) -> str:
             "national_applicability",
             "publication_date",
             "effective_date",
+            "effective_date_source",
+            "effective_date_source_url",
+            "effective_date_verified_at",
             "amendment_or_repeal_status",
             "official_url",
             "review_status",
@@ -442,6 +448,12 @@ def prepare(*, raw_dir: Path, base_dir: Path, overwrite: bool) -> dict[str, Any]
             "status",
             "OFFICIAL_METADATA_FETCHED_PENDING_CONTENT_AND_SCOPE_REVIEW",
         )
+    if "manual_official_overrides" in existing_manifest:
+        # 补充的官方正文核验记录与 document metadata 同样属于外部事实；
+        # --overwrite 只重建 DOCX 派生产物，不能丢弃其来源和核验时间。
+        manifest["manual_official_overrides"] = existing_manifest[
+            "manual_official_overrides"
+        ]
     manifest_file.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {
         "status": "prepared",
