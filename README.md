@@ -112,7 +112,7 @@
 
 风险等级由确定性规则和证据状态共同决定；LLM 负责提取、检索、解释和报告表达，不直接替代规则引擎做最终判定。事实不充分时，系统应降低结论置信度并继续追问，而不是编造答案。
 
-当前入口为 `POST /api/contract-reviews/{review_id}/workflow`。它必须先通过事实确认接口的 `ready_for_legal_review=true` 门禁；未确认时只返回待补充问题。A 级法律资料和 B 级案例分别使用 `LEGAL_A_COLLECTION`、`LEGAL_B_COLLECTION`，不会读取 `rag_chunks` 或 `watsonx_docsqa_colab_v2`。资料库未配置或检索失败时报告标记为 `partial`，不会把“没有检索结果”解释成“没有风险”。
+当前入口为 `POST /api/contract-reviews/{review_id}/workflow`。它必须先通过事实确认接口的 `ready_for_legal_review=true` 门禁；未确认时只返回待补充问题。A 级法律资料和 B 级案例分别使用 `LEGAL_A_COLLECTION`、`LEGAL_B_COLLECTION`，不会读取 `rag_chunks` 或 `watsonx_docsqa_colab_v2`。两个环境变量默认为空，法律库只有在显式配置后才会接入；`LEGAL_A_ALLOW_PENDING_GOVERNANCE=true` 仅允许 staging 读取尚未完成法律复核的资料。资料库未配置或检索失败时报告标记为 `partial`，不会把“没有检索结果”解释成“没有风险”。
 
 ![合同审查 Workflow v0.1](docs/contract-review-workflow.png)
 
@@ -223,6 +223,19 @@ docker exec sentinel python -m data_worker.legal_cli ingest \
 ```
 
 实际导入会新建或续传 `legal_labor_a_v1`，并明确拒绝写入 `rag_chunks` 与 watsonxDocsQA Collection。完成法律复核和检索门禁前，不能修改 Backend 的 `LEGAL_A_COLLECTION`。
+
+服务器入库完成后，先用独立 Smoke Test 验证 A 级法条过滤、引用资格、条号和官方链接。当前资料仍处于 staging，因此必须显式加 `--allow-pending-governance`：
+
+```bash
+docker exec backend python /app/evaluation/legal_retrieval_smoke.py \
+  --collection legal_labor_a_v1 \
+  --qdrant-url http://db_qdrant:6333 \
+  --embed-url http://embedding_service:8001/embed \
+  --allow-pending-governance \
+  --output /app/data/legal/legal_retrieval_smoke_v1.json
+```
+
+Smoke Test 只查询独立法律 Collection，不会修改 Qdrant；通过后再用一份已确认事实的劳动合同运行 Workflow。
 
 ### 运行测试
 

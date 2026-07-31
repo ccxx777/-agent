@@ -44,6 +44,7 @@ from app.services.contract_confirmation_service import ContractFactConfirmationS
 from app.services.contract_extraction_service import ContractExtractionService
 from app.services.contract_review_service import ContractReviewService
 from app.services.contract_review_workflow_service import ContractReviewWorkflowService
+from app.services.legal_retrieval_service import LegalRetrievalService
 from app.services.retrieval_service import RetrievalService
 from app.services.session_service import SessionService
 
@@ -108,22 +109,36 @@ async def lifespan(app: FastAPI):
         reranker_api_key=settings.reranker_api_key,
         collection_name=settings.rag_collection,
     )
-    legal_a_retrieval_service = RetrievalService(
-        embedding_client=embedding_client,
-        qdrant=qdrant_gateway,
-        reranker_model=settings.reranker_model,
-        reranker_api_url=settings.reranker_api_url,
-        reranker_api_key=settings.reranker_api_key,
-        collection_name=settings.legal_a_collection,
-    )
-    legal_b_retrieval_service = RetrievalService(
-        embedding_client=embedding_client,
-        qdrant=qdrant_gateway,
-        reranker_model=settings.reranker_model,
-        reranker_api_url=settings.reranker_api_url,
-        reranker_api_key=settings.reranker_api_key,
-        collection_name=settings.legal_b_collection,
-    )
+    legal_a_retrieval_service = None
+    if settings.legal_a_collection:
+        legal_a_retrieval_service = LegalRetrievalService(
+            retrieval_service=RetrievalService(
+                embedding_client=embedding_client,
+                qdrant=qdrant_gateway,
+                reranker_model=settings.reranker_model,
+                reranker_api_url=settings.reranker_api_url,
+                reranker_api_key=settings.reranker_api_key,
+                collection_name=settings.legal_a_collection,
+            ),
+            collection_name=settings.legal_a_collection,
+            source_level="A",
+            allow_pending_governance=settings.legal_a_allow_pending_governance,
+        )
+    legal_b_retrieval_service = None
+    if settings.legal_b_collection:
+        legal_b_retrieval_service = LegalRetrievalService(
+            retrieval_service=RetrievalService(
+                embedding_client=embedding_client,
+                qdrant=qdrant_gateway,
+                reranker_model=settings.reranker_model,
+                reranker_api_url=settings.reranker_api_url,
+                reranker_api_key=settings.reranker_api_key,
+                collection_name=settings.legal_b_collection,
+            ),
+            collection_name=settings.legal_b_collection,
+            source_level="B",
+            allow_pending_governance=settings.legal_b_allow_pending_governance,
+        )
     graph = get_compiled_graph(
         pg_pool,
         retrieval_service=retrieval_service,

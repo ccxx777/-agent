@@ -47,6 +47,11 @@ services:
 
       QDRANT_URL: http://db_qdrant:6333
       RAG_COLLECTION: ${RAG_COLLECTION:-rag_chunks}
+      # 法律 Collection 默认关闭；完成法律复核后才显式配置。
+      LEGAL_A_COLLECTION: ${LEGAL_A_COLLECTION:-}
+      LEGAL_A_ALLOW_PENDING_GOVERNANCE: ${LEGAL_A_ALLOW_PENDING_GOVERNANCE:-false}
+      LEGAL_B_COLLECTION: ${LEGAL_B_COLLECTION:-}
+      LEGAL_B_ALLOW_PENDING_GOVERNANCE: ${LEGAL_B_ALLOW_PENDING_GOVERNANCE:-false}
       EMBED_URL: http://embedding_service:8001/embed
 
       # Embedding 服务

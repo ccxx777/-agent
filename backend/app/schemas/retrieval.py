@@ -10,7 +10,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 LLM_CONTEXT_CHARS = 500
 
 
@@ -30,6 +29,8 @@ class RetrievedDocument(BaseModel):
     context_text: str = ""
     rank: int = Field(..., ge=1)
     qdrant_score: float | None = None
+    # 保留法律资料的审计元数据；通用 RAG 记录通常为空，不改变原有召回契约。
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RetrievalPayload(BaseModel):
@@ -77,9 +78,32 @@ def adapt_ranked_hits(
 ) -> list[RetrievedDocument]:
     """把已完成重排的 Point 列表转换为稳定 DTO，不改变顺序。"""
     documents: list[RetrievedDocument] = []
+    metadata_fields = (
+        "source_level",
+        "citation_eligible",
+        "citation_label",
+        "article_no",
+        "article_label",
+        "chapter",
+        "section",
+        "effective_date",
+        "official_url",
+        "legal_activation_status",
+        "document_type",
+        "issuing_authority",
+        "jurisdiction",
+        "national_applicability",
+        "publication_date",
+        "amendment_or_repeal_status",
+    )
     for rank, hit in enumerate(hits, 1):
         payload = _payload_of(hit)
         text = str(payload.get("chunk_text") or "")
+        metadata = {
+            key: payload[key]
+            for key in metadata_fields
+            if key in payload
+        }
         documents.append(
             RetrievedDocument(
                 point_id=_point_id_of(hit),
@@ -91,6 +115,7 @@ def adapt_ranked_hits(
                 context_text=text[:context_chars],
                 rank=rank,
                 qdrant_score=_qdrant_score_of(hit),
+                metadata=metadata,
             )
         )
     return documents

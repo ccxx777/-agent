@@ -244,8 +244,12 @@ curl -X POST http://127.0.0.1:8000/api/contract-reviews/$REVIEW_ID/workflow \
 - `CONTRACT_DOCUMENT_TIMEOUT`
 - `CONTRACT_OCR_ENABLED`、`CONTRACT_OCR_BASE_URL`、`CONTRACT_OCR_API_KEY`、`CONTRACT_OCR_MODEL`
 - `CONTRACT_EXTRACTION_ENABLED`（默认 `false`）、`CONTRACT_EXTRACTION_BATCH_CLAUSES`（默认 `6`）、`CONTRACT_EXTRACTION_MAX_CHARS`（默认 `12000`）
-- `LEGAL_A_COLLECTION`（默认 `legal_labor_a_v1`）：全国通用 A 级法律资料
-- `LEGAL_B_COLLECTION`（默认 `legal_labor_b_v1`）：官方 B 级案例资料
+- `LEGAL_A_COLLECTION`（默认空）：显式启用全国通用 A 级法律资料，例如 `legal_labor_a_v1`
+- `LEGAL_A_ALLOW_PENDING_GOVERNANCE`（默认 `false`）：仅 staging 测试允许读取 `PENDING_LEGAL_REVIEW` 资料
+- `LEGAL_B_COLLECTION`（默认空）：显式启用独立 B 级官方案例 Collection
+- `LEGAL_B_ALLOW_PENDING_GOVERNANCE`（默认 `false`）：B 级资料的 staging 治理开关
+
+法律检索使用独立 `LegalRetrievalService`。它在 Cascade Funnel 结果之后再次执行 `source_level`、`citation_eligible` 和治理状态过滤，并保留条号、引用标签、生效日期和官方链接。法律 Collection 不得配置为 `rag_chunks`、`watsonxDocsQA` 或其他通用评测库。
 
 旧 PostgreSQL 需要按顺序执行 `backend/sql/migrations/002-contract-review.sql`、`backend/sql/migrations/003-contract-extraction.sql` 和 `backend/sql/migrations/004-contract-confirmation.sql`；新建数据库会执行 `backend/sql/init/03-contract-review.sql`。
 

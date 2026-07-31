@@ -59,6 +59,11 @@ class LegalSource(BaseModel):
     source: str = ""
     rank: int = Field(..., ge=1)
     quote: str = ""
+    citation_label: str = ""
+    official_url: str = ""
+    effective_date: str = ""
+    citation_eligible: bool | None = None
+    legal_activation_status: str = ""
 
 
 class RuleFinding(BaseModel):

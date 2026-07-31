@@ -2,7 +2,7 @@
 
 > 更新日期：2026-07-31
 >
-> 当前阶段：通用 RAG 已完成 v2 检索门禁和端到端基线；合同上传（PDF/DOC/DOCX）、私有存储、异步任务、质量状态、隐私脱敏、条款切分、事实提取/确认和合同审查 Workflow v0.1 已实现。7 份 A 级法律资料已完成本地法条切片与 prepared artifact 校验，正在进行服务器隔离 Collection 导入与法律治理验证。
+> 当前阶段：通用 RAG 已完成 v2 检索门禁和端到端基线；合同上传（PDF/DOC/DOCX）、私有存储、异步任务、质量状态、隐私脱敏、条款切分、事实提取/确认和合同审查 Workflow v0.1 已实现。7 份 A 级法律资料已完成本地法条切片，并已导入服务器独立 `legal_labor_a_v1` Collection；当前进行法律检索 Smoke Test 和法律治理验证。
 
 ## 一、产品目标与边界
 
@@ -124,7 +124,9 @@
 - [x] 法律来源与案例来源分别记录查询语句、文档/片段标识、标题、来源 URL、排名和引用片段。
 - [x] 法律资料库不可用时保留事实层提示并标记 `partial`，不把检索失败解释成无风险。
 - [x] 从本地官方 Word 生成 A 级法条级 artifact，保留章节、节、条号、原文偏移、来源 URL、哈希与生效日期；禁止混入通用 RAG Collection。
-- [ ] 将已收集的 A 级法律 artifact 导入隔离的 `legal_labor_a_v1`，完成服务器 Qdrant schema、检索 Smoke 与回滚记录。
+- [x] 将已收集的 A 级法律 artifact 导入隔离的 `legal_labor_a_v1`，完成服务器 Qdrant schema；Collection 当前为 477 points，保留独立断点状态。
+- [x] 新增 `LegalRetrievalService`：只允许 `legal_` Collection，并过滤非 A 级、不可引用前言和未激活资料；默认不启用法律 Collection。
+- [ ] 在服务器运行 `evaluation/legal_retrieval_smoke.py`，确认 5 个固定法律问题均返回可引用条文并记录回滚证据。
 - [ ] 完成法律专业复核后，才将已激活的 Collection 配置为 `LEGAL_A_COLLECTION`。
 - [ ] 导入 B 级官方案例并为规则卡片增加人工复核的适用前提和例外条件。
 - [ ] 为报告增加 PostgreSQL 持久化、版本号、人工复核状态和前端表单展示。

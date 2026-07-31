@@ -323,6 +323,27 @@ docker exec sentinel python -m data_worker.legal_cli ingest \
 
 即使导入完成，`legal_activation_status=PENDING_LEGAL_REVIEW` 时也只能作为隔离检索测试资料，不能切换 `LEGAL_A_COLLECTION` 或支持正式高风险结论。
 
+#### 3.3 法律检索适配与 Smoke Test
+
+Backend 的 `LegalRetrievalService` 复用现有 Cascade Funnel，但在结果适配层执行
+法律门禁：只保留 `source_level=A`、`citation_eligible=true` 的条文，并保留
+`article_no`、`citation_label`、生效日期和官方链接。法律 Collection 默认不启用；
+staging 读取待复核资料时必须显式设置 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=true`。
+
+服务器端 Smoke Test：
+
+```bash
+docker exec backend python /app/evaluation/legal_retrieval_smoke.py \
+  --collection legal_labor_a_v1 \
+  --qdrant-url http://db_qdrant:6333 \
+  --embed-url http://embedding_service:8001/embed \
+  --allow-pending-governance \
+  --output /app/data/legal/legal_retrieval_smoke_v1.json
+```
+
+Smoke Test 通过后，才进入已确认事实的合同 Workflow 端到端测试；B 级案例仍需单独
+建立 Collection，不与 A 级法条混合入库。
+
 ### 第四步：建立第一批规则卡片并人工复核
 
 规则卡片必须引用已经入库的 A 级文档。没有法律引用的规则只能保持 `draft`，不能进入生产判断。
@@ -349,6 +370,8 @@ Workflow 的推荐顺序是：
 - [ ] P0 法律资料全部有官方来源和版本元数据。
 - [ ] 每份资料都通过效力状态和文本质量核验。
 - [ ] A 级检索问题集达到预设 Hit@3 门槛，且引用条款可定位。
+- [ ] 服务器法律检索 Smoke Test 通过，且记录 Collection 点数、查询结果和回滚信息。
+- [ ] 法律专业复核完成后，才把激活状态改为 `ACTIVE` 并配置 `LEGAL_A_COLLECTION`。
 - [ ] 规则卡片全部绑定法律来源，至少经过一次人工复核。
 - [ ] 5～10 份脱敏合同完成事实提取、确认和风险报告验收。
 - [ ] 未确认事实不会产生确定性高风险结论。

@@ -11,6 +11,15 @@ import os
 from dataclasses import dataclass, field
 
 
+def _env_flag(name: str, default: bool = False) -> bool:
+    """解析显式布尔环境变量，避免字符串真值造成治理开关误开。"""
+
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass
 class Settings:
     """应用进程使用的不可变配置来源。
@@ -29,11 +38,13 @@ class Settings:
     qdrant_url: str = field(default_factory=lambda: os.getenv("QDRANT_URL", "http://db_qdrant:6333"))
     rag_collection: str = field(default_factory=lambda: os.getenv("RAG_COLLECTION", "rag_chunks"))
     # 合同 Workflow 使用独立的法律资料库；不能误用通用 RAG 或 watsonx 评测库。
-    legal_a_collection: str = field(
-        default_factory=lambda: os.getenv("LEGAL_A_COLLECTION", "legal_labor_a_v1")
+    legal_a_collection: str = field(default_factory=lambda: os.getenv("LEGAL_A_COLLECTION", ""))
+    legal_b_collection: str = field(default_factory=lambda: os.getenv("LEGAL_B_COLLECTION", ""))
+    legal_a_allow_pending_governance: bool = field(
+        default_factory=lambda: _env_flag("LEGAL_A_ALLOW_PENDING_GOVERNANCE")
     )
-    legal_b_collection: str = field(
-        default_factory=lambda: os.getenv("LEGAL_B_COLLECTION", "legal_labor_b_v1")
+    legal_b_allow_pending_governance: bool = field(
+        default_factory=lambda: _env_flag("LEGAL_B_ALLOW_PENDING_GOVERNANCE")
     )
 
     # ── Embedding 服务 ──

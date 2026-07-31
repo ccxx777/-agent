@@ -264,6 +264,7 @@ class ContractReviewWorkflowNodes:
                 if key in seen:
                     continue
                 seen.add(key)
+                metadata = getattr(document, "metadata", {}) or {}
                 sources.append(
                     LegalSource(
                         source_level=source_level,
@@ -275,6 +276,15 @@ class ContractReviewWorkflowNodes:
                         source=document.source,
                         rank=document.rank,
                         quote=document.text or document.context_text,
+                        citation_label=str(metadata.get("citation_label") or ""),
+                        official_url=str(
+                            metadata.get("official_url") or document.source or ""
+                        ),
+                        effective_date=str(metadata.get("effective_date") or ""),
+                        citation_eligible=metadata.get("citation_eligible"),
+                        legal_activation_status=str(
+                            metadata.get("legal_activation_status") or ""
+                        ),
                     )
                 )
         return sources, list(dict.fromkeys(warnings))
