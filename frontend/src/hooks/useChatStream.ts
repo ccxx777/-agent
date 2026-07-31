@@ -81,6 +81,8 @@ export function useChatStream(token: string, sessionId: string, initialMessages:
 
   // sessionId 变化时重置（切换/新建对话）
   useEffect(() => {
+    // 聊天会话切换时必须同步清空当前 UI；这是该 Hook 的状态重置边界。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMessages(initialMessages);
     setIsStreaming(false);
     abortRef.current?.abort();

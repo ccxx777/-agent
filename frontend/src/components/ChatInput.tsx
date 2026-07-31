@@ -9,8 +9,8 @@ interface ChatInputProps {
 export function ChatInput({ onSend, isStreaming, onCancel }: ChatInputProps) {
   const [input, setInput] = useState("");
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || isStreaming) return;
     onSend(trimmed);
@@ -18,41 +18,29 @@ export function ChatInput({ onSend, isStreaming, onCancel }: ChatInputProps) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex items-end gap-2 border-t border-gray-200 bg-white p-4"
-    >
+    <form onSubmit={handleSubmit} className="chat-input-shell">
+      <span className="chat-input-plus" aria-hidden="true">＋</span>
       <textarea
         value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSubmit(e);
+        onChange={(event) => setInput(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            handleSubmit(event);
           }
         }}
-        placeholder="输入消息，Enter 发送，Shift+Enter 换行"
-        rows={2}
-        className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+        placeholder="输入消息…"
+        rows={1}
+        className="chat-input-textarea"
         disabled={isStreaming}
+        aria-label="输入消息"
       />
       {isStreaming ? (
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors"
-        >
-          停止
-        </button>
+        <button type="button" onClick={onCancel} className="chat-send-button stop" aria-label="停止生成">■</button>
       ) : (
-        <button
-          type="submit"
-          disabled={!input.trim()}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-40"
-        >
-          发送
-        </button>
+        <button type="submit" disabled={!input.trim()} className="chat-send-button" aria-label="发送消息">➤</button>
       )}
+      <span className="chat-input-hint">AI 可能会产生错误，请核实重要信息</span>
     </form>
   );
 }
