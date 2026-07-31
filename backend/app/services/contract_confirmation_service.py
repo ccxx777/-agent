@@ -365,6 +365,7 @@ class ContractFactConfirmationService:
             facts.append(
                 FactConfirmationView(
                     fact_id=fact.fact_id,
+                    field_key=fact.field_key,
                     category=fact.category,
                     name=fact.name,
                     original_value=fact.value,

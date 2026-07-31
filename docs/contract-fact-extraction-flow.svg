@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1120" viewBox="0 0 1800 1120" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-schema-version="1" data-style-id="1" data-visual-theme="flat-icon" data-diagram-type="flowchart" data-semantic-profile="generic" data-quality-profile="standard" data-min-node-gap="40" data-min-container-gutter="20" data-min-label-clearance="4" data-min-segment-length="16">
 <title id="title">合同事实提取详细流程</title>
-<desc id="desc">展示脱敏文本如何经过正则与关键词条款切分、批量上下文构造、LLM 候选事实 JSON、Schema 校验、本地证据定位、事实规范化、置信度门禁、冲突检测和 PostgreSQL 持久化。</desc>
+<desc id="desc">展示脱敏文本如何经过正则与关键词条款切分、自适应单次或批量上下文构造、严格 JSON Schema、必备字段覆盖、本地证据定位、事实规范化、置信度门禁、冲突检测和 PostgreSQL 持久化。</desc>
 <style>text{font-family:'Helvetica Neue',Helvetica,Arial,'PingFang SC','Microsoft YaHei','Microsoft JhengHei','SimHei',sans-serif;}</style>
 <defs>
 <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
@@ -32,7 +32,7 @@
 <path id="e-schema-batch" data-edge-id="e-schema-batch" data-graph-role="edge" data-source="clause-schema" data-target="batch-context" d="M940 225 H1020" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
 <text data-graph-role="label" x="980" y="155" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">clause_id / page</text>
 <path id="e-batch-llm" data-edge-id="e-batch-llm" data-graph-role="edge" data-source="batch-context" data-target="llm-extractor" d="M1260 225 H1340" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
-<text data-graph-role="label" x="1300" y="155" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">脱敏条款 prompt</text>
+<text data-graph-role="label" x="1300" y="155" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">单次或批次 prompt</text>
 <path id="e-llm-candidate" data-edge-id="e-llm-candidate" data-graph-role="edge" data-source="llm-extractor" data-target="candidate-json" d="M1500 275 V490" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
 <text data-graph-role="label" x="1545" y="385" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">facts JSON</text>
 <path id="e-candidate-schema" data-edge-id="e-candidate-schema" data-graph-role="edge" data-source="candidate-json" data-target="schema-validation" d="M1350 540 H1240" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
@@ -85,18 +85,18 @@
 <g id="batch-context" data-node-id="batch-context" data-graph-role="node" data-graph-bounds="1020 175 1260 275">
 <rect data-node-id="batch-context" x="1020" y="175" width="240" height="100" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
 <circle data-node-id="batch-context" cx="1051" cy="207" r="19" fill="#9333ea"/>
-<text data-graph-role="node" x="1051" y="212" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">B</text>
-<text data-graph-role="node" x="1085" y="206" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">批量上下文</text>
-<text data-graph-role="node" x="1085" y="232" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">最多 6 条 / 字符上限</text>
+<text data-graph-role="node" x="1051" y="212" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">S/B</text>
+<text data-graph-role="node" x="1085" y="206" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">自适应上下文</text>
+<text data-graph-role="node" x="1085" y="232" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">短文档单次；长文档每批 6 条</text>
 <rect data-node-id="batch-context" x="1166" y="245" width="80" height="21" rx="11" fill="#ede9fe"/>
-<text data-graph-role="node" x="1206" y="260" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">变换</text>
+<text data-graph-role="node" x="1206" y="260" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">字符阈值</text>
 </g>
 <g id="llm-extractor" data-node-id="llm-extractor" data-graph-role="node" data-graph-bounds="1340 175 1660 275">
 <rect data-node-id="llm-extractor" x="1340" y="175" width="320" height="100" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
 <circle data-node-id="llm-extractor" cx="1371" cy="207" r="19" fill="#9333ea"/>
 <text data-graph-role="node" x="1371" y="212" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">LLM</text>
 <text data-graph-role="node" x="1405" y="206" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">LLM 候选事实提取</text>
-<text data-graph-role="node" x="1405" y="232" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">主体 / 期限 / 工资 / 社保 / …</text>
+<text data-graph-role="node" x="1405" y="232" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">严格 schema_version + 10 个必备字段</text>
 <rect data-node-id="llm-extractor" x="1566" y="245" width="80" height="21" rx="11" fill="#ede9fe"/>
 <text data-graph-role="node" x="1606" y="260" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">可开关</text>
 </g>
@@ -105,7 +105,7 @@
 <circle data-node-id="candidate-json" cx="1381" cy="522" r="19" fill="#9333ea"/>
 <text data-graph-role="node" x="1381" y="527" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">J</text>
 <text data-graph-role="node" x="1415" y="521" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">候选 facts JSON</text>
-<text data-graph-role="node" x="1415" y="547" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">value / quote / clause_ids / confidence</text>
+<text data-graph-role="node" x="1415" y="547" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">外层版本 + value / quote / status / note</text>
 <rect data-node-id="candidate-json" x="1556" y="560" width="80" height="21" rx="11" fill="#ede9fe"/>
 <text data-graph-role="node" x="1596" y="575" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">模型输出</text>
 </g>
@@ -113,8 +113,8 @@
 <rect data-node-id="schema-validation" x="1000" y="490" width="240" height="100" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
 <circle data-node-id="schema-validation" cx="1031" cy="522" r="19" fill="#2563eb"/>
 <text data-graph-role="node" x="1031" y="527" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">V</text>
-<text data-graph-role="node" x="1065" y="521" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">Schema 校验</text>
-<text data-graph-role="node" x="1065" y="547" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">Pydantic；无效项丢弃并记录 warning</text>
+<text data-graph-role="node" x="1065" y="521" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">Schema + 覆盖校验</text>
+<text data-graph-role="node" x="1065" y="547" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">外层严格；坏项计数；缺字段补 missing</text>
 <rect data-node-id="schema-validation" x="1146" y="560" width="80" height="21" rx="11" fill="#dbeafe"/>
 <text data-graph-role="node" x="1186" y="575" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">本地</text>
 </g>
@@ -198,5 +198,5 @@
 <text data-graph-role="node" x="1586" y="1015" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">持久化</text>
 </g>
 <rect data-graph-role="note" x="70" y="310" width="1100" height="36" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>
-<text data-graph-role="note" x="92" y="333" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">开关分支：CONTRACT_EXTRACTION_ENABLED=false 时保存条款并直接进入 needs_confirmation，不调用模型。</text>
+<text data-graph-role="note" x="92" y="333" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">开关与兜底：关闭模型时不调用 LLM；缺失必备字段生成 missing + needs_confirmation，不把漏提取误当作合同没有该事项。</text>
 </svg>

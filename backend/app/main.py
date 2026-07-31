@@ -77,6 +77,7 @@ async def lifespan(app: FastAPI):
             model_name=settings.main_model,
             batch_clauses=settings.contract_extraction_batch_clauses,
             max_model_chars=settings.contract_extraction_max_chars,
+            single_pass_max_chars=settings.contract_extraction_single_pass_max_chars,
         )
         if settings.contract_extraction_enabled
         else None

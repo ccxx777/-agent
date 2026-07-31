@@ -81,6 +81,9 @@
 - [x] `StructuredContractFactExtractor`：只向模型发送脱敏条款，要求 JSON 候选事实，不输出法律风险结论。
 - [x] `EvidenceLocator`：在脱敏页文本中重新定位模型引用，记录页码、字符偏移和匹配方式。
 - [x] `ContractFactNormalizer`：本地清理字段、检查缺证据/低置信度、发现同名事实冲突并生成确认问题。
+- [x] 自适应提取：短文档在字符阈值内单次调用，长文档按条款批次调用，并在结果中记录模式与模型调用次数。
+- [x] 严格 JSON 契约：外层 `schema_version + facts`、单条事实十个必备字段、状态枚举和额外字段禁止。
+- [x] 必备字段覆盖：模型漏返回字段时由本地补成 `missing` 事实，保留 `missing_required_fields` 和确认问题，不把静默漏提取误判为合同没有该事项。
 - [x] PostgreSQL 保存 `extraction_status` 与 `extraction_result`；文件解析状态和事实提取状态相互独立。
 - [x] 默认关闭外部事实提取模型调用，设置 `CONTRACT_EXTRACTION_ENABLED=true` 后才启用。
 

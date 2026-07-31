@@ -105,6 +105,7 @@ class FactConfirmationView(BaseModel):
     """
 
     fact_id: str
+    field_key: str = "other"
     category: str
     name: str
     original_value: Any = None

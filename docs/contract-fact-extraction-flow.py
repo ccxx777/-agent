@@ -133,7 +133,7 @@ def build_svg() -> str:
     add(lines, '<title id="title">合同事实提取详细流程</title>')
     add(
         lines,
-        '<desc id="desc">展示脱敏文本如何经过正则与关键词条款切分、批量上下文构造、LLM 候选事实 JSON、Schema 校验、本地证据定位、事实规范化、置信度门禁、冲突检测和 PostgreSQL 持久化。</desc>',
+        '<desc id="desc">展示脱敏文本如何经过正则与关键词条款切分、自适应单次或批量上下文构造、严格 JSON Schema、必备字段覆盖、本地证据定位、事实规范化、置信度门禁、冲突检测和 PostgreSQL 持久化。</desc>',
     )
     add(
         lines,
@@ -178,7 +178,7 @@ def build_svg() -> str:
     edge(lines, "e-pages-split", "M300 225 H380", source="redacted-pages", target="clause-splitter", color="#2563eb", marker="arrow-blue", label="脱敏页文本", label_x=340, label_y=207)
     edge(lines, "e-split-schema", "M620 225 H700", source="clause-splitter", target="clause-schema", color="#9333ea", marker="arrow-purple", label="条款块", label_x=660, label_y=207)
     edge(lines, "e-schema-batch", "M940 225 H1020", source="clause-schema", target="batch-context", color="#2563eb", marker="arrow-blue", label="clause_id / page", label_x=980, label_y=155)
-    edge(lines, "e-batch-llm", "M1260 225 H1340", source="batch-context", target="llm-extractor", color="#9333ea", marker="arrow-purple", label="脱敏条款 prompt", label_x=1300, label_y=155)
+    edge(lines, "e-batch-llm", "M1260 225 H1340", source="batch-context", target="llm-extractor", color="#9333ea", marker="arrow-purple", label="单次或批次 prompt", label_x=1300, label_y=155)
     edge(lines, "e-llm-candidate", "M1500 275 V490", source="llm-extractor", target="candidate-json", color="#9333ea", marker="arrow-purple", label="facts JSON", label_x=1545, label_y=385)
     edge(lines, "e-candidate-schema", "M1350 540 H1240", source="candidate-json", target="schema-validation", color="#9333ea", marker="arrow-purple", label="候选结构", label_x=1295, label_y=520)
     edge(lines, "e-schema-evidence", "M1000 540 H940", source="schema-validation", target="evidence-locator", color="#2563eb", marker="arrow-blue", label="合法字段", label_x=970, label_y=520)
@@ -196,12 +196,12 @@ def build_svg() -> str:
     node(lines, "redacted-pages", 80, 175, 220, "脱敏页文本", "ContractPage / PII 已清理", fill="#eff6ff", stroke="#93c5fd", badge="TXT", badge_fill="#2563eb", status="输入", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "clause-splitter", 380, 175, 240, "条款切分器", "逐行 + 编号/标题正则", fill="#eff6ff", stroke="#93c5fd", badge="RE", badge_fill="#2563eb", status="本地", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "clause-schema", 700, 175, 240, "ContractClause", "clause_id / type / page range", fill="#faf5ff", stroke="#d8b4fe", badge="S", badge_fill="#9333ea", status="结构", status_fill="#ede9fe", status_text="#6b21a8")
-    node(lines, "batch-context", 1020, 175, 240, "批量上下文", "最多 6 条 / 字符上限", fill="#faf5ff", stroke="#d8b4fe", badge="B", badge_fill="#9333ea", status="变换", status_fill="#ede9fe", status_text="#6b21a8")
-    node(lines, "llm-extractor", 1340, 175, 320, "LLM 候选事实提取", "主体 / 期限 / 工资 / 社保 / …", fill="#faf5ff", stroke="#d8b4fe", badge="LLM", badge_fill="#9333ea", status="可开关", status_fill="#ede9fe", status_text="#6b21a8")
+    node(lines, "batch-context", 1020, 175, 240, "自适应上下文", "短文档单次；长文档每批 6 条", fill="#faf5ff", stroke="#d8b4fe", badge="S/B", badge_fill="#9333ea", status="字符阈值", status_fill="#ede9fe", status_text="#6b21a8")
+    node(lines, "llm-extractor", 1340, 175, 320, "LLM 候选事实提取", "严格 schema_version + 10 个必备字段", fill="#faf5ff", stroke="#d8b4fe", badge="LLM", badge_fill="#9333ea", status="可开关", status_fill="#ede9fe", status_text="#6b21a8")
 
     # Middle lane nodes.
-    node(lines, "candidate-json", 1350, 490, 300, "候选 facts JSON", "value / quote / clause_ids / confidence", fill="#faf5ff", stroke="#d8b4fe", badge="J", badge_fill="#9333ea", status="模型输出", status_fill="#ede9fe", status_text="#6b21a8")
-    node(lines, "schema-validation", 1000, 490, 240, "Schema 校验", "Pydantic；无效项丢弃并记录 warning", fill="#eff6ff", stroke="#93c5fd", badge="V", badge_fill="#2563eb", status="本地", status_fill="#dbeafe", status_text="#1d4ed8")
+    node(lines, "candidate-json", 1350, 490, 300, "候选 facts JSON", "外层版本 + value / quote / status / note", fill="#faf5ff", stroke="#d8b4fe", badge="J", badge_fill="#9333ea", status="模型输出", status_fill="#ede9fe", status_text="#6b21a8")
+    node(lines, "schema-validation", 1000, 490, 240, "Schema + 覆盖校验", "外层严格；坏项计数；缺字段补 missing", fill="#eff6ff", stroke="#93c5fd", badge="V", badge_fill="#2563eb", status="本地", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "evidence-locator", 680, 490, 260, "EvidenceLocator", "exact → 空白规范化 fallback", fill="#f0fdf4", stroke="#86efac", badge="E", badge_fill="#059669", status="本地", status_fill="#dcfce7", status_text="#166534")
     node(lines, "fact-normalizer", 360, 490, 260, "FactNormalizer", "日期/文本清理 + 证据门禁", fill="#eff6ff", stroke="#93c5fd", badge="N", badge_fill="#2563eb", status="本地", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "fact-list", 80, 490, 220, "ContractFact[]", "status / evidence / confidence", fill="#f0fdf4", stroke="#86efac", badge="F", badge_fill="#059669", status="中间结果", status_fill="#dcfce7", status_text="#166534")
@@ -217,7 +217,7 @@ def build_svg() -> str:
     node(lines, "postgres", 1340, 930, 300, "PostgreSQL JSONB", "extraction_status + extraction_result", fill="#f0fdf4", stroke="#86efac", badge="PG", badge_fill="#336791", status="持久化", status_fill="#dcfce7", status_text="#166534")
 
     add(lines, '<rect data-graph-role="note" x="70" y="310" width="1100" height="36" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>')
-    text(lines, 92, 333, "开关分支：CONTRACT_EXTRACTION_ENABLED=false 时保存条款并直接进入 needs_confirmation，不调用模型。", size=12, fill="#4b5563", role="note")
+    text(lines, 92, 333, "开关与兜底：关闭模型时不调用 LLM；缺失必备字段生成 missing + needs_confirmation，不把漏提取误当作合同没有该事项。", size=12, fill="#4b5563", role="note")
 
     add(lines, "</svg>")
     return "\n".join(lines) + "\n"

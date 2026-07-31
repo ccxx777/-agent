@@ -64,7 +64,7 @@
 - **隐私处理**：进入后续 LLM、Embedding、Reranker 和日志前，脱敏身份证号、手机号、银行卡号，并清理零宽字符等不可见字符。
 - **任务状态**：`queued → extracting → ready / needs_confirmation / failed`。任务和结果写入 PostgreSQL，原始文件保存在私有目录，不进入公共 Qdrant 语料库。
 - **质量门禁**：记录页数、文本覆盖率、OCR 使用情况、失败页、可疑页和脱敏统计；不把“解析完成”误认为“合同格式完全还原”。
-- **条款与事实提取**：解析完成后可按 `CONTRACT_EXTRACTION_ENABLED=true` 启用。条款先由确定性切分器生成，再由模型提取候选事实；每条事实必须在脱敏页文本中重新定位证据，缺证据、低置信度或相互矛盾的字段会进入 `needs_confirmation`。
+- **条款与事实提取**：解析完成后可按 `CONTRACT_EXTRACTION_ENABLED=true` 启用。条款先由确定性切分器生成，再由模型提取候选事实；短合同在字符数阈值内只调用一次模型，长合同按条款批次调用，避免把整份长合同塞进单个上下文。每条事实必须在脱敏页文本中重新定位证据，缺证据、低置信度或相互矛盾的字段会进入 `needs_confirmation`。
 - **边界**：事实提取不输出“违法/高风险/建议签署”等法律结论；`extraction_status` 与文件解析 `status` 独立保存，模型失败不会把已经成功解析的合同标记为文件解析失败。
 
 ![合同上传模块流程](docs/contract-upload-module.png)
@@ -72,6 +72,16 @@
 ### 条款与事实提取模块
 
 解析通过质量门禁后，系统先用确定性规则切分条款，再按 `contract_extraction` Schema 提取候选事实。每条事实都必须在脱敏页文本中定位证据；缺少证据、置信度不足或同名事实冲突时，进入确认问题，而不是直接生成法律结论。
+
+事实提取的调用策略和 JSON 门禁如下：
+
+- `total_clause_chars <= CONTRACT_EXTRACTION_SINGLE_PASS_MAX_CHARS` 时使用 `extraction_mode=single`，整份脱敏条款只调用一次 LLM；超过阈值时使用 `extraction_mode=batch`，按 `CONTRACT_EXTRACTION_BATCH_CLAUSES` 条款一批调用。
+- System Prompt 明确要求外层 `{"schema_version": 1, "facts": [...]}`，每条事实必须包含 `field_key`、`category`、`name`、`value`、`status`、`confidence`、`clause_ids`、`evidence_quotes`、`needs_confirmation`、`note` 十个字段。
+- `status` 只能是 `confirmed`、`ambiguous`、`missing`、`contradicted` 或 `needs_confirmation`；合同没有写明的字段必须返回 `value=null`、`status=missing`、`needs_confirmation=true`，不能静默省略。
+- 外层 Schema 和单条事实都使用额外字段禁止策略；格式不完整的单条事实会被计数并跳过，其余事实继续处理。服务随后对劳动合同首版必备字段做本地覆盖检查，缺失字段补成带确认问题的 `missing` 事实。
+- 结果增加 `extraction_mode`、`model_calls`、`invalid_fact_count` 和 `missing_required_fields`，便于观察一次提取究竟调用了几次模型以及哪些字段需要用户补充。
+
+默认参数为 `CONTRACT_EXTRACTION_SINGLE_PASS_MAX_CHARS=12000`、`CONTRACT_EXTRACTION_MAX_CHARS=12000`、`CONTRACT_EXTRACTION_BATCH_CLAUSES=6`。短合同阈值应结合模型上下文窗口和实际脱敏文本长度调整，不建议盲目增大。
 
 ![合同条款与事实提取模块流程](docs/contract-extraction-module.png)
 

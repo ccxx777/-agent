@@ -108,6 +108,11 @@ class Settings:
     contract_extraction_max_chars: int = field(
         default_factory=lambda: int(os.getenv("CONTRACT_EXTRACTION_MAX_CHARS", "12000"))
     )
+    contract_extraction_single_pass_max_chars: int = field(
+        default_factory=lambda: int(
+            os.getenv("CONTRACT_EXTRACTION_SINGLE_PASS_MAX_CHARS", "12000")
+        )
+    )
 
     # ── Server ──
     host: str = "0.0.0.0"
