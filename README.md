@@ -254,6 +254,27 @@ uv run pytest backend/tests evaluation -q
 uv run ruff check backend evaluation data_worker
 ```
 
+### 劳动合同上传 Smoke Test
+
+`evaluation/contract_review_smoke.py` 会上传一份真实劳动合同，轮询异步解析和事实提取，
+只输出任务状态、质量/脱敏统计、`extraction_mode`、模型调用次数和必备字段缺失列表，
+不会打印合同页文本或模型原始返回。
+
+```bash
+uv run \
+  --with-requirements backend/requirements.txt \
+  python evaluation/contract_review_smoke.py \
+  --file test_contract/劳动合同.doc \
+  --base-url http://127.0.0.1:8000 \
+  --token "$TOKEN" \
+  --expect-mode single \
+  --output data/contract_review_smoke.json
+```
+
+短合同预期为 `extraction_mode=single`、`model_calls=1`；超过
+`CONTRACT_EXTRACTION_SINGLE_PASS_MAX_CHARS` 后预期为 `batch`。`needs_confirmation` 是正常的
+人工确认状态，不代表上传或提取失败；只有 `failed` 或超时才算 Smoke Test 失败。
+
 先用 `evaluation/rag_smoke.py` 验证主链返回 `answer`、`contexts` 和 `documents`，再运行固定问题集和 RAGAS。RAGAS 依赖留在 `evaluation/requirements.txt`，不装进 Backend 镜像。
 
 ## 文档导航
