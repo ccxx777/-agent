@@ -147,13 +147,30 @@ button:disabled { cursor: not-allowed; }
 .confirmation-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; gap: 22px; }
 .facts-column { min-width: 0; }
 .fact-group { margin-bottom: 29px; }
+.confirmation-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; color: #85828a; font-size: 11px; }
+.group-toggle-all { border: 1px solid #45444b; border-radius: 6px; background: transparent; padding: 6px 9px; color: #aeb9d2; font-size: 11px; }
+.group-toggle-all:hover { border-color: #7184aa; color: var(--color-primary); }
 .fact-group-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.group-category-toggle { border: 0; background: transparent; padding: 0; text-align: left; cursor: pointer; }
+.group-category-toggle:hover span { color: var(--color-primary); }
+.group-category-toggle > span { display: inline-flex; align-items: center; gap: 10px; color: #85828a; font: 11px ui-monospace, monospace; }
+.group-category-toggle b { display: grid; width: 18px; height: 18px; place-items: center; border: 1px solid #4b4a51; border-radius: 5px; color: #b6b3ba; font-size: 15px; font-weight: 400; }
+.facts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .fact-group-heading h3 { margin: 0; color: var(--color-text); font-size: 15px; }
 .fact-group-heading span { color: #77747d; font: 11px ui-monospace, monospace; }
-.fact-card { margin-bottom: 10px; border: 1px solid #38373e; border-radius: 11px; background: #1b1a1d; padding: 16px; transition: border-color .2s ease; }
-.fact-card.needs-review { border-color: #62503b; }
+.fact-card { border: 1px solid #38373e; border-radius: 11px; background: #1b1a1d; padding: 14px; transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.fact-card.unresolved { border-color: #62503b; }
+.fact-card.pending { border-color: #536b9d; }
+.fact-card.complete { border-color: #3e6958; }
+.fact-card.focused { border-color: #e3a860; box-shadow: 0 0 0 3px #e3a8602d, 0 14px 32px #00000024; transform: translateY(-2px); animation: focus-card 1.5s ease-out; }
+@keyframes focus-card { 0%, 100% { box-shadow: 0 0 0 3px #e3a8602d, 0 14px 32px #00000024; } 40% { box-shadow: 0 0 0 7px #e3a86049, 0 18px 40px #00000035; } }
 .fact-card:hover { border-color: #585761; }
 .fact-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.fact-title-wrap { display: flex; min-width: 0; align-items: center; gap: 9px; }
+.fact-completion-icon { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border: 1px solid; border-radius: 50%; font-weight: 800; }
+.fact-completion-icon.complete { border-color: #4d8a6d; background: #234434; color: var(--color-success); }
+.fact-completion-icon.pending { border-color: #6481be; background: #263858; color: var(--color-primary); }
+.fact-completion-icon.unresolved { border-color: #9d5c54; background: #3c2427; color: var(--color-error); }
 .fact-name { color: var(--color-text); font-size: 14px; font-weight: 700; }
 .fact-key { margin-top: 3px; color: #78757d; font: 10px ui-monospace, monospace; }
 .fact-status-row { display: flex; align-items: center; gap: 6px; color: #9d9aa1; font-size: 10px; }
@@ -177,6 +194,7 @@ button:disabled { cursor: not-allowed; }
 .fact-action-row select { min-width: 118px; }
 .fact-action-row input { min-width: 0; flex: 1; }
 .fact-action-row select:focus, .fact-action-row input:focus, .fact-note:focus { border-color: #7895cf; }
+.fact-action-help { margin: 7px 0 0; color: #85828a; font-size: 10px; line-height: 1.5; }
 .fact-note { width: 100%; min-height: 31px; margin-top: 8px; resize: vertical; color: #a8a4ab; }
 .fact-note::placeholder, .fact-action-row input::placeholder { color: #706d74; }
 .confirmation-aside { position: sticky; top: 18px; display: grid; gap: 12px; }
@@ -189,6 +207,11 @@ button:disabled { cursor: not-allowed; }
 .question-item { border-left: 2px solid #c39460; padding-left: 9px; }
 .question-reason { color: #d8a467; font: 10px ui-monospace, monospace; }
 .question-item p { margin: 4px 0 0; color: #c6c1c8; font-size: 12px; line-height: 1.5; }
+.status-guide-row { display: grid; grid-template-columns: 70px minmax(0, 1fr); align-items: start; gap: 8px; margin-top: 9px; }
+.status-guide-row p { margin: 1px 0 0; color: #85828a; font-size: 11px; line-height: 1.55; }
+.guide-pill { display: inline-flex; justify-content: center; border-radius: 5px; padding: 4px 5px; font: 10px ui-monospace, monospace; }
+.guide-pill.not-applicable { background: #1e3d35; color: var(--color-success); }
+.guide-pill.deferred { background: #3c2427; color: var(--color-error); }
 .confirmation-actions { display: grid; gap: 8px; }
 .secondary-button, .primary-button, .workflow-button { min-height: 39px; border-radius: 8px; padding: 9px 13px; font-size: 12px; font-weight: 700; }
 .secondary-button { border: 1px solid #4b4a52; background: #242326; color: #bdb9c1; }
@@ -255,6 +278,7 @@ button:disabled { cursor: not-allowed; }
   .chat-main, .contract-content { padding: 24px 16px; }
   .stage-heading { flex-direction: column; }
   .upload-feature-grid, .report-summary-grid { grid-template-columns: 1fr; }
+  .facts-grid { grid-template-columns: 1fr; }
   .report-summary-grid > div { min-height: 70px; }
   .fact-values { grid-template-columns: 1fr; }
   .stepper { padding-inline: 0; }
