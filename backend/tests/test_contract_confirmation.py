@@ -134,6 +134,9 @@ class ContractConfirmationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.facts[0].original_value, "8000 RMB")
         self.assertEqual(result.facts[0].effective_value, "8000 RMB")
         self.assertEqual(result.facts[0].effective_source.value, "contract")
+        self.assertIn(ConfirmationAction.CONFIRM, result.facts[0].allowed_actions)
+        self.assertNotIn(ConfirmationAction.CONFIRM, result.facts[1].allowed_actions)
+        self.assertIn(ConfirmationAction.SUPPLEMENT, result.facts[1].allowed_actions)
         self.assertEqual(result.unresolved_questions[0].fact_id, "fact_term")
 
     async def test_correct_requires_contract_evidence_and_supplement_uses_user_source(self):

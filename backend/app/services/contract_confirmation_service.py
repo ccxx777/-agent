@@ -263,6 +263,39 @@ class ContractFactConfirmationService:
             "evidence": [item.model_dump(mode="json") for item in fact.evidence],
         }
 
+    @staticmethod
+    def _has_usable_value(value: Any) -> bool:
+        """判断提取值是否足以让用户执行“确认原文”。"""
+
+        if value is None:
+            return False
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            return normalized not in {"", "未识别", "unidentified", "unknown"}
+        if isinstance(value, (list, tuple, set, dict)):
+            return bool(value)
+        return True
+
+    @classmethod
+    def _allowed_actions(cls, fact: ContractFact) -> list[ConfirmationAction]:
+        """根据证据条件返回可执行动作，避免前端展示必然失败的确认按钮。"""
+
+        actions = [
+            ConfirmationAction.SUPPLEMENT,
+            ConfirmationAction.NOT_APPLICABLE,
+            ConfirmationAction.DEFER,
+        ]
+        if fact.evidence:
+            actions.insert(0, ConfirmationAction.CORRECT)
+        if (
+            fact.status is FactStatus.CONFIRMED
+            and not fact.needs_confirmation
+            and cls._has_usable_value(fact.value)
+            and fact.evidence
+        ):
+            actions.insert(0, ConfirmationAction.CONFIRM)
+        return actions
+
     def _apply_item(
         self,
         item: FactConfirmationItem,
@@ -276,7 +309,12 @@ class ContractFactConfirmationService:
         action = item.action
 
         if action is ConfirmationAction.CONFIRM:
-            if fact.value is None or not fact.evidence:
+            if (
+                fact.status is not FactStatus.CONFIRMED
+                or fact.needs_confirmation
+                or not self._has_usable_value(fact.value)
+                or not fact.evidence
+            ):
                 raise ContractConfirmationError(
                     f"事实“{fact.name}”没有足够合同证据，不能直接确认；请补充信息。",
                     code="confirm_without_evidence",
@@ -379,6 +417,7 @@ class ContractFactConfirmationService:
                     evidence=evidence,
                     source_clause_ids=fact.source_clause_ids,
                     question_ids=question_ids.get(fact.fact_id, []),
+                    allowed_actions=self._allowed_actions(fact),
                     note=state.get("confirmation_note") or fact.note,
                 )
             )

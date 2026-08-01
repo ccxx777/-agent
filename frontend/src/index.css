@@ -270,7 +270,9 @@ button:disabled { cursor: not-allowed; }
 .fact-action-row input { min-width: 0; flex: 1; }
 .fact-action-row select:focus, .fact-action-row input:focus, .fact-note:focus { border-color: #7895cf; }
 .fact-action-help { margin: 7px 0 0; color: #85828a; font-size: 10px; line-height: 1.5; }
-.fact-note { width: 100%; min-height: 31px; margin-top: 8px; resize: vertical; color: #a8a4ab; }
+.fact-note-field { display: grid; gap: 5px; margin-top: 10px; }
+.fact-note-field label { color: #85828a; font-size: 10px; }
+.fact-note { width: 100%; min-height: 31px; margin-top: 0; resize: vertical; color: #a8a4ab; }
 .fact-note::placeholder, .fact-action-row input::placeholder { color: #706d74; }
 .confirmation-aside { position: sticky; top: 18px; display: grid; gap: 12px; }
 .aside-card { border: 1px solid #38373e; border-radius: 11px; background: #1b1a1d; padding: 16px; }

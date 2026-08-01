@@ -51,6 +51,7 @@ interface FactDraft {
   note: string;
   savedAction: ConfirmationAction;
   savedValue: string;
+  savedNote: string;
 }
 
 const ACCEPTED_EXTENSIONS = [".pdf", ".doc", ".docx"];
@@ -103,6 +104,24 @@ function actionDescription(action: UiFactAction): string {
   }[action];
 }
 
+function hasUsableValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return normalized.length > 0 && normalized !== "未识别";
+  }
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value as object).length > 0;
+  return true;
+}
+
+function canConfirmOriginal(fact: FactConfirmationView): boolean {
+  return fact.extraction_status === "confirmed"
+    && hasUsableValue(fact.original_value)
+    && hasUsableValue(fact.effective_value)
+    && fact.evidence.length > 0;
+}
+
 function confidenceLabel(confidence: number): string {
   if (confidence >= 0.9) return "高置信度";
   if (confidence >= 0.7) return "中等置信度";
@@ -114,26 +133,38 @@ function findingTone(level: ReviewFinding["risk_level"]): string {
 }
 
 function availableUiActions(fact: FactConfirmationView): UiFactAction[] {
-  const allowed = fact.allowed_actions;
-  if (allowed.length === 0) return ["confirm", "edit", "not_applicable", "defer"];
+  const allowed = fact.allowed_actions.length > 0
+    ? fact.allowed_actions
+    : (["confirm", "correct", "supplement", "not_applicable", "defer"] as ConfirmationAction[]);
   const actions: UiFactAction[] = [];
-  if (allowed.includes("confirm")) actions.push("confirm");
-  if (allowed.includes("correct") || allowed.includes("supplement")) actions.push("edit");
-  if (allowed.includes("not_applicable")) actions.push("not_applicable");
-  if (allowed.includes("defer")) actions.push("defer");
-  return actions.length > 0 ? actions : ["defer"];
+  if (allowed.includes("confirm") && canConfirmOriginal(fact)) {
+    actions.push("confirm");
+  }
+  if (allowed.includes("correct") || allowed.includes("supplement")) {
+    actions.push("edit");
+  }
+  if (allowed.includes("not_applicable")) {
+    actions.push("not_applicable");
+  }
+  if (allowed.includes("defer")) {
+    actions.push("defer");
+  }
+  return actions.length > 0 ? actions : ["edit", "not_applicable", "defer"];
 }
 
 function getDefaultUiAction(fact: FactConfirmationView): UiFactAction {
-  const preferred: UiFactAction = fact.confirmation_state === "confirmed"
-    ? "confirm"
-    : fact.confirmation_state === "corrected" || fact.confirmation_state === "supplemented"
-      ? "edit"
-      : fact.confirmation_state === "not_applicable"
-        ? "not_applicable"
-        : "defer";
   const actions = availableUiActions(fact);
-  return actions.includes(preferred) ? preferred : actions[0] ?? "defer";
+  if (fact.confirmation_state === "confirmed" && actions.includes("confirm")) return "confirm";
+  if (
+    (fact.confirmation_state === "corrected" || fact.confirmation_state === "supplemented")
+    && actions.includes("edit")
+  ) return "edit";
+  if (fact.confirmation_state === "not_applicable" && actions.includes("not_applicable")) {
+    return "not_applicable";
+  }
+  // 未识别、无证据或待确认事实默认进入编辑，而不是让用户点击一个必然失败的“确认原文”。
+  if (actions.includes("edit")) return "edit";
+  return actions[0] ?? "defer";
 }
 
 function savedApiAction(fact: FactConfirmationView): ConfirmationAction {
@@ -145,14 +176,32 @@ function savedApiAction(fact: FactConfirmationView): ConfirmationAction {
 }
 
 function draftForFact(fact: FactConfirmationView): FactDraft {
-  const value = valueText(fact.user_value ?? fact.effective_value ?? fact.original_value).replace(/^未识别$/, "");
+  const savedValueSource = hasUsableValue(fact.user_value)
+    ? fact.user_value
+    : hasUsableValue(fact.effective_value)
+      ? fact.effective_value
+      : null;
+  const value = valueText(savedValueSource).replace(/^未识别$/, "");
   return {
     action: getDefaultUiAction(fact),
     value,
     note: fact.note ?? "",
     savedAction: savedApiAction(fact),
     savedValue: value,
+    savedNote: fact.note ?? "",
   };
+}
+
+function isFactDraftComplete(fact: FactConfirmationView, draft: FactDraft): boolean {
+  if (draft.action === "confirm") return canConfirmOriginal(fact);
+  if (draft.action === "edit") return draft.value.trim().length > 0;
+  return draft.action === "not_applicable";
+}
+
+function isFactDraftDirty(fact: FactConfirmationView, draft: FactDraft): boolean {
+  return draft.action !== getDefaultUiAction(fact)
+    || (draft.action === "edit" && draft.value.trim() !== draft.savedValue.trim())
+    || draft.note.trim() !== draft.savedNote.trim();
 }
 
 function toApiAction(draft: FactDraft): ConfirmationAction {
@@ -245,15 +294,22 @@ function FactCard({
 }) {
   const actions = availableUiActions(fact);
   const needsValue = draft.action === "edit";
-  const serverCompleted = ["confirmed", "corrected", "supplemented", "not_applicable"].includes(fact.confirmation_state);
+  const draftComplete = isFactDraftComplete(fact, draft);
+  const draftChanged = isFactDraftDirty(fact, draft);
   const draftReady = draft.action === "edit" && draft.value.trim().length > 0;
-  const draftChanged = draft.action !== getDefaultUiAction(fact)
-    || (draft.action === "edit" && draft.value.trim() !== draft.savedValue.trim());
-  const statusClass = draftChanged ? "pending" : serverCompleted ? "complete" : "unresolved";
-  const statusIcon = draftChanged ? "…" : serverCompleted ? "✓" : "×";
-  const statusText = draftChanged ? "待提交" : serverCompleted ? "已完成" : "待处理";
+  const statusClass = draftComplete ? "complete" : draftChanged ? "pending" : "unresolved";
+  const statusIcon = draftComplete ? "✓" : draftChanged ? "…" : "×";
+  const statusText = draftComplete
+    ? (draftChanged ? "已处理 · 待保存" : "已完成")
+    : draftChanged ? "待补充" : "待处理";
   const original = compactValue(fact.original_value);
-  const effective = draftReady ? compactValue(draft.value) : compactValue(fact.effective_value);
+  const effective = draft.action === "not_applicable"
+    ? "不适用"
+    : draftReady ? compactValue(draft.value) : compactValue(fact.effective_value);
+  const showNote = draft.action === "edit" || draft.action === "not_applicable";
+  const actionHelp = draft.action === "edit" && !draft.value.trim()
+    ? "请填写该事实的当前采用值；合同原值和原始证据会继续保留。"
+    : actionDescription(draft.action);
 
   return (
     <article id={`fact-card-${fact.fact_id}`} tabIndex={-1} className={`fact-card ${statusClass} ${focused ? "focused" : ""}`}>
@@ -295,7 +351,7 @@ function FactCard({
           </div>
         </details>
       ) : (
-        <div className="fact-no-evidence">未找到可定位的合同原文，请修改当前采用值或暂不确认。</div>
+        <div className="fact-no-evidence">未找到可直接确认的合同证据，系统已进入“修改当前采用值”；也可以标记为不适用。</div>
       )}
 
       <div className="fact-action-row">
@@ -303,7 +359,10 @@ function FactCard({
         <select
           id={`action-${fact.fact_id}`}
           value={draft.action}
-          onChange={(event) => onChange({ action: event.target.value as UiFactAction })}
+          onChange={(event) => {
+            const action = event.target.value as UiFactAction;
+            onChange({ action, ...(action === "edit" || action === "not_applicable" ? {} : { note: "" }) });
+          }}
         >
           {actions.map((action) => (
             <option key={action} value={action}>{actionLabel(action)}</option>
@@ -318,14 +377,20 @@ function FactCard({
           />
         )}
       </div>
-      <p className="fact-action-help">{actionDescription(draft.action)}</p>
-      <textarea
-        className="fact-note"
-        value={draft.note}
-        onChange={(event) => onChange({ note: event.target.value })}
-        placeholder="可选：补充说明（不会覆盖合同原值）"
-        rows={1}
-      />
+      <p className="fact-action-help">{actionHelp}</p>
+      {showNote && (
+        <div className="fact-note-field">
+          <label htmlFor={`note-${fact.fact_id}`}>可选补充说明</label>
+          <textarea
+            id={`note-${fact.fact_id}`}
+            className="fact-note"
+            value={draft.note}
+            onChange={(event) => onChange({ note: event.target.value })}
+            placeholder={draft.action === "not_applicable" ? "例如：本合同不涉及该事项" : "补充说明（不会覆盖合同原值）"}
+            rows={2}
+          />
+        </div>
+      )}
     </article>
   );
 }
@@ -518,16 +583,18 @@ export function ContractReviewPage({
     setBusy(true);
     setError(null);
     setNotice(null);
-    const incompleteEdit = confirmation.facts.find((fact) => {
-      const draft = drafts[fact.fact_id];
-      return draft?.action === "edit" && !draft.value.trim();
-    });
-    if (incompleteEdit) {
-      const focusCategory = incompleteEdit.category;
+    const incompleteFact = submit
+      ? confirmation.facts.find((fact) => {
+        const draft = drafts[fact.fact_id] ?? draftForFact(fact);
+        return !isFactDraftComplete(fact, draft);
+      })
+      : null;
+    if (incompleteFact) {
+      const focusCategory = incompleteFact.category;
       setOpenGroups((current) => ({ ...current, [focusCategory]: true }));
-      setFocusedFactId(incompleteEdit.fact_id);
+      setFocusedFactId(incompleteFact.fact_id);
       setFocusRequestId((current) => current + 1);
-      setError(`请先填写“${incompleteEdit.name}”的当前采用值，或选择“暂不确认”。`);
+      setError(`请先处理“${incompleteFact.name}”：填写当前采用值、标记不适用，或选择暂不确认。`);
       setBusy(false);
       return;
     }
@@ -538,13 +605,19 @@ export function ContractReviewPage({
         note: "",
         savedAction: "defer" as ConfirmationAction,
         savedValue: "",
+        savedNote: "",
       };
+      const action = !submit && draft.action === "edit" && !draft.value.trim()
+        ? "defer" as ConfirmationAction
+        : toApiAction(draft);
       const item: FactConfirmationItem = {
         fact_id: fact.fact_id,
-        action: toApiAction(draft),
+        action,
       };
-      if (draft.action === "edit") item.value = draft.value.trim();
-      if (draft.note.trim()) item.note = draft.note.trim();
+      if (draft.action === "edit" && draft.value.trim()) item.value = draft.value.trim();
+      if ((draft.action === "edit" || draft.action === "not_applicable") && draft.note.trim()) {
+        item.note = draft.note.trim();
+      }
       return item;
     });
     try {
@@ -569,7 +642,10 @@ export function ContractReviewPage({
           ? `还有 ${updated.unresolved_questions.length} 项事实待处理，已为你定位到第一项。`
           : "确认进度已保存。 ");
     } catch (saveError) {
-      const fallbackFocus = confirmation.unresolved_questions[0]?.fact_id
+      const fallbackFocus = confirmation.facts.find((fact) => {
+        const draft = drafts[fact.fact_id] ?? draftForFact(fact);
+        return !isFactDraftComplete(fact, draft);
+      })?.fact_id
         ?? null;
       if (fallbackFocus) {
         const focusCategory = confirmation.facts.find((fact) => fact.fact_id === fallbackFocus)?.category;
@@ -867,7 +943,15 @@ function ConfirmationStage({
   onSave: (submit: boolean) => void;
   onRunWorkflow: () => void;
 }) {
-  const unresolved = confirmation.unresolved_questions.length;
+  const draftFor = (fact: FactConfirmationView) => drafts[fact.fact_id] ?? draftForFact(fact);
+  const pendingFacts = confirmation.facts.filter((fact) => !isFactDraftComplete(fact, draftFor(fact)));
+  const unresolved = pendingFacts.length;
+  const completedCount = confirmation.facts.length - unresolved;
+  const dirtyCount = confirmation.facts.filter((fact) => isFactDraftDirty(fact, draftFor(fact))).length;
+  const pendingQuestions = pendingFacts.map((fact) => ({
+    fact,
+    question: confirmation.unresolved_questions.find((item) => item.fact_id === fact.fact_id),
+  }));
   const allGroupsOpen = groupedFacts.every(([category]) => openGroups[category]);
   useEffect(() => {
     if (!focusedFactId) return;
@@ -884,14 +968,19 @@ function ConfirmationStage({
           <p>{review?.filename ?? "这份合同"} 已完成结构化提取。请检查高亮项，必要时修改、补充或标记不适用。</p>
         </div>
         <div className={`progress-chip ${unresolved === 0 ? "complete" : ""}`}>
-          {unresolved === 0 ? "全部已解决" : `${unresolved} 项待确认`}
+          {unresolved === 0
+            ? `全部 ${completedCount} 项已处理${dirtyCount > 0 ? " · 待保存" : ""}`
+            : `${completedCount}/${confirmation.facts.length} 已处理 · ${unresolved} 项待处理`}
         </div>
       </div>
 
       <div className="confirmation-layout">
         <div className="facts-column">
           <div className="confirmation-toolbar">
-            <span>共 {confirmation.facts.length} 项事实 · 绿色勾表示已完成</span>
+            <span>
+              共 {confirmation.facts.length} 项事实 · 已处理 {completedCount} · 待处理 {unresolved}
+              {dirtyCount > 0 ? ` · ${dirtyCount} 项未保存` : ""}
+            </span>
             <button
               type="button"
               className="group-toggle-all"
@@ -912,8 +1001,8 @@ function ConfirmationStage({
                 <h3>{categoryName(category)}</h3>
                 <button type="button" className="group-category-toggle" onClick={() => onToggleGroup(category)} aria-expanded={Boolean(openGroups[category])} aria-controls={`fact-group-${category}`}>
                   <span>
-                    {facts.filter((fact) => !["confirmed", "corrected", "supplemented", "not_applicable"].includes(fact.confirmation_state)).length > 0
-                      ? `${facts.filter((fact) => !["confirmed", "corrected", "supplemented", "not_applicable"].includes(fact.confirmation_state)).length} 项待处理`
+                    {facts.filter((fact) => !isFactDraftComplete(fact, draftFor(fact))).length > 0
+                      ? `${facts.filter((fact) => !isFactDraftComplete(fact, draftFor(fact))).length} 项待处理`
                       : "全部完成"}
                     <b aria-hidden="true">{openGroups[category] ? "−" : "+"}</b>
                   </span>
@@ -939,16 +1028,24 @@ function ConfirmationStage({
         <aside className="confirmation-aside">
           <div className="aside-card question-card">
             <div className="aside-card-heading"><span className="aside-icon">?</span><h3>需要你补充</h3></div>
-            {confirmation.unresolved_questions.length === 0 ? (
-              <p className="aside-muted">暂时没有未解决的问题。提交后即可运行审查。</p>
+            {pendingQuestions.length === 0 ? (
+              <p className="aside-muted">
+                {dirtyCount > 0 ? "所有卡片已处理，请先保存确认后开始审查。" : "暂时没有未解决的问题。提交后即可运行审查。"}
+              </p>
             ) : (
               <div className="question-list">
-                {confirmation.unresolved_questions.map((question) => (
-                  <div className="question-item" key={question.question_id}>
-                    <span className="question-reason">{question.reason === "missing" ? "缺失" : "待核对"}</span>
-                    <p>{question.question_text}</p>
-                  </div>
-                ))}
+                {pendingQuestions.map(({ fact, question }) => {
+                  const draft = draftFor(fact);
+                  const reason = draft.action === "defer"
+                    ? "暂不确认"
+                    : question?.reason === "missing" ? "缺失" : "待处理";
+                  return (
+                    <div className="question-item" key={fact.fact_id}>
+                      <span className="question-reason">{reason}</span>
+                      <p>{question?.question_text ?? `请处理“${fact.name}”的当前采用值。`}</p>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -969,7 +1066,13 @@ function ConfirmationStage({
               提交确认
             </button>
             <button type="button" className="workflow-button" disabled={!confirmation.ready_for_legal_review || workflowBusy} onClick={onRunWorkflow}>
-              {workflowBusy ? "正在生成报告…" : confirmation.ready_for_legal_review ? "开始风险审查 →" : "完成确认后开始审查"}
+              {workflowBusy
+                ? "正在生成报告…"
+                : confirmation.ready_for_legal_review
+                  ? "开始风险审查 →"
+                  : unresolved === 0
+                    ? "请先保存确认后开始审查"
+                    : "完成确认后开始审查"}
             </button>
           </div>
         </aside>
