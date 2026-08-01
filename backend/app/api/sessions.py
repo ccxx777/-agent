@@ -40,6 +40,22 @@ def create_sessions_router(
             result = {"messages": [], "summary": ""}
         return SessionHistoryResponse.model_validate(result)
 
+    @router.get("/chat/history/report/{review_id}", response_model=SessionHistoryResponse)
+    async def report_chat_history(
+        review_id: str,
+        user: dict = Depends(get_current_user),  # noqa: B008 - FastAPI dependency declaration
+    ) -> SessionHistoryResponse:
+        """返回指定报告的专属问答历史，不混入普通 session。"""
+
+        try:
+            result = await session_service.get_report_history(review_id, user["user_id"])
+        except Exception as error:
+            logger.exception("report history lookup failed for %s", review_id)
+            raise HTTPException(status_code=500, detail="报告历史暂时不可用") from error
+        if result is None:
+            raise HTTPException(status_code=404, detail="报告不存在或无权访问")
+        return SessionHistoryResponse.model_validate(result)
+
     @router.get("/sessions/{session_id}/reviews", response_model=SessionReviewsResponse)
     async def session_reviews(
         session_id: str,

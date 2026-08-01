@@ -64,6 +64,17 @@ class _WorkingStorage:
         return None
 
 
+class _ReportThreadCleaner:
+    def __init__(self, *, fail: bool = False) -> None:
+        self.review_ids: list[str] = []
+        self.fail = fail
+
+    async def __call__(self, review_id: str) -> None:
+        self.review_ids.append(review_id)
+        if self.fail:
+            raise RuntimeError("checkpoint unavailable")
+
+
 class ContractReviewServiceTests(unittest.IsolatedAsyncioTestCase):
     async def test_upload_creates_session_and_short_retention_metadata(self):
         inspection = PDFInspection(
@@ -218,6 +229,7 @@ class ContractReviewServiceTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_expired_cleanup_finalizes_after_file_delete(self):
         repository = _PurgeRepository()
+        cleaner = _ReportThreadCleaner()
         service = ContractReviewService(
             repository,
             _WorkingStorage(),
@@ -225,12 +237,39 @@ class ContractReviewServiceTests(unittest.IsolatedAsyncioTestCase):
             _FakeOCR(),
             max_upload_bytes=1024,
             max_pages=1,
+            report_thread_cleaner=cleaner,
         )
 
         removed = await service.purge_expired()
 
         self.assertEqual(removed, 1)
         self.assertEqual(repository.finalize_calls, 1)
+        self.assertEqual(
+            cleaner.review_ids,
+            ["00000000-0000-0000-0000-000000000001"],
+        )
+
+    async def test_expired_cleanup_keeps_record_when_report_thread_delete_fails(self):
+        repository = _PurgeRepository()
+        cleaner = _ReportThreadCleaner(fail=True)
+        service = ContractReviewService(
+            repository,
+            _WorkingStorage(),
+            _FakeParser(PDFInspection(page_count=0, pages=())),
+            _FakeOCR(),
+            max_upload_bytes=1024,
+            max_pages=1,
+            report_thread_cleaner=cleaner,
+        )
+
+        removed = await service.purge_expired()
+
+        self.assertEqual(removed, 0)
+        self.assertEqual(repository.finalize_calls, 0)
+        self.assertEqual(
+            cleaner.review_ids,
+            ["00000000-0000-0000-0000-000000000001"],
+        )
 
 
 if __name__ == "__main__":

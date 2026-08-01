@@ -12,6 +12,8 @@ from uuid import UUID
 
 from langchain_core.messages import HumanMessage
 
+from app.services.report_chat_thread import report_chat_thread_id
+
 
 def _is_uuid(value: str) -> bool:
     try:
@@ -35,6 +37,19 @@ class ChatService:
     def __init__(self, graph: Any, repository: Any | None = None) -> None:
         self._graph = graph
         self._repository = repository
+
+    async def delete_report_thread(self, review_id: str) -> None:
+        """删除一份报告的 LangGraph checkpoint。
+
+        报告问答使用独立 thread，因此删除合同时必须同步删除该 thread；如果
+        checkpointer 未提供删除能力，直接失败而不让上层误报删除完成。
+        """
+
+        checkpointer = getattr(self._graph, "checkpointer", None)
+        delete_thread = getattr(checkpointer, "adelete_thread", None)
+        if not callable(delete_thread):
+            raise RuntimeError("LangGraph checkpointer 不支持报告 thread 删除")
+        await delete_thread(report_chat_thread_id(review_id))
 
     async def _report_context(
         self,
@@ -129,9 +144,10 @@ class ChatService:
             input_state["active_review_id"] = review_id
         if mode == "contract_review":
             input_state["report_context"] = report_context
+        thread_id = report_chat_thread_id(review_id) if mode == "contract_review" else session_id
         return await self._graph.ainvoke(
             input_state,
-            {"configurable": {"thread_id": session_id, "user_id": user_id}},
+            {"configurable": {"thread_id": thread_id, "user_id": user_id}},
         )
 
     async def ask(

@@ -57,6 +57,7 @@ class ContractReviewService:
         extraction_service: Any | None = None,
         short_retention_days: int = 7,
         long_retention_days: int = 30,
+        report_thread_cleaner: Any | None = None,
     ) -> None:
         self.repository = repository
         self.storage = storage
@@ -67,6 +68,12 @@ class ContractReviewService:
         self.extraction_service = extraction_service
         self.short_retention_days = short_retention_days
         self.long_retention_days = long_retention_days
+        self._report_thread_cleaner = report_thread_cleaner
+
+    def set_report_thread_cleaner(self, cleaner: Any) -> None:
+        """注入报告 thread 清理器，避免合同服务直接依赖 LangGraph 类型。"""
+
+        self._report_thread_cleaner = cleaner
 
     async def create_review(
         self,
@@ -306,6 +313,12 @@ class ContractReviewService:
         except OSError:
             logger.exception("Contract private file cleanup failed: review_id=%s", review_id)
             raise ContractUploadError("合同原件清理失败，请稍后重试")
+        if self._report_thread_cleaner is not None:
+            try:
+                await self._report_thread_cleaner(review_id)
+            except Exception as error:
+                logger.exception("Contract report thread cleanup failed: review_id=%s", review_id)
+                raise ContractUploadError("合同报告历史清理失败，请稍后重试") from error
         deleted_path = await self.repository.delete_task(review_id, user_id)
         return deleted_path is not None or record is not None
 
@@ -321,8 +334,13 @@ class ContractReviewService:
         for review_id, _storage_path in paths:
             try:
                 self.storage.delete(str(review_id))
+                if self._report_thread_cleaner is not None:
+                    await self._report_thread_cleaner(str(review_id))
             except OSError:
                 logger.exception("Expired contract cleanup failed: review_id=%s", review_id)
+                continue
+            except Exception:
+                logger.exception("Expired contract report thread cleanup failed: review_id=%s", review_id)
                 continue
             if finalize is None or await finalize(str(review_id)):
                 removed += 1

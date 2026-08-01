@@ -31,17 +31,24 @@ function normalizeConversation(value: unknown): Conversation | null {
   };
 }
 
-function loadConversations(): Conversation[] {
+function workspaceStorageKey(userId: string | null | undefined, name: string): string | null {
+  if (!userId) return null;
+  return `ai:${userId}:${name}`;
+}
+
+function loadConversations(storageKey: string | null): Conversation[] {
+  if (!storageKey) return [];
   try {
-    const raw = JSON.parse(localStorage.getItem("ai_conversations") || "[]") as unknown;
+    const raw = JSON.parse(localStorage.getItem(storageKey) || "[]") as unknown;
     return Array.isArray(raw) ? raw.map(normalizeConversation).filter((item): item is Conversation => Boolean(item)) : [];
   } catch {
     return [];
   }
 }
 
-function saveConversations(list: Conversation[]) {
-  localStorage.setItem("ai_conversations", JSON.stringify(list.slice(0, 50)));
+function saveConversations(list: Conversation[], storageKey: string | null) {
+  if (!storageKey) return;
+  localStorage.setItem(storageKey, JSON.stringify(list.slice(0, 50)));
 }
 
 type ChatContext = {
@@ -49,9 +56,10 @@ type ChatContext = {
   reviewId: string | null;
 };
 
-function loadStoredChatContext(): ChatContext & { sessionId?: string } {
+function loadStoredChatContext(storageKey: string | null): ChatContext & { sessionId?: string } {
+  if (!storageKey) return { mode: "general", reviewId: null };
   try {
-    const raw = JSON.parse(localStorage.getItem("ai_active_chat_context") || "null") as Record<string, unknown> | null;
+    const raw = JSON.parse(localStorage.getItem(storageKey) || "null") as Record<string, unknown> | null;
     if (raw && (raw.mode === "general" || raw.mode === "legal" || raw.mode === "contract_review")) {
       return {
         mode: raw.mode,
@@ -120,6 +128,8 @@ function ChatPage({
   ));
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyMessages, setHistoryMessages] = useState<Message[]>([]);
+  const historyAbortRef = useRef<AbortController | null>(null);
+  const historyRequestRef = useRef(0);
   const { messages, sendMessage, isStreaming, cancel } = useChatStream(
     token!,
     sessionId,
@@ -133,26 +143,56 @@ function ChatPage({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const loadHistory = useCallback(async (historySessionId: string) => {
+  const loadHistory = useCallback(async (historySessionId: string, historyReviewId?: string) => {
     if (!token) return;
+    const requestId = historyRequestRef.current + 1;
+    historyRequestRef.current = requestId;
+    historyAbortRef.current?.abort();
+    const controller = new AbortController();
+    historyAbortRef.current = controller;
     setLoadingHistory(true);
+    setHistoryMessages([]);
     try {
-      const response = await fetch(`/api/chat/history/${encodeURIComponent(historySessionId)}`, {
+      const historyPath = historyReviewId
+        ? `/api/chat/history/report/${encodeURIComponent(historyReviewId)}`
+        : `/api/chat/history/${encodeURIComponent(historySessionId)}`;
+      const response = await fetch(historyPath, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = (await response.json()) as { messages?: Message[] };
+      const expectedReviewId = mode === "contract_review" ? reviewId ?? undefined : undefined;
+      const isCurrent = requestId === historyRequestRef.current
+        && historySessionId === sessionId
+        && historyReviewId === expectedReviewId;
+      if (!isCurrent) return;
       setHistoryMessages(Array.isArray(data.messages) ? data.messages : []);
-    } catch {
-      setHistoryMessages([]);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      if (requestId === historyRequestRef.current) setHistoryMessages([]);
     } finally {
-      setLoadingHistory(false);
+      if (requestId === historyRequestRef.current) {
+        setLoadingHistory(false);
+        historyAbortRef.current = null;
+      }
     }
-  }, [token]);
+  }, [mode, reviewId, sessionId, token]);
+
+  useEffect(() => () => {
+    historyRequestRef.current += 1;
+    historyAbortRef.current?.abort();
+  }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void loadHistory(sessionId), 0);
+    historyRequestRef.current += 1;
+    historyAbortRef.current?.abort();
+    const timer = window.setTimeout(
+      () => void loadHistory(sessionId, mode === "contract_review" ? reviewId ?? undefined : undefined),
+      0,
+    );
     return () => window.clearTimeout(timer);
-  }, [loadHistory, sessionId]);
+  }, [loadHistory, mode, reviewId, sessionId]);
 
   const handleNewChat = useCallback(() => {
     if (activeId && messages.length > 0) {
@@ -173,7 +213,12 @@ function ChatPage({
     if (conversation) {
       onConversationSelect(conversation);
       const historySessionId = conversation.sessionId ?? conversation.id;
-      if (historySessionId === sessionId) void loadHistory(historySessionId);
+      if (historySessionId === sessionId) {
+        void loadHistory(
+          historySessionId,
+          conversation.kind === "report" ? conversation.reviewId : undefined,
+        );
+      }
       return;
     }
     onSessionChange(id);
@@ -287,27 +332,39 @@ function AuthPage() {
 }
 
 function AppInner() {
-  const { isAuthenticated, token } = useAuth();
-  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
-  const storedContext = loadStoredChatContext();
+  const { isAuthenticated, token, user } = useAuth();
+  const userId = user?.user_id ?? null;
+  const conversationsStorageKey = workspaceStorageKey(userId, "conversations");
+  const sessionStorageKey = workspaceStorageKey(userId, "active_session_id");
+  const contextStorageKey = workspaceStorageKey(userId, "active_chat_context");
+  const viewStorageKey = workspaceStorageKey(userId, "active_view");
+  const reviewStorageKey = workspaceStorageKey(userId, "contract_review_last_id");
+  const storedContext = loadStoredChatContext(contextStorageKey);
+  const storedReviewId = reviewStorageKey ? localStorage.getItem(reviewStorageKey) : null;
+  const initialReportId = storedContext.mode === "contract_review"
+    && storedContext.reviewId
+    && storedContext.reviewId === storedReviewId
+    ? storedContext.reviewId
+    : null;
+  const [conversations, setConversations] = useState<Conversation[]>(() => loadConversations(conversationsStorageKey));
   const [sessionId, setSessionId] = useState<string>(() => {
-    const stored = storedContext.sessionId ?? localStorage.getItem("ai_active_session_id");
+    const stored = storedContext.sessionId ?? (sessionStorageKey ? localStorage.getItem(sessionStorageKey) : null);
     const value = stored || generateId();
-    localStorage.setItem("ai_active_session_id", value);
+    if (sessionStorageKey) localStorage.setItem(sessionStorageKey, value);
     return value;
   });
   const [chatContext, setChatContext] = useState<ChatContext>(() => ({
-    mode: storedContext.mode,
-    reviewId: storedContext.reviewId,
+    mode: storedContext.mode === "contract_review" && !initialReportId ? "general" : storedContext.mode,
+    reviewId: initialReportId,
   }));
   const [view, setView] = useState<"chat" | "contract">(() => {
     if (window.location.pathname.startsWith("/contracts")) return "contract";
-    return localStorage.getItem("ai_active_view") === "contract" ? "contract" : "chat";
+    return viewStorageKey && localStorage.getItem(viewStorageKey) === "contract" ? "contract" : "chat";
   });
 
   useEffect(() => {
-    saveConversations(conversations);
-  }, [conversations]);
+    saveConversations(conversations, conversationsStorageKey);
+  }, [conversations, conversationsStorageKey]);
 
   useEffect(() => {
     if (!isAuthenticated || !token) return;
@@ -335,48 +392,51 @@ function AppInner() {
 
   const switchView = useCallback((next: "chat" | "contract", nextReviewId?: string) => {
     setView(next);
-    localStorage.setItem("ai_active_view", next);
-    if (nextReviewId) localStorage.setItem("contract_review_last_id", nextReviewId);
+    if (viewStorageKey) localStorage.setItem(viewStorageKey, next);
+    if (next === "contract" && reviewStorageKey) {
+      if (nextReviewId) localStorage.setItem(reviewStorageKey, nextReviewId);
+      else localStorage.removeItem(reviewStorageKey);
+    }
     window.history.replaceState({}, "", next === "contract" ? "/contracts" : "/");
-  }, []);
+  }, [reviewStorageKey, viewStorageKey]);
 
   const changeSession = useCallback((next: string) => {
     const nextContext: ChatContext = { mode: "general", reviewId: null };
     setSessionId(next);
     setChatContext(nextContext);
-    localStorage.setItem("ai_active_session_id", next);
-    localStorage.setItem("ai_active_chat_context", JSON.stringify({ ...nextContext, sessionId: next }));
-  }, []);
+    if (sessionStorageKey) localStorage.setItem(sessionStorageKey, next);
+    if (contextStorageKey) localStorage.setItem(contextStorageKey, JSON.stringify({ ...nextContext, sessionId: next }));
+  }, [contextStorageKey, sessionStorageKey]);
 
   const openReportChat = useCallback((reviewId: string, reportSessionId: string) => {
     const nextContext: ChatContext = { mode: "contract_review", reviewId };
     setSessionId(reportSessionId);
     setChatContext(nextContext);
-    localStorage.setItem("ai_active_session_id", reportSessionId);
-    localStorage.setItem("ai_active_chat_context", JSON.stringify({ ...nextContext, sessionId: reportSessionId }));
+    if (sessionStorageKey) localStorage.setItem(sessionStorageKey, reportSessionId);
+    if (contextStorageKey) localStorage.setItem(contextStorageKey, JSON.stringify({ ...nextContext, sessionId: reportSessionId }));
     switchView("chat");
-  }, [switchView]);
+  }, [contextStorageKey, sessionStorageKey, switchView]);
 
   const openConversation = useCallback((conversation: Conversation) => {
     const nextSessionId = conversation.sessionId ?? conversation.id;
     setSessionId(nextSessionId);
-    localStorage.setItem("ai_active_session_id", nextSessionId);
+    if (sessionStorageKey) localStorage.setItem(sessionStorageKey, nextSessionId);
     if (conversation.kind === "report" && conversation.reviewId) {
       const nextContext: ChatContext = { mode: "contract_review", reviewId: conversation.reviewId };
       setChatContext(nextContext);
-      localStorage.setItem("ai_active_chat_context", JSON.stringify({ ...nextContext, sessionId: nextSessionId }));
+      if (contextStorageKey) localStorage.setItem(contextStorageKey, JSON.stringify({ ...nextContext, sessionId: nextSessionId }));
     } else {
       const nextContext: ChatContext = { mode: "general", reviewId: null };
       setChatContext(nextContext);
-      localStorage.setItem("ai_active_chat_context", JSON.stringify({ ...nextContext, sessionId: nextSessionId }));
+      if (contextStorageKey) localStorage.setItem(contextStorageKey, JSON.stringify({ ...nextContext, sessionId: nextSessionId }));
     }
-  }, []);
+  }, [contextStorageKey, sessionStorageKey]);
 
   const changeChatMode = useCallback((mode: "general" | "legal", reviewId: string | null = null) => {
     const nextContext: ChatContext = { mode, reviewId };
     setChatContext(nextContext);
-    localStorage.setItem("ai_active_chat_context", JSON.stringify({ ...nextContext, sessionId }));
-  }, [sessionId]);
+    if (contextStorageKey) localStorage.setItem(contextStorageKey, JSON.stringify({ ...nextContext, sessionId }));
+  }, [contextStorageKey, sessionId]);
 
   const upsertConversation = useCallback((conversation: Conversation) => {
     setConversations((previous) => [
@@ -386,8 +446,24 @@ function AppInner() {
   }, []);
 
   const openContract = useCallback((reviewId?: unknown) => {
-    switchView("contract", typeof reviewId === "string" ? reviewId : undefined);
-  }, [switchView]);
+    const nextReviewId = typeof reviewId === "string" && reviewId.trim() ? reviewId : undefined;
+    if (!nextReviewId) {
+      const nextContext: ChatContext = { mode: "general", reviewId: null };
+      setChatContext(nextContext);
+      if (contextStorageKey) {
+        localStorage.setItem(contextStorageKey, JSON.stringify({ ...nextContext, sessionId }));
+      }
+    }
+    switchView("contract", nextReviewId);
+  }, [contextStorageKey, sessionId, switchView]);
+
+  const resetReportContext = useCallback(() => {
+    const nextContext: ChatContext = { mode: "general", reviewId: null };
+    setChatContext(nextContext);
+    if (contextStorageKey) {
+      localStorage.setItem(contextStorageKey, JSON.stringify({ ...nextContext, sessionId }));
+    }
+  }, [contextStorageKey, sessionId]);
 
   const handleReportReady = useCallback((review: ReportConversationSource) => {
     const item = reportConversation(review);
@@ -412,6 +488,7 @@ function AppInner() {
       <ContractReviewPage
         sessionId={sessionId}
         onOpenChat={() => switchView("chat")}
+        onResetReportContext={resetReportContext}
         onOpenReportChat={openReportChat}
         onReportReady={handleReportReady}
         conversations={conversations}
@@ -420,6 +497,7 @@ function AppInner() {
           : conversations.find((item) => (item.sessionId ?? item.id) === sessionId)?.id ?? null}
         onSelectConversation={selectConversationFromContract}
         onNewConversation={startConversationFromContract}
+        reviewStorageKey={reviewStorageKey ?? ""}
       />
     );
   }
@@ -456,10 +534,15 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   }
 }
 
+function UserScopedApp() {
+  const { user } = useAuth();
+  return <AppInner key={user?.user_id ?? "logged-out"} />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <ErrorBoundary><AppInner /></ErrorBoundary>
+      <ErrorBoundary><UserScopedApp /></ErrorBoundary>
     </AuthProvider>
   );
 }

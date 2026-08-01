@@ -25,6 +25,7 @@ type ContractStage = "upload" | "processing" | "confirmation" | "report";
 
 interface ContractReviewPageProps {
   onOpenChat: () => void;
+  onResetReportContext: () => void;
   onOpenReportChat: (reviewId: string, sessionId: string) => void;
   onReportReady: (report: {
     review_id: string;
@@ -39,6 +40,7 @@ interface ContractReviewPageProps {
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   sessionId: string;
+  reviewStorageKey: string;
 }
 
 type UiFactAction = "confirm" | "edit" | "not_applicable" | "defer";
@@ -51,7 +53,6 @@ interface FactDraft {
   savedValue: string;
 }
 
-const REVIEW_ID_KEY = "contract_review_last_id";
 const ACCEPTED_EXTENSIONS = [".pdf", ".doc", ".docx"];
 
 function valueText(value: unknown): string {
@@ -331,6 +332,7 @@ function FactCard({
 
 export function ContractReviewPage({
   onOpenChat,
+  onResetReportContext,
   onOpenReportChat,
   onReportReady,
   conversations,
@@ -338,9 +340,10 @@ export function ContractReviewPage({
   onSelectConversation,
   onNewConversation,
   sessionId,
+  reviewStorageKey,
 }: ContractReviewPageProps) {
   const { token } = useAuth();
-  const [reviewId, setReviewId] = useState<string | null>(() => localStorage.getItem(REVIEW_ID_KEY));
+  const [reviewId, setReviewId] = useState<string | null>(() => localStorage.getItem(reviewStorageKey) || null);
   const [review, setReview] = useState<ContractReviewDetail | null>(null);
   const [confirmation, setConfirmation] = useState<ContractConfirmationResponse | null>(null);
   const [report, setReport] = useState<ContractReviewReport | null>(null);
@@ -355,6 +358,22 @@ export function ContractReviewPage({
   const [focusRequestId, setFocusRequestId] = useState(0);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [retentionPolicy, setRetentionPolicy] = useState<"short" | "long_opt_in">("short");
+
+  const clearReview = useCallback((message: string | null = null) => {
+    localStorage.removeItem(reviewStorageKey);
+    setReviewId(null);
+    setReview(null);
+    setConfirmation(null);
+    setReport(null);
+    setDrafts({});
+    setFocusedFactId(null);
+    setFocusRequestId(0);
+    setOpenGroups({});
+    setStage("upload");
+    setNotice(message);
+    setError(null);
+    onResetReportContext();
+  }, [onResetReportContext, reviewStorageKey]);
 
   const groupedFacts = useMemo(() => {
     if (!confirmation) return [] as [string, FactConfirmationView[]][];
@@ -429,6 +448,10 @@ export function ContractReviewPage({
         timer = window.setTimeout(poll, 2000);
       } catch (requestError) {
         if (!stopped) {
+          if (requestError instanceof ContractApiError && requestError.status === 404) {
+            clearReview("这份合同报告已不存在或已过期，请重新上传合同。");
+            return;
+          }
           setError(errorMessage(requestError));
           timer = window.setTimeout(poll, 4000);
         }
@@ -440,7 +463,7 @@ export function ContractReviewPage({
       stopped = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [loadConfirmation, onReportReady, reviewId, token]);
+  }, [clearReview, loadConfirmation, onReportReady, reviewId, token]);
 
   const beginUpload = useCallback(async (file: File) => {
     if (!token) return;
@@ -453,7 +476,7 @@ export function ContractReviewPage({
     setBusy(true);
     try {
       const summary = await uploadContract(token, file, sessionId, retentionPolicy);
-      localStorage.setItem(REVIEW_ID_KEY, summary.review_id);
+      localStorage.setItem(reviewStorageKey, summary.review_id);
       setReviewId(summary.review_id);
       setReview(summary as ContractReviewDetail);
       setConfirmation(null);
@@ -468,7 +491,7 @@ export function ContractReviewPage({
     } finally {
       setBusy(false);
     }
-  }, [retentionPolicy, sessionId, token]);
+  }, [retentionPolicy, reviewStorageKey, sessionId, token]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -584,18 +607,7 @@ export function ContractReviewPage({
   };
 
   const resetReview = () => {
-    localStorage.removeItem(REVIEW_ID_KEY);
-    setReviewId(null);
-    setReview(null);
-    setConfirmation(null);
-    setReport(null);
-    setDrafts({});
-    setFocusedFactId(null);
-    setFocusRequestId(0);
-    setOpenGroups({});
-    setStage("upload");
-    setNotice(null);
-    setError(null);
+    clearReview();
   };
 
   const handleDownloadReport = async () => {

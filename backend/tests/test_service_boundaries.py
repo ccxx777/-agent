@@ -204,9 +204,41 @@ class ServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(input_state["conversation_mode"], "contract_review")
         self.assertEqual(input_state["active_review_id"], "review-1")
         self.assertIn("labor_contract_national", input_state["report_context"])
+        self.assertEqual(
+            graph.ainvoke.await_args.args[1]["configurable"]["thread_id"],
+            "contract-review:review-1",
+        )
         repository.get_report.assert_awaited_once_with(
             "review-1", "00000000-0000-0000-0000-000000000002"
         )
+
+    async def test_chat_service_deletes_report_scoped_thread(self):
+        checkpointer = SimpleNamespace(adelete_thread=AsyncMock())
+        graph = SimpleNamespace(checkpointer=checkpointer)
+
+        await ChatService(graph).delete_report_thread("review-1")
+
+        checkpointer.adelete_thread.assert_awaited_once_with("contract-review:review-1")
+
+    async def test_session_service_reads_report_scoped_thread(self):
+        state = SimpleNamespace(
+            values={"messages": [AIMessage(content="report answer")], "summary": "report memory"}
+        )
+        graph = SimpleNamespace(aget_state=AsyncMock(return_value=state))
+        repository = SimpleNamespace(
+            get_report=AsyncMock(return_value={"report_id": "report-1"}),
+        )
+
+        result = await SessionService(graph, repository).get_report_history("review-1", "owner-1")
+
+        self.assertEqual(result, {
+            "messages": [{"role": "assistant", "content": "report answer"}],
+            "summary": "report memory",
+        })
+        graph.aget_state.assert_awaited_once_with(
+            {"configurable": {"thread_id": "contract-review:review-1"}}
+        )
+        repository.get_report.assert_awaited_once_with("review-1", "owner-1")
 
     async def test_chat_service_rejects_non_uuid_session_for_authenticated_user(self):
         graph = SimpleNamespace(ainvoke=AsyncMock())

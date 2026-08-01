@@ -170,6 +170,7 @@ async def lifespan(app: FastAPI):
         legal_retrieval_service=legal_a_retrieval_service,
     )
     chat_service = ChatService(graph, contract_repository)
+    contract_review_service.set_report_thread_cleaner(chat_service.delete_report_thread)
     session_service = SessionService(graph, contract_repository)
     contract_review_workflow = build_contract_review_workflow(
         repository=contract_repository,
