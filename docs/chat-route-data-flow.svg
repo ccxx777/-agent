@@ -1,0 +1,289 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2240" height="1660" viewBox="0 0 2240 1660" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-schema-version="1" data-style-id="1" data-visual-theme="flat-icon" data-diagram-type="data-flow" data-semantic-profile="generic" data-quality-profile="standard" data-min-node-gap="28" data-min-container-gutter="20" data-min-label-clearance="4" data-min-segment-length="16">
+<title id="title">合同审查、报告问答与通用聊天数据流</title>
+<desc id="desc">对比合同上传审查、针对报告提问和直接开启聊天三条线路，并标注工资事实无法在报告问答中被读取的当前断点。</desc>
+<style>text{font-family:'Segoe UI','PingFang SC','Microsoft YaHei','Noto Sans CJK SC',Arial,sans-serif;} </style>
+<defs>
+<marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/></marker>
+<marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#059669"/></marker>
+<marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ea580c"/></marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/></marker>
+</defs>
+<rect data-graph-role="background" width="2240" height="1660" fill="#f8fafc"/>
+<text data-graph-role="label" x="60" y="53" font-size="29px" fill="#172033" font-weight="750" text-anchor="start">三条对话线路：为什么“工资是多少”会回答不出来？</text>
+<text data-graph-role="label" x="60" y="86" font-size="14px" fill="#64748b" font-weight="400" text-anchor="start">当前实现的数据流。红色断点表示：报告问答拿到了报告摘要，却没有拿到确认事实表中的工资 effective_value。</text>
+<rect data-graph-role="container" x="60" y="104" width="2120" height="50" rx="12" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1.2"/>
+<text data-graph-role="label" x="88" y="135" font-size="13px" fill="#3730a3" font-weight="650" text-anchor="start">三条线路共用：Authorization Bearer → get_current_user → user_id 注入 → Service/Repository 按 user_id、session_id 做归属检查</text>
+<text data-graph-role="label" x="1860" y="135" font-size="12px" fill="#4338ca" font-weight="700" text-anchor="middle">身份边界</text>
+<rect id="lane-contract" data-graph-role="container" data-node-id="lane-contract" x="40" y="180" width="2160" height="328" rx="18" fill="#f0f7ff" stroke="#bfdbfe" stroke-width="1.5"/>
+<text data-graph-role="container-title" x="70" y="214" font-size="17px" fill="#1d4ed8" font-weight="700" text-anchor="start">1  合同上传 → 事实提取 → 合同审查 Workflow → 报告</text>
+<rect id="lane-report-chat" data-graph-role="container" data-node-id="lane-report-chat" x="40" y="535" width="2160" height="390" rx="18" fill="#faf7ff" stroke="#ddd6fe" stroke-width="1.5"/>
+<text data-graph-role="container-title" x="70" y="569" font-size="17px" fill="#6d28d9" font-weight="700" text-anchor="start">2  点击“针对报告提问” → 报告专属会话</text>
+<rect id="lane-general-chat" data-graph-role="container" data-node-id="lane-general-chat" x="40" y="980" width="2160" height="320" rx="18" fill="#fffbeb" stroke="#fed7aa" stroke-width="1.5"/>
+<text data-graph-role="container-title" x="70" y="1014" font-size="17px" fill="#b45309" font-weight="700" text-anchor="start">3  直接开启聊天 → 通用 / 法律知识问答</text>
+<rect id="lane-storage" data-graph-role="container" data-node-id="lane-storage" x="40" y="1340" width="2160" height="250" rx="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+<text data-graph-role="container-title" x="70" y="1374" font-size="17px" fill="#475569" font-weight="700" text-anchor="start">共享数据与持久化边界</text>
+<path id="contract-upload" data-edge-id="contract-upload" data-graph-role="edge" data-source="c-user" data-target="c-upload-api" d="M315 284 H355" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+<path id="contract-service" data-edge-id="contract-service" data-graph-role="edge" data-source="c-upload-api" data-target="c-service" d="M600 284 H640" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+<path id="contract-extract" data-edge-id="contract-extract" data-graph-role="edge" data-source="c-service" data-target="c-extract" d="M885 284 H925" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+<path id="contract-confirm" data-edge-id="contract-confirm" data-graph-role="edge" data-source="c-extract" data-target="c-confirm" d="M1170 284 H1210" fill="none" stroke="#059669" stroke-width="2.2" marker-end="url(#arrow-green)"/>
+<path id="contract-workflow" data-edge-id="contract-workflow" data-graph-role="edge" data-source="c-confirm" data-target="c-workflow" d="M1455 284 H1495" fill="none" stroke="#059669" stroke-width="2.2" marker-end="url(#arrow-green)"/>
+<path id="contract-report" data-edge-id="contract-report" data-graph-role="edge" data-source="c-workflow" data-target="c-report" d="M1740 284 H1780" fill="none" stroke="#059669" stroke-width="2.2" marker-end="url(#arrow-green)"/>
+<path id="report-click" data-edge-id="report-click" data-graph-role="edge" data-source="r-user" data-target="r-frontend" d="M315 647 H355" fill="none" stroke="#7c3aed" stroke-width="2.2" marker-end="url(#arrow-purple)"/>
+<path id="report-request" data-edge-id="report-request" data-graph-role="edge" data-source="r-frontend" data-target="r-api" d="M600 647 H640" fill="none" stroke="#7c3aed" stroke-width="2.2" marker-end="url(#arrow-purple)"/>
+<path id="report-context" data-edge-id="report-context" data-graph-role="edge" data-source="r-api" data-target="r-context" d="M885 647 H925" fill="none" stroke="#7c3aed" stroke-width="2.2" marker-end="url(#arrow-purple)"/>
+<path id="report-graph" data-edge-id="report-graph" data-graph-role="edge" data-source="r-context" data-target="r-graph" d="M1170 647 H1210" fill="none" stroke="#7c3aed" stroke-width="2.2" marker-end="url(#arrow-purple)"/>
+<path id="report-answer" data-edge-id="report-answer" data-graph-role="edge" data-source="r-graph" data-target="r-generate" d="M1455 647 H1495" fill="none" stroke="#ea580c" stroke-width="2.2" marker-end="url(#arrow-orange)"/>
+<path id="report-response" data-edge-id="report-response" data-graph-role="edge" data-source="r-generate" data-target="r-response" d="M1740 647 H1780" fill="none" stroke="#ea580c" stroke-width="2.2" marker-end="url(#arrow-orange)"/>
+<path id="report-gap" data-edge-id="report-gap" data-graph-role="edge" data-source="r-context" data-target="report-gap" d="M1047 706 V760 H1260" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-dasharray="8,6" marker-end="url(#arrow-orange)"/>
+<path id="general-open" data-edge-id="general-open" data-graph-role="edge" data-source="g-user" data-target="g-frontend" d="M315 1090 H355" fill="none" stroke="#b45309" stroke-width="2.2" marker-end="url(#arrow-orange)"/>
+<path id="general-request" data-edge-id="general-request" data-graph-role="edge" data-source="g-frontend" data-target="g-api" d="M600 1090 H640" fill="none" stroke="#b45309" stroke-width="2.2" marker-end="url(#arrow-orange)"/>
+<path id="general-graph" data-edge-id="general-graph" data-graph-role="edge" data-source="g-api" data-target="g-graph" d="M885 1090 H925" fill="none" stroke="#b45309" stroke-width="2.2" marker-end="url(#arrow-orange)"/>
+<path id="general-tool" data-edge-id="general-tool" data-graph-role="edge" data-source="g-graph" data-target="g-tool" d="M1170 1090 H1210" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+<path id="general-retrieval" data-edge-id="general-retrieval" data-graph-role="edge" data-source="g-tool" data-target="g-retrieval" d="M1455 1090 H1495" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+<path id="general-answer" data-edge-id="general-answer" data-graph-role="edge" data-source="g-retrieval" data-target="g-response" d="M1740 1090 H1780" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+<g id="c-user" data-node-id="c-user" data-graph-role="node" data-graph-bounds="70 230 315 346">
+<rect data-node-id="c-user" x="70" y="230" width="245" height="116" rx="14" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.6"/>
+<circle data-node-id="c-user" cx="101" cy="264" r="20" fill="#60a5fa"/>
+<text data-graph-role="node" x="101" y="269" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">U</text>
+<text data-graph-role="node" x="132" y="260" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">用户 / 前端</text>
+<text data-graph-role="node" x="132" y="287" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">选择 PDF、DOC、DOCX</text>
+<rect data-node-id="c-user" x="227" y="315" width="76" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="265" y="330" font-size="10px" fill="#1d4ed8" font-weight="650" text-anchor="middle">入口</text>
+</g>
+<g id="c-upload-api" data-node-id="c-upload-api" data-graph-role="node" data-graph-bounds="355 230 600 346">
+<rect data-node-id="c-upload-api" x="355" y="230" width="245" height="116" rx="14" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.6"/>
+<circle data-node-id="c-upload-api" cx="386" cy="264" r="20" fill="#60a5fa"/>
+<text data-graph-role="node" x="386" y="269" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">API</text>
+<text data-graph-role="node" x="417" y="260" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">合同上传 API</text>
+<text data-graph-role="node" x="417" y="287" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">POST /api/contract-reviews</text>
+<rect data-node-id="c-upload-api" x="444" y="315" width="144" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="516" y="330" font-size="10px" fill="#1d4ed8" font-weight="650" text-anchor="middle">202 queued</text>
+</g>
+<g id="c-service" data-node-id="c-service" data-graph-role="node" data-graph-bounds="640 230 885 346">
+<rect data-node-id="c-service" x="640" y="230" width="245" height="116" rx="14" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1.6"/>
+<circle data-node-id="c-service" cx="671" cy="264" r="20" fill="#8b5cf6"/>
+<text data-graph-role="node" x="671" y="269" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">SVC</text>
+<text data-graph-role="node" x="702" y="260" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">ContractReviewService</text>
+<text data-graph-role="node" x="702" y="287" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">私有存储 + 任务状态</text>
+<rect data-node-id="c-service" x="797" y="315" width="76" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="835" y="330" font-size="10px" fill="#6d28d9" font-weight="650" text-anchor="middle">异步</text>
+</g>
+<g id="c-extract" data-node-id="c-extract" data-graph-role="node" data-graph-bounds="925 230 1170 346">
+<rect data-node-id="c-extract" x="925" y="230" width="245" height="116" rx="14" fill="#f0fdf4" stroke="#34d399" stroke-width="1.6"/>
+<circle data-node-id="c-extract" cx="956" cy="264" r="20" fill="#34d399"/>
+<text data-graph-role="node" x="956" y="269" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">DOC</text>
+<text data-graph-role="node" x="987" y="260" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">解析 / 脱敏 / 提取</text>
+<text data-graph-role="node" x="987" y="287" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">原生文本或 OCR → clauses + facts</text>
+<text data-graph-role="node" x="987" y="307" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">证据定位保留 provenance</text>
+<rect data-node-id="c-extract" x="1074" y="315" width="84" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1116" y="330" font-size="10px" fill="#047857" font-weight="650" text-anchor="middle">完成后轮询</text>
+</g>
+<g id="c-confirm" data-node-id="c-confirm" data-graph-role="node" data-graph-bounds="1210 230 1455 346">
+<rect data-node-id="c-confirm" x="1210" y="230" width="245" height="116" rx="14" fill="#f0fdf4" stroke="#34d399" stroke-width="1.6"/>
+<circle data-node-id="c-confirm" cx="1241" cy="264" r="20" fill="#34d399"/>
+<text data-graph-role="node" x="1241" y="269" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">FACT</text>
+<text data-graph-role="node" x="1272" y="260" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">事实确认表单</text>
+<text data-graph-role="node" x="1272" y="287" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">确认 / 修改 / 补充 / 不适用</text>
+<rect data-node-id="c-confirm" x="1367" y="315" width="76" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1405" y="330" font-size="10px" fill="#047857" font-weight="650" text-anchor="middle">门禁</text>
+</g>
+<g id="c-workflow" data-node-id="c-workflow" data-graph-role="node" data-graph-bounds="1495 230 1740 346">
+<rect data-node-id="c-workflow" x="1495" y="230" width="245" height="116" rx="14" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+<circle data-node-id="c-workflow" cx="1526" cy="264" r="20" fill="#fb923c"/>
+<text data-graph-role="node" x="1526" y="269" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">WF</text>
+<text data-graph-role="node" x="1557" y="260" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">Contract Review Workflow</text>
+<text data-graph-role="node" x="1557" y="287" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">规则评估 → A/B 法律检索</text>
+<rect data-node-id="c-workflow" x="1652" y="315" width="76" height="21" rx="11" fill="#ffedd5"/>
+<text data-graph-role="node" x="1690" y="330" font-size="10px" fill="#c2410c" font-weight="650" text-anchor="middle">生成报告</text>
+</g>
+<g id="c-report" data-node-id="c-report" data-graph-role="node" data-graph-bounds="1780 230 2025 346">
+<rect data-node-id="c-report" x="1780" y="230" width="245" height="116" rx="14" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+<circle data-node-id="c-report" cx="1811" cy="264" r="20" fill="#fb923c"/>
+<text data-graph-role="node" x="1811" y="269" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">R</text>
+<text data-graph-role="node" x="1842" y="260" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">报告页</text>
+<text data-graph-role="node" x="1842" y="287" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">风险事实、依据、建议、待确认</text>
+<rect data-node-id="c-report" x="1937" y="315" width="76" height="21" rx="11" fill="#ffedd5"/>
+<text data-graph-role="node" x="1975" y="330" font-size="10px" fill="#c2410c" font-weight="650" text-anchor="middle">持久化</text>
+</g>
+<g id="r-user" data-node-id="r-user" data-graph-role="node" data-graph-bounds="70 590 315 706">
+<rect data-node-id="r-user" x="70" y="590" width="245" height="116" rx="14" fill="#faf5ff" stroke="#a78bfa" stroke-width="1.6"/>
+<circle data-node-id="r-user" cx="101" cy="624" r="20" fill="#a78bfa"/>
+<text data-graph-role="node" x="101" y="629" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">UI</text>
+<text data-graph-role="node" x="132" y="620" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">报告页按钮</text>
+<text data-graph-role="node" x="132" y="647" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">点击“针对报告提问”</text>
+<rect data-node-id="r-user" x="227" y="675" width="76" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="265" y="690" font-size="10px" fill="#6d28d9" font-weight="650" text-anchor="middle">绑定报告</text>
+</g>
+<g id="r-frontend" data-node-id="r-frontend" data-graph-role="node" data-graph-bounds="355 590 600 706">
+<rect data-node-id="r-frontend" x="355" y="590" width="245" height="116" rx="14" fill="#faf5ff" stroke="#a78bfa" stroke-width="1.6"/>
+<circle data-node-id="r-frontend" cx="386" cy="624" r="20" fill="#a78bfa"/>
+<text data-graph-role="node" x="386" y="629" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">WEB</text>
+<text data-graph-role="node" x="417" y="620" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">前端 ChatPage</text>
+<text data-graph-role="node" x="417" y="647" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">mode=contract_review</text>
+<text data-graph-role="node" x="417" y="667" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">session_id = 报告会话</text>
+<rect data-node-id="r-frontend" x="432" y="675" width="156" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="510" y="690" font-size="10px" fill="#6d28d9" font-weight="650" text-anchor="middle">带 review_id</text>
+</g>
+<g id="r-api" data-node-id="r-api" data-graph-role="node" data-graph-bounds="640 590 885 706">
+<rect data-node-id="r-api" x="640" y="590" width="245" height="116" rx="14" fill="#faf5ff" stroke="#a78bfa" stroke-width="1.6"/>
+<circle data-node-id="r-api" cx="671" cy="624" r="20" fill="#a78bfa"/>
+<text data-graph-role="node" x="671" y="629" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">API</text>
+<text data-graph-role="node" x="702" y="620" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">Chat API / ChatService</text>
+<text data-graph-role="node" x="702" y="647" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">校验报告归属 + session_id</text>
+<rect data-node-id="r-api" x="797" y="675" width="76" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="835" y="690" font-size="10px" fill="#6d28d9" font-weight="650" text-anchor="middle">已鉴权</text>
+</g>
+<g id="r-context" data-node-id="r-context" data-graph-role="node" data-graph-bounds="925 590 1170 706">
+<rect data-node-id="r-context" x="925" y="590" width="245" height="116" rx="14" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+<circle data-node-id="r-context" cx="956" cy="624" r="20" fill="#fb923c"/>
+<text data-graph-role="node" x="956" y="629" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">CTX</text>
+<text data-graph-role="node" x="987" y="620" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">_report_context</text>
+<text data-graph-role="node" x="987" y="647" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">读取 findings / sources / pending</text>
+<text data-graph-role="node" x="987" y="667" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">不读取 confirmation.facts</text>
+<rect data-node-id="r-context" x="1082" y="675" width="76" height="21" rx="11" fill="#ffedd5"/>
+<text data-graph-role="node" x="1120" y="690" font-size="10px" fill="#c2410c" font-weight="650" text-anchor="middle">当前实现</text>
+</g>
+<g id="r-graph" data-node-id="r-graph" data-graph-role="node" data-graph-bounds="1210 590 1455 706">
+<rect data-node-id="r-graph" x="1210" y="590" width="245" height="116" rx="14" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1.6"/>
+<circle data-node-id="r-graph" cx="1241" cy="624" r="20" fill="#8b5cf6"/>
+<text data-graph-role="node" x="1241" y="629" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">G</text>
+<text data-graph-role="node" x="1272" y="620" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">LangGraph</text>
+<text data-graph-role="node" x="1272" y="647" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">chatbot → ModeAwareToolNode</text>
+<text data-graph-role="node" x="1272" y="667" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">contract_review allowlist = ∅</text>
+<rect data-node-id="r-graph" x="1367" y="675" width="76" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="1405" y="690" font-size="10px" fill="#6d28d9" font-weight="650" text-anchor="middle">工具禁用</text>
+</g>
+<g id="r-generate" data-node-id="r-generate" data-graph-role="node" data-graph-bounds="1495 590 1740 706">
+<rect data-node-id="r-generate" x="1495" y="590" width="245" height="116" rx="14" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+<circle data-node-id="r-generate" cx="1526" cy="624" r="20" fill="#fb923c"/>
+<text data-graph-role="node" x="1526" y="629" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">LLM</text>
+<text data-graph-role="node" x="1557" y="620" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">generate_answer</text>
+<text data-graph-role="node" x="1557" y="647" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">ANSWER_PROMPT + report_context</text>
+<rect data-node-id="r-generate" x="1652" y="675" width="76" height="21" rx="11" fill="#ffedd5"/>
+<text data-graph-role="node" x="1690" y="690" font-size="10px" fill="#c2410c" font-weight="650" text-anchor="middle">可能拒答</text>
+</g>
+<g id="r-response" data-node-id="r-response" data-graph-role="node" data-graph-bounds="1780 590 2025 706">
+<rect data-node-id="r-response" x="1780" y="590" width="245" height="116" rx="14" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6"/>
+<circle data-node-id="r-response" cx="1811" cy="624" r="20" fill="#fb923c"/>
+<text data-graph-role="node" x="1811" y="629" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">OUT</text>
+<text data-graph-role="node" x="1842" y="620" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">报告会话回复</text>
+<text data-graph-role="node" x="1842" y="647" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">答案或“知识库未找到”</text>
+<rect data-node-id="r-response" x="1937" y="675" width="76" height="21" rx="11" fill="#ffedd5"/>
+<text data-graph-role="node" x="1975" y="690" font-size="10px" fill="#c2410c" font-weight="650" text-anchor="middle">用户可见</text>
+</g>
+<g id="report-gap" data-node-id="report-gap" data-graph-role="node" data-graph-bounds="905 760 1885 870">
+<rect data-node-id="report-gap" x="905" y="760" width="980" height="110" rx="14" fill="#fff7ed" stroke="#f97316" stroke-width="1.7" stroke-dasharray="8,6"/>
+<text data-graph-role="node" x="925" y="789" font-size="15px" fill="#9a3412" font-weight="700" text-anchor="start">当前断点：工资事实没有进入报告问答上下文</text>
+<text data-graph-role="node" x="925" y="816" font-size="12px" fill="#7c2d12" font-weight="400" text-anchor="start">合同事实表里有 salary 的 effective_value，但 _report_context 只拼接风险发现、法律依据和待确认问题。</text>
+<text data-graph-role="node" x="925" y="835" font-size="12px" fill="#7c2d12" font-weight="400" text-anchor="start">合同原文也没有被直接注入通用 RAG；所以“工资是多少”既查不到 facts，也查不到私有合同文本。</text>
+</g>
+<g id="g-user" data-node-id="g-user" data-graph-role="node" data-graph-bounds="70 1032 315 1148">
+<rect data-node-id="g-user" x="70" y="1032" width="245" height="116" rx="14" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.6"/>
+<circle data-node-id="g-user" cx="101" cy="1066" r="20" fill="#f59e0b"/>
+<text data-graph-role="node" x="101" y="1071" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">U</text>
+<text data-graph-role="node" x="132" y="1062" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">用户 / 直接聊天</text>
+<text data-graph-role="node" x="132" y="1089" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">新建或恢复普通 session</text>
+<rect data-node-id="g-user" x="219" y="1117" width="84" height="21" rx="11" fill="#fef3c7"/>
+<text data-graph-role="node" x="261" y="1132" font-size="10px" fill="#b45309" font-weight="650" text-anchor="middle">无报告绑定</text>
+</g>
+<g id="g-frontend" data-node-id="g-frontend" data-graph-role="node" data-graph-bounds="355 1032 600 1148">
+<rect data-node-id="g-frontend" x="355" y="1032" width="245" height="116" rx="14" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.6"/>
+<circle data-node-id="g-frontend" cx="386" cy="1066" r="20" fill="#f59e0b"/>
+<text data-graph-role="node" x="386" y="1071" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">WEB</text>
+<text data-graph-role="node" x="417" y="1062" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">前端 ChatPage</text>
+<text data-graph-role="node" x="417" y="1089" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">mode=general 或 legal</text>
+<rect data-node-id="g-frontend" x="432" y="1117" width="156" height="21" rx="11" fill="#fef3c7"/>
+<text data-graph-role="node" x="510" y="1132" font-size="10px" fill="#b45309" font-weight="650" text-anchor="middle">无 review_id</text>
+</g>
+<g id="g-api" data-node-id="g-api" data-graph-role="node" data-graph-bounds="640 1032 885 1148">
+<rect data-node-id="g-api" x="640" y="1032" width="245" height="116" rx="14" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.6"/>
+<circle data-node-id="g-api" cx="671" cy="1066" r="20" fill="#f59e0b"/>
+<text data-graph-role="node" x="671" y="1071" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">API</text>
+<text data-graph-role="node" x="702" y="1062" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">Chat API / ChatService</text>
+<text data-graph-role="node" x="702" y="1089" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">使用 session_id 建立普通 thread</text>
+<rect data-node-id="g-api" x="797" y="1117" width="76" height="21" rx="11" fill="#fef3c7"/>
+<text data-graph-role="node" x="835" y="1132" font-size="10px" fill="#b45309" font-weight="650" text-anchor="middle">已鉴权</text>
+</g>
+<g id="g-graph" data-node-id="g-graph" data-graph-role="node" data-graph-bounds="925 1032 1170 1148">
+<rect data-node-id="g-graph" x="925" y="1032" width="245" height="116" rx="14" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1.6"/>
+<circle data-node-id="g-graph" cx="956" cy="1066" r="20" fill="#8b5cf6"/>
+<text data-graph-role="node" x="956" y="1071" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">G</text>
+<text data-graph-role="node" x="987" y="1062" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">LangGraph chatbot</text>
+<text data-graph-role="node" x="987" y="1089" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">决定是否调用检索工具</text>
+<rect data-node-id="g-graph" x="1082" y="1117" width="76" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="1120" y="1132" font-size="10px" fill="#6d28d9" font-weight="650" text-anchor="middle">模式路由</text>
+</g>
+<g id="g-tool" data-node-id="g-tool" data-graph-role="node" data-graph-bounds="1210 1032 1455 1148">
+<rect data-node-id="g-tool" x="1210" y="1032" width="245" height="116" rx="14" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.6"/>
+<circle data-node-id="g-tool" cx="1241" cy="1066" r="20" fill="#60a5fa"/>
+<text data-graph-role="node" x="1241" y="1071" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">T</text>
+<text data-graph-role="node" x="1272" y="1062" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">ModeAwareToolNode</text>
+<text data-graph-role="node" x="1272" y="1089" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">general: search_knowledge_base</text>
+<text data-graph-role="node" x="1272" y="1109" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">legal: search_legal_knowledge_base</text>
+<rect data-node-id="g-tool" x="1367" y="1117" width="76" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="1405" y="1132" font-size="10px" fill="#1d4ed8" font-weight="650" text-anchor="middle">允许工具</text>
+</g>
+<g id="g-retrieval" data-node-id="g-retrieval" data-graph-role="node" data-graph-bounds="1495 1032 1740 1148">
+<rect data-node-id="g-retrieval" x="1495" y="1032" width="245" height="116" rx="14" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.6"/>
+<circle data-node-id="g-retrieval" cx="1526" cy="1066" r="20" fill="#60a5fa"/>
+<text data-graph-role="node" x="1526" y="1071" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">RAG</text>
+<text data-graph-role="node" x="1557" y="1062" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">RetrievalService</text>
+<text data-graph-role="node" x="1557" y="1089" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">Embedding → Cascade Funnel → Top-3</text>
+<rect data-node-id="g-retrieval" x="1652" y="1117" width="76" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="1690" y="1132" font-size="10px" fill="#1d4ed8" font-weight="650" text-anchor="middle">共享库</text>
+</g>
+<g id="g-response" data-node-id="g-response" data-graph-role="node" data-graph-bounds="1780 1032 2025 1148">
+<rect data-node-id="g-response" x="1780" y="1032" width="245" height="116" rx="14" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.6"/>
+<circle data-node-id="g-response" cx="1811" cy="1066" r="20" fill="#60a5fa"/>
+<text data-graph-role="node" x="1811" y="1071" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">OUT</text>
+<text data-graph-role="node" x="1842" y="1062" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">答案生成</text>
+<text data-graph-role="node" x="1842" y="1089" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">检索上下文 → ANSWER_PROMPT</text>
+<rect data-node-id="g-response" x="1929" y="1117" width="84" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="1971" y="1132" font-size="10px" fill="#1d4ed8" font-weight="650" text-anchor="middle">无私有合同</text>
+</g>
+<g id="s-private" data-node-id="s-private" data-graph-role="node" data-graph-bounds="70 1405 530 1517">
+<rect data-node-id="s-private" x="70" y="1405" width="460" height="112" rx="14" fill="#f0fdf4" stroke="#34d399" stroke-width="1.6"/>
+<circle data-node-id="s-private" cx="101" cy="1439" r="20" fill="#34d399"/>
+<text data-graph-role="node" x="101" y="1444" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">FILE</text>
+<text data-graph-role="node" x="132" y="1435" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">私有合同数据</text>
+<text data-graph-role="node" x="132" y="1462" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">脱敏 pages / extraction_result</text>
+<rect data-node-id="s-private" x="442" y="1486" width="76" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="480" y="1501" font-size="10px" fill="#047857" font-weight="650" text-anchor="middle">用户隔离</text>
+</g>
+<g id="s-postgres" data-node-id="s-postgres" data-graph-role="node" data-graph-bounds="570 1405 1090 1517">
+<rect data-node-id="s-postgres" x="570" y="1405" width="520" height="112" rx="14" fill="#f0fdf4" stroke="#34d399" stroke-width="1.6"/>
+<circle data-node-id="s-postgres" cx="601" cy="1439" r="20" fill="#34d399"/>
+<text data-graph-role="node" x="601" y="1444" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">DB</text>
+<text data-graph-role="node" x="632" y="1435" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">PostgreSQL</text>
+<text data-graph-role="node" x="632" y="1462" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">user_profiles · sessions · facts · reports</text>
+<rect data-node-id="s-postgres" x="946" y="1486" width="132" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1012" y="1501" font-size="10px" fill="#047857" font-weight="650" text-anchor="middle">按 user_id</text>
+</g>
+<g id="s-qdrant" data-node-id="s-qdrant" data-graph-role="node" data-graph-bounds="1130 1405 1650 1517">
+<rect data-node-id="s-qdrant" x="1130" y="1405" width="520" height="112" rx="14" fill="#f8fafc" stroke="#64748b" stroke-width="1.6"/>
+<circle data-node-id="s-qdrant" cx="1161" cy="1439" r="20" fill="#64748b"/>
+<text data-graph-role="node" x="1161" y="1444" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">Q</text>
+<text data-graph-role="node" x="1192" y="1435" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">Qdrant 法律 RAG</text>
+<text data-graph-role="node" x="1192" y="1462" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">全国通用 A/B 法律资料（共享语料）</text>
+<rect data-node-id="s-qdrant" x="1562" y="1486" width="76" height="21" rx="11" fill="#e2e8f0"/>
+<text data-graph-role="node" x="1600" y="1501" font-size="10px" fill="#475569" font-weight="650" text-anchor="middle">共享知识</text>
+</g>
+<g id="s-checkpoint" data-node-id="s-checkpoint" data-graph-role="node" data-graph-bounds="1690 1405 2160 1517">
+<rect data-node-id="s-checkpoint" x="1690" y="1405" width="470" height="112" rx="14" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1.6"/>
+<circle data-node-id="s-checkpoint" cx="1721" cy="1439" r="20" fill="#8b5cf6"/>
+<text data-graph-role="node" x="1721" y="1444" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">MEM</text>
+<text data-graph-role="node" x="1752" y="1435" font-size="15px" fill="#172033" font-weight="650" text-anchor="start">LangGraph Checkpoint</text>
+<text data-graph-role="node" x="1752" y="1462" font-size="12px" fill="#475569" font-weight="400" text-anchor="start">普通 session / report 专属 thread</text>
+<rect data-node-id="s-checkpoint" x="1992" y="1486" width="156" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="2070" y="1501" font-size="10px" fill="#6d28d9" font-weight="650" text-anchor="middle">按 thread_id</text>
+</g>
+<rect data-graph-role="legend" x="60" y="1570" width="2120" height="48" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+<line x1="90" y1="1594" x2="130" y2="1594" stroke="#2563eb" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" x="142" y="1599" font-size="12px" fill="#334155" font-weight="400" text-anchor="start">请求/流程</text>
+<line x1="300" y1="1594" x2="340" y2="1594" stroke="#059669" stroke-width="2.2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="352" y="1599" font-size="12px" fill="#334155" font-weight="400" text-anchor="start">数据写入/门禁</text>
+<line x1="540" y1="1594" x2="580" y2="1594" stroke="#ea580c" stroke-width="2.2" stroke-dasharray="8,6" marker-end="url(#arrow-orange)"/>
+<text data-graph-role="label" x="592" y="1599" font-size="12px" fill="#9a3412" font-weight="400" text-anchor="start">当前断点/降级</text>
+<text data-graph-role="label" x="900" y="1599" font-size="12px" fill="#475569" font-weight="650" text-anchor="start">下一步修复方向：报告问答上下文增加已确认 facts（尤其是 effective_value + evidence），或增加报告事实查询工具；保留 user_id / review_id 归属校验。</text>
+</svg>
