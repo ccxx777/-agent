@@ -6,6 +6,12 @@
 
 ![当前架构与开发状态](docs/contract-review-workflow-status.png)
 
+当前实现的三张总图分别回答三个问题：Workflow 如何审查合同、聊天与合同如何共享会话、JSON/数据库/私有文件/Qdrant 的边界在哪里。
+
+![统一会话数据流](docs/chat-route-data-flow.png)
+
+![存储边界](docs/storage-boundary.png)
+
 ## 项目状态
 
 | 能力 | 状态 | 说明 |
@@ -19,7 +25,7 @@
 | 扫描 PDF OCR | 接口已预留 | 默认关闭，需配置 OCR 服务后启用 |
 | 劳动法规则卡片与风险分级 | v0.1 已接入 | 规则节点只输出“可能冲突/待确认/观察”，不替代律师作最终法律结论 |
 | A 级法律法条切片与入库准备 | 已实现 | 从官方 Word 派生条级 artifact；保留章节、节、条号、原文、哈希和生效时间；只写入独立法律 Collection |
-| Web 合同审查前端 | 规划中 | 现有 React 前端暂不作为合同产品验收依据 |
+| Web 合同审查前端 | 已接入基础闭环 | 上传、事实确认、报告展示、报告问答和会话恢复已接入；视觉与专家验收继续迭代 |
 
 ## 已验证的通用 RAG 能力
 
@@ -288,6 +294,9 @@ uv run \
 - [事实确认模块流程](docs/contract-fact-confirmation-flow.png)
 - [合同审查 Workflow v0.1](docs/contract-review-workflow.png)
 - [整体开发状态流程图](docs/contract-review-workflow-status.png)
+- [统一会话数据流图](docs/chat-route-data-flow.png)
+- [JSON、PostgreSQL、私有文件与 Qdrant 存储边界图](docs/storage-boundary.png)
+- [存储边界文字说明](docs/storage-boundary.md)
 - [劳动合同法律语料计划](docs/labor-contract-legal-corpus-plan.md)
 - [自研三层检索算法](docs/self-developed-retrieval-algorithm.md)
 - [Qdrant v2 迁移记录](docs/retrieval-v2-migration.md)
@@ -299,7 +308,7 @@ uv run \
 
 ## 当前开发闭环：统一会话、报告与发布治理
 
-当前产品主线已经从“上传后单独提取”扩展为同一 `session_id` 下的连续工作流：用户可以先问全国通用劳动法问题，再上传合同；也可以先上传合同、确认事实、生成报告后，继续在同一个会话中针对报告提问。合同原文不会进入普通聊天上下文，报告问答只注入结构化摘要、风险事实、待确认项和法律来源。
+当前产品主线已经从“上传后单独提取”扩展为同一 `session_id` 下的连续工作流：用户可以先问全国通用劳动法问题，再上传合同；也可以先上传合同、确认事实、生成报告后，继续在同一个会话中针对报告提问。合同原文不会进入普通聊天上下文，报告问答从 PostgreSQL 读取脱敏正文、事实和报告并装配 `contract_context`，而不是依赖一个额外的 JSON 文件。
 
 ### 已完成的后端能力
 
@@ -310,6 +319,13 @@ uv run \
 - 留存清理任务会持续运行（默认每 300 秒），不会只依赖重启触发；
 - 统一会话历史接口需要认证，避免跨用户读取；
 - 本地法律评测题生成、安全冒烟和发布门禁脚本已经加入 `evaluation/`。
+
+### 当前数据边界
+
+- **JSON/JSONL**：法律条文 prepared artifact、评测输入/输出、Smoke Test 结果和入库状态等离线工件；它们不是在线会话的主存储。
+- **PostgreSQL**：用户、会话、合同任务、脱敏页、结构化事实、确认事件、报告版本和 LangGraph checkpoint；报告问答每次从这里装配 `contract_context`。
+- **私有文件存储**：用户上传的原始 PDF/DOC/DOCX，仅按用户和审查任务隔离访问，不进入日志或共享 Qdrant。
+- **Qdrant**：只保存经过治理的共享法律/案例检索语料；通用评测 Collection 与生产法律 Collection 保持隔离。
 
 ### 迁移与验证
 
@@ -342,4 +358,4 @@ printf 'AUTH_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
 
 ### 尚未完成的产品任务
 
-邀请制访客 token、审查历史前端页面、删除审计事件和 B 级指导案例的专家复核仍是后续开发项。它们不能在当前版本中被当作已上线能力。
+邀请制访客 token、删除审计事件、组织级权限/RLS、A/B 法律资料正式激活和 B 级指导案例专家复核仍是后续开发项。它们不能在当前版本中被当作已上线能力。

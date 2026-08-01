@@ -89,13 +89,13 @@
 <rect x="1218" y="239" width="68" height="20" rx="10" fill="#dcfce7"/>
 <text x="1252" y="253" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">已完成</text>
 </g>
-<g id="pdf-parser" data-graph-role="node"><rect x="1280" y="365" width="240" height="88" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
-<circle cx="1308" cy="394" r="17" fill="#9333ea"/>
+<g id="pdf-parser" data-graph-role="node"><rect x="1280" y="365" width="240" height="88" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="1308" cy="394" r="17" fill="#2563eb"/>
 <text x="1308" y="399" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">BG</text>
 <text x="1334" y="393" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">统一文档解析</text>
-<text x="1334" y="417" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">可恢复任务</text>
-<rect x="1438" y="424" width="68" height="20" rx="10" fill="#ede9fe"/>
-<text x="1472" y="438" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">MVP</text>
+<text x="1334" y="417" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">可恢复任务 / 轮询状态</text>
+<rect x="1438" y="424" width="68" height="20" rx="10" fill="#dbeafe"/>
+<text x="1472" y="438" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">已接入</text>
 </g>
 <g id="page-classifier" data-graph-role="node"><rect x="1280" y="485" width="240" height="88" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
 <circle cx="1308" cy="514" r="17" fill="#2563eb"/>
@@ -145,21 +145,21 @@
 <rect x="598" y="819" width="68" height="20" rx="10" fill="#dbeafe"/>
 <text x="632" y="833" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">已接入</text>
 </g>
-<g id="workflow" data-graph-role="node"><rect x="720" y="760" width="240" height="88" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
-<circle cx="748" cy="789" r="17" fill="#6b7280"/>
+<g id="workflow" data-graph-role="node"><rect x="720" y="760" width="240" height="88" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="748" cy="789" r="17" fill="#2563eb"/>
 <text x="748" y="794" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">LG</text>
 <text x="774" y="788" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">LangGraph Workflow</text>
-<text x="774" y="812" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">接收结构化事实</text>
-<rect x="878" y="819" width="68" height="20" rx="10" fill="#e5e7eb"/>
-<text x="912" y="833" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">下一步</text>
+<text x="774" y="812" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">事实门禁 → 法律检索 → 报告</text>
+<rect x="878" y="819" width="68" height="20" rx="10" fill="#dbeafe"/>
+<text x="912" y="833" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">已接入</text>
 </g>
-<g id="confirmation" data-graph-role="node"><rect x="1100" y="760" width="250" height="88" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
-<circle cx="1128" cy="789" r="17" fill="#6b7280"/>
+<g id="confirmation" data-graph-role="node"><rect x="1100" y="760" width="250" height="88" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle cx="1128" cy="789" r="17" fill="#2563eb"/>
 <text x="1128" y="794" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">?</text>
 <text x="1154" y="788" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">用户确认 / 重传</text>
-<text x="1154" y="812" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">OCR 失败或页面不清晰</text>
-<rect x="1268" y="819" width="68" height="20" rx="10" fill="#e5e7eb"/>
-<text x="1302" y="833" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">下一步</text>
+<text x="1154" y="812" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">事实表单、补充或质量回问</text>
+<rect x="1268" y="819" width="68" height="20" rx="10" fill="#dbeafe"/>
+<text x="1302" y="833" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">已接入</text>
 </g>
 <rect x="70" y="890" width="1460" height="82" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>
 <text x="95" y="919" font-size="13px" fill="#9a3412" font-weight="700" text-anchor="start">隐私边界</text>

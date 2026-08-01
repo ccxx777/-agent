@@ -1,7 +1,7 @@
 """生成合同审查 Workflow v0.1 详细图。
 
 蓝色表示当前已实现的确定性节点，青色表示可复用/外部资料适配，灰色表示
-尚未进入首版验收的资料与产品工作。图只描述数据和控制流，不代表法律结论。
+尚未完成治理或专家验收的工作。报告会持久化并回到同一 session，图只描述数据和控制流，不代表法律结论。
 """
 
 from html import escape
@@ -141,7 +141,7 @@ def build_svg() -> str:
     add(lines, '<title id="title">合同审查 Workflow v0.1 详细流程</title>')
     add(
         lines,
-        '<desc id="desc">合同上传和事实确认完成后，经过确认门禁、劳动合同范围检查、A 级法律检索、确定性规则卡片、B 级案例补充和结构化报告；未确认事实回到用户补充，资料库不可用时安全降级为 partial。</desc>',
+        '<desc id="desc">合同上传和事实确认完成后，经过确认门禁、劳动合同范围检查、A 级法律检索、确定性规则卡片、B 级案例补充和结构化报告；报告写入 PostgreSQL 并绑定统一 session，未确认事实回到用户补充，资料库不可用时安全降级为 partial。</desc>',
     )
     add(lines, '<style>text{font-family:"Helvetica Neue",Helvetica,Arial,"PingFang SC","Microsoft YaHei","SimHei",sans-serif;}</style>')
     add(lines, "<defs>")
@@ -198,9 +198,9 @@ def build_svg() -> str:
     add(lines, '<rect data-graph-role="container" x="42" y="715" width="1416" height="185" rx="16" fill="#ffffff" stroke="#d1d5db" stroke-width="1.4"/>')
     label(lines, 70, 746, "输出与后续工作", size=16, fill="#374151", weight=650)
     card(lines, "report", 70, 770, 330, 102, "结构化报告", ["风险事实 / 等级 / 依据", "修改建议 / 待确认问题", "免责声明与来源链"], fill="#eff6ff", stroke="#93c5fd", badge="R", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
-    card(lines, "persist", 440, 770, 300, 102, "报告持久化", ["版本、规则卡、人工复核", "审查记录可恢复"], fill="#f3f4f6", stroke="#9ca3af", badge="P", badge_fill="#6b7280", status="待补齐", status_fill="#e5e7eb", status_text="#4b5563")
-    card(lines, "corpus", 780, 770, 300, 102, "法律资料入库", ["A 级版本/生效日期", "B 级官方案例核验"], fill="#f3f4f6", stroke="#9ca3af", badge="C", badge_fill="#6b7280", status="待补齐", status_fill="#e5e7eb", status_text="#4b5563")
-    card(lines, "frontend", 1120, 770, 310, 102, "任务型前端", ["上传 / 事实表单 / 报告", "首版不影响后端验收"], fill="#f3f4f6", stroke="#9ca3af", badge="UI", badge_fill="#6b7280", status="待补齐", status_fill="#e5e7eb", status_text="#4b5563")
+    card(lines, "persist", 440, 770, 300, 102, "报告持久化", ["版本 + PostgreSQL JSONB", "同一 session 可恢复/下载"], fill="#eff6ff", stroke="#93c5fd", badge="P", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
+    card(lines, "corpus", 780, 770, 300, 102, "法律资料治理", ["A 级版本/生效日期", "B 级官方案例待复核"], fill="#f0fdfa", stroke="#5eead4", badge="C", badge_fill="#0f766e", status="staging", status_fill="#ccfbf1", status_text="#0f766e")
+    card(lines, "frontend", 1120, 770, 310, 102, "任务型前端", ["上传 / 事实表单 / 报告", "报告问答与恢复"], fill="#eff6ff", stroke="#93c5fd", badge="UI", badge_fill="#2563eb", status="已接入", status_fill="#dbeafe", status_text="#1d4ed8")
 
     add(lines, "</svg>")
     return "\n".join(lines) + "\n"

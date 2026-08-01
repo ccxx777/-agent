@@ -1,7 +1,7 @@
 """生成劳动合同审查助手的当前状态流图。
 
 图中的蓝色/青色节点表示已经实现或可以直接复用的能力；
-灰色节点表示法律资料、专家复核、持久化和前端展示等仍需补齐的内容。
+灰色节点表示法律资料治理、专家复核和访客/组织能力等仍需补齐的内容。
 该脚本只生成文档图，不会访问运行中的服务，也不会写入 data/。
 """
 
@@ -231,7 +231,7 @@ def build_svg() -> str:
     add(lines, "<title id=\"title\">劳动合同风险审查助手：当前状态与近期开发工作</title>")
     add(
         lines,
-        '<desc id="desc">上方为已经完成的通用 RAG 能力；下方展示劳动合同审查 Workflow v0.1，其中合同上传、解析、隐私脱敏、事实提取、事实确认门禁、A/B 检索适配、确定性规则和结构化报告已经接入；法律资料导入、专家复核、报告持久化和前端仍待补齐。</desc>',
+        '<desc id="desc">上方为已经完成的通用 RAG 能力；下方展示劳动合同审查 Workflow v0.1，其中合同上传、解析、隐私脱敏、事实提取、事实确认门禁、A/B 检索适配、确定性规则、报告持久化、统一会话和 Web 前端已经接入；法律资料治理、专家复核和组织级能力仍待补齐。</desc>',
     )
     add(
         lines,
@@ -269,7 +269,7 @@ def build_svg() -> str:
     add(lines, '<rect x="1210" y="49" width="14" height="14" rx="3" fill="#f0fdfa" stroke="#5eead4"/>')
     text(lines, 1232, 61, "可复用", size=12, fill="#374151")
     add(lines, '<rect x="1300" y="49" width="14" height="14" rx="3" fill="#f3f4f6" stroke="#9ca3af"/>')
-    text(lines, 1322, 61, "待开发", size=12, fill="#374151")
+    text(lines, 1322, 61, "待治理", size=12, fill="#374151")
     add(lines, '<line x1="1390" y1="56" x2="1420" y2="56" stroke="#6b7280" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arrow-gray)"/>')
     text(lines, 1428, 61, "并行/异步", size=12, fill="#374151")
 
@@ -277,9 +277,9 @@ def build_svg() -> str:
     add(lines, '<rect data-graph-role="container" x="50" y="112" width="1500" height="290" rx="14" fill="#f8fbff" stroke="#bfdbfe" stroke-width="1.4"/>')
     add(lines, '<rect data-graph-role="container" x="50" y="430" width="1500" height="500" rx="14" fill="#fafafa" stroke="#d1d5db" stroke-width="1.4"/>')
     text(lines, 76, 144, "当前已完成 / 已验证：通用 Agent + RAG 主链", size=16, fill="#1d4ed8", weight=600)
-    text(lines, 76, 470, "当前状态：劳动合同审查 Workflow v0.1 与后续补齐项", size=16, fill="#374151", weight=600)
+    text(lines, 76, 470, "当前状态：劳动合同审查 Workflow v0.1 与治理边界", size=16, fill="#374151", weight=600)
     text(lines, 1320, 144, "当前线上能力", size=12, fill="#2563eb", weight=600, anchor="end")
-    text(lines, 1475, 470, "灰色 = 近期开发项", size=12, fill="#6b7280", weight=600, anchor="end")
+    text(lines, 1475, 470, "灰色 = 治理/后续能力", size=12, fill="#6b7280", weight=600, anchor="end")
 
     # Existing online path edges are drawn before nodes.
     edge(lines, "e-query-api", "M260 238 H300", color="#2563eb", marker="arrow-blue", source="generic-query", target="fastapi")
@@ -360,13 +360,13 @@ def build_svg() -> str:
     node(lines, "legal-rag", 370, 765, 240, "法律检索适配", "A 级法律 / B 级案例 Collection", fill="#f0fdfa", stroke="#5eead4", badge="R", badge_fill="#0f766e", status="已接入", status_fill="#ccfbf1", status_text="#0f766e")
     node(lines, "rule-engine", 660, 765, 240, "确定性规则引擎", "17 张规则卡片 / 风险提示", fill="#eff6ff", stroke="#93c5fd", badge="R", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "risk-report", 950, 765, 240, "风险事实 + 建议", "等级、法律来源、待确认问题", fill="#eff6ff", stroke="#93c5fd", badge="REP", badge_fill="#2563eb", status="已实现", status_fill="#dbeafe", status_text="#1d4ed8")
-    node(lines, "task-ui", 1240, 765, 240, "任务型 Web 前端", "上传 / 追问 / 报告", fill="#f3f4f6", stroke="#9ca3af", badge="UI", badge_fill="#6b7280", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
+    node(lines, "task-ui", 1240, 765, 240, "任务型 Web 前端", "上传 / 追问 / 报告 / 恢复", fill="#eff6ff", stroke="#93c5fd", badge="UI", badge_fill="#2563eb", status="已接入", status_fill="#dbeafe", status_text="#1d4ed8")
 
     # Parallel work notes.
     add(lines, '<rect x="80" y="875" width="700" height="42" rx="9" fill="#ffffff" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="7,5"/>')
-    text(lines, 102, 901, "灰色后续：A/B 法律资料导入、规则卡专家复核、报告持久化和前端展示", size=12, fill="#4b5563", weight=600)
+    text(lines, 102, 901, "后续治理：A/B 法律资料正式激活、规则卡专家复核、访客 token 与组织级权限", size=12, fill="#4b5563", weight=600)
     add(lines, '<rect x="830" y="875" width="680" height="42" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1.3"/>')
-    text(lines, 852, 901, "v0.1 已交付：上传 → 解析 → 脱敏 → 条款/事实 → 证据 → 确认 → A/B 检索 → 规则 → 报告", size=12, fill="#374151", weight=600)
+    text(lines, 852, 901, "v0.1 已交付：上传 → 解析 → 脱敏 → 条款/事实 → 确认 → A/B 检索 → 规则 → 报告 → 同 session 追问", size=12, fill="#374151", weight=600)
 
     add(lines, "</svg>")
     return "\n".join(lines) + "\n"

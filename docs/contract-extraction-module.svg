@@ -135,13 +135,13 @@
 <text data-graph-role="node" x="1477" y="550" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">输出</text>
 </g>
 <g id="legal-rule-boundary" data-node-id="legal-rule-boundary" data-graph-role="node" data-graph-bounds="600 770 1000 864">
-<rect data-node-id="legal-rule-boundary" x="600" y="770" width="400" height="94" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
-<circle data-node-id="legal-rule-boundary" cx="629" cy="801" r="18" fill="#6b7280"/>
+<rect data-node-id="legal-rule-boundary" x="600" y="770" width="400" height="94" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle data-node-id="legal-rule-boundary" cx="629" cy="801" r="18" fill="#2563eb"/>
 <text data-graph-role="node" x="629" y="806" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">R</text>
-<text data-graph-role="node" x="658" y="800" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">后续法律规则引擎（不在本模块）</text>
+<text data-graph-role="node" x="658" y="800" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">合同审查 Workflow（模块外边界）</text>
 <text data-graph-role="node" x="658" y="825" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">读取结构化事实与证据，不让 LLM 单独决定风险等级</text>
-<rect data-node-id="legal-rule-boundary" x="908" y="835" width="78" height="21" rx="11" fill="#e5e7eb"/>
-<text data-graph-role="node" x="947" y="850" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">待开发</text>
+<rect data-node-id="legal-rule-boundary" x="908" y="835" width="78" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="947" y="850" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">已接入</text>
 </g>
 <rect data-graph-role="legend" x="1040" y="770" width="480" height="52" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>
 <text data-graph-role="legend" x="1060" y="793" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">隐私门禁：模型只接收脱敏文本；日志不记录合同原文</text>

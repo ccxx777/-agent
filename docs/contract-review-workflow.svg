@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1500" height="900" viewBox="0 0 1500 900" role="img" aria-labelledby="title desc">
 <title id="title">合同审查 Workflow v0.1 详细流程</title>
-<desc id="desc">合同上传和事实确认完成后，经过确认门禁、劳动合同范围检查、A 级法律检索、确定性规则卡片、B 级案例补充和结构化报告；未确认事实回到用户补充，资料库不可用时安全降级为 partial。</desc>
+<desc id="desc">合同上传和事实确认完成后，经过确认门禁、劳动合同范围检查、A 级法律检索、确定性规则卡片、B 级案例补充和结构化报告；报告写入 PostgreSQL 并绑定统一 session，未确认事实回到用户补充，资料库不可用时安全降级为 partial。</desc>
 <style>text{font-family:"Helvetica Neue",Helvetica,Arial,"PingFang SC","Microsoft YaHei","SimHei",sans-serif;}</style>
 <defs>
 <marker id="arrow-blue" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0, 11 4, 0 8" fill="#2563eb"/></marker>
@@ -141,37 +141,37 @@
 <rect x="308" y="841" width="78" height="22" rx="11" fill="#dbeafe"/>
 <text x="347" y="856" font-size="11px" fill="#1d4ed8" font-weight="650" text-anchor="middle">已实现</text>
 </g>
-<g id="persist" data-graph-role="node"><rect x="440" y="770" width="300" height="102" rx="12" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.7"/>
-<circle cx="471" cy="804" r="18" fill="#6b7280"/>
+<g id="persist" data-graph-role="node"><rect x="440" y="770" width="300" height="102" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.7"/>
+<circle cx="471" cy="804" r="18" fill="#2563eb"/>
 <text x="471" y="809" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">P</text>
 <text x="500" y="801" font-size="16px" fill="#111827" font-weight="650" text-anchor="start">报告持久化</text>
 <text x="500" y="825" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">
-<tspan x="500" dy="0px">版本、规则卡、人工复核</tspan>
-<tspan x="500" dy="17px">审查记录可恢复</tspan>
+<tspan x="500" dy="0px">版本 + PostgreSQL JSONB</tspan>
+<tspan x="500" dy="17px">同一 session 可恢复/下载</tspan>
 </text>
-<rect x="648" y="841" width="78" height="22" rx="11" fill="#e5e7eb"/>
-<text x="687" y="856" font-size="11px" fill="#4b5563" font-weight="650" text-anchor="middle">待补齐</text>
+<rect x="648" y="841" width="78" height="22" rx="11" fill="#dbeafe"/>
+<text x="687" y="856" font-size="11px" fill="#1d4ed8" font-weight="650" text-anchor="middle">已实现</text>
 </g>
-<g id="corpus" data-graph-role="node"><rect x="780" y="770" width="300" height="102" rx="12" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.7"/>
-<circle cx="811" cy="804" r="18" fill="#6b7280"/>
+<g id="corpus" data-graph-role="node"><rect x="780" y="770" width="300" height="102" rx="12" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.7"/>
+<circle cx="811" cy="804" r="18" fill="#0f766e"/>
 <text x="811" y="809" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">C</text>
-<text x="840" y="801" font-size="16px" fill="#111827" font-weight="650" text-anchor="start">法律资料入库</text>
+<text x="840" y="801" font-size="16px" fill="#111827" font-weight="650" text-anchor="start">法律资料治理</text>
 <text x="840" y="825" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">
 <tspan x="840" dy="0px">A 级版本/生效日期</tspan>
-<tspan x="840" dy="17px">B 级官方案例核验</tspan>
+<tspan x="840" dy="17px">B 级官方案例待复核</tspan>
 </text>
-<rect x="988" y="841" width="78" height="22" rx="11" fill="#e5e7eb"/>
-<text x="1027" y="856" font-size="11px" fill="#4b5563" font-weight="650" text-anchor="middle">待补齐</text>
+<rect x="988" y="841" width="78" height="22" rx="11" fill="#ccfbf1"/>
+<text x="1027" y="856" font-size="11px" fill="#0f766e" font-weight="650" text-anchor="middle">staging</text>
 </g>
-<g id="frontend" data-graph-role="node"><rect x="1120" y="770" width="310" height="102" rx="12" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.7"/>
-<circle cx="1151" cy="804" r="18" fill="#6b7280"/>
+<g id="frontend" data-graph-role="node"><rect x="1120" y="770" width="310" height="102" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.7"/>
+<circle cx="1151" cy="804" r="18" fill="#2563eb"/>
 <text x="1151" y="809" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">UI</text>
 <text x="1180" y="801" font-size="16px" fill="#111827" font-weight="650" text-anchor="start">任务型前端</text>
 <text x="1180" y="825" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">
 <tspan x="1180" dy="0px">上传 / 事实表单 / 报告</tspan>
-<tspan x="1180" dy="17px">首版不影响后端验收</tspan>
+<tspan x="1180" dy="17px">报告问答与恢复</tspan>
 </text>
-<rect x="1338" y="841" width="78" height="22" rx="11" fill="#e5e7eb"/>
-<text x="1377" y="856" font-size="11px" fill="#4b5563" font-weight="650" text-anchor="middle">待补齐</text>
+<rect x="1338" y="841" width="78" height="22" rx="11" fill="#dbeafe"/>
+<text x="1377" y="856" font-size="11px" fill="#1d4ed8" font-weight="650" text-anchor="middle">已接入</text>
 </g>
 </svg>

@@ -48,7 +48,7 @@
 <text data-graph-role="label" x="1410" y="415" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">否：转补充</text>
 <path id="e-confirm-snapshot" data-edge-id="e-confirm-snapshot" data-graph-role="edge" data-source="confirm-contract" data-target="effective-snapshot" d="M610 500 H630 V750 H680 V840" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
 <text data-graph-role="label" x="650" y="725" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">合同原值</text>
-<path id="e-corrected-snapshot" data-edge-id="e-corrected-snapshot" data-graph-role="edge" data-source="corrected-contract" data-target="effective-snapshot" d="M1010 533 H930 V790 H745 V840" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<path id="e-corrected-snapshot" data-edge-id="e-corrected-snapshot" data-graph-role="edge" data-source="corrected-contract" data-target="effective-snapshot" d="M1300 582 H1040 V790 H745 V840" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
 <text data-graph-role="label" x="820" y="775" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">合同修正值 + 新证据</text>
 <path id="e-supplement-snapshot" data-edge-id="e-supplement-snapshot" data-graph-role="edge" data-source="supplement-user" data-target="effective-snapshot" d="M1115 638 H1040 V790 H745 V840" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
 <text data-graph-role="label" x="980" y="775" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">用户补充值</text>

@@ -210,7 +210,7 @@ def build_svg() -> str:
     edge(lines, "e-found-no", "M1310 430 H1530 V485", source="evidence-found", target="correction-rejected", color="#ea580c", marker="arrow-orange", label="否：转补充", label_x=1410, label_y=415)
 
     edge(lines, "e-confirm-snapshot", "M610 500 H630 V750 H680 V840", source="confirm-contract", target="effective-snapshot", color="#059669", marker="arrow-green", label="合同原值", label_x=650, label_y=725)
-    edge(lines, "e-corrected-snapshot", "M1010 533 H930 V790 H745 V840", source="corrected-contract", target="effective-snapshot", color="#059669", marker="arrow-green", label="合同修正值 + 新证据", label_x=820, label_y=775)
+    edge(lines, "e-corrected-snapshot", "M1300 582 H1040 V790 H745 V840", source="corrected-contract", target="effective-snapshot", color="#059669", marker="arrow-green", label="合同修正值 + 新证据", label_x=820, label_y=775)
     edge(lines, "e-supplement-snapshot", "M1115 638 H1040 V790 H745 V840", source="supplement-user", target="effective-snapshot", color="#9333ea", marker="arrow-purple", label="用户补充值", label_x=980, label_y=775)
     edge(lines, "e-na-snapshot", "M610 638 H650 V790 H745 V840", source="not-applicable", target="effective-snapshot", color="#6b7280", marker="arrow-gray", label="无适用值", label_x=680, label_y=775)
     edge(lines, "e-defer-status", "M1395 743 H1580 V960 H1570", source="defer-review", target="status-gate", color="#6b7280", marker="arrow-gray", label="保留待处理", label_x=1510, label_y=770)

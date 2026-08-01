@@ -173,7 +173,7 @@ def build_svg() -> str:
     node(lines, "status-gate", 770, 470, 230, "事实状态门禁", "confirmed / missing / contradicted", fill="#fff7ed", stroke="#fdba74", badge="G", badge_fill="#ea580c", status="确认", status_fill="#fed7aa", status_text="#9a3412")
     node(lines, "postgres", 1080, 470, 220, "PostgreSQL 结果", "extraction_status / JSONB", fill="#f0fdf4", stroke="#86efac", badge="PG", badge_fill="#336791", status="持久化", status_fill="#dcfce7", status_text="#166534")
     node(lines, "api-confirm", 1350, 470, 180, "详情 API", "事实 + 证据 + 问题", fill="#eff6ff", stroke="#93c5fd", badge="API", badge_fill="#009688", status="输出", status_fill="#dbeafe", status_text="#1d4ed8")
-    node(lines, "legal-rule-boundary", 600, 770, 400, "后续法律规则引擎（不在本模块）", "读取结构化事实与证据，不让 LLM 单独决定风险等级", fill="#f3f4f6", stroke="#9ca3af", badge="R", badge_fill="#6b7280", status="待开发", status_fill="#e5e7eb", status_text="#4b5563")
+    node(lines, "legal-rule-boundary", 600, 770, 400, "合同审查 Workflow（模块外边界）", "读取结构化事实与证据，不让 LLM 单独决定风险等级", fill="#eff6ff", stroke="#93c5fd", badge="R", badge_fill="#2563eb", status="已接入", status_fill="#dbeafe", status_text="#1d4ed8")
 
     add(lines, '<rect data-graph-role="legend" x="1040" y="770" width="480" height="52" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>')
     text(lines, 1060, 793, "隐私门禁：模型只接收脱敏文本；日志不记录合同原文", size=12, fill="#4b5563", role="legend")

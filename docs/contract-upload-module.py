@@ -1,6 +1,7 @@
 """生成合同上传模块的独立技术架构图。
 
-脚本只生成文档图，不访问数据库、合同文件或运行中的服务。
+脚本只生成文档图，不访问数据库、合同文件或运行中的服务。解析结果进入
+PostgreSQL，并由同一 session 的合同上下文继续承接事实确认和报告问答。
 """
 
 from html import escape
@@ -183,15 +184,15 @@ def build_svg() -> str:
     node(lines, "validate", 560, 180, 220, "文件校验", "PDF / DOC / DOCX / 20MB / 50页", fill="#eff6ff", stroke="#93c5fd", badge="V", badge_fill="#2563eb", status="已完成", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "private-storage", 840, 180, 200, "私有存储", "原始合同文件，不进 Qdrant", fill="#f0fdf4", stroke="#86efac", badge="FS", badge_fill="#059669", status="已完成", status_fill="#dcfce7", status_text="#166534")
     node(lines, "task", 1100, 180, 200, "PostgreSQL 任务", "queued / extracting / ready", fill="#f0fdf4", stroke="#86efac", badge="PG", badge_fill="#336791", status="已完成", status_fill="#dcfce7", status_text="#166534")
-    node(lines, "pdf-parser", 1280, 365, 240, "统一文档解析", "可恢复任务", fill="#faf5ff", stroke="#d8b4fe", badge="BG", badge_fill="#9333ea", status="MVP", status_fill="#ede9fe", status_text="#6b21a8")
+    node(lines, "pdf-parser", 1280, 365, 240, "统一文档解析", "可恢复任务 / 轮询状态", fill="#eff6ff", stroke="#93c5fd", badge="BG", badge_fill="#2563eb", status="已接入", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "page-classifier", 1280, 485, 240, "格式与页级检查", "PDF / OOXML / antiword", fill="#eff6ff", stroke="#93c5fd", badge="DOC", badge_fill="#2563eb", status="已完成", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "native-text", 920, 615, 220, "原生文字页", "PDF/Word 文字提取", fill="#eff6ff", stroke="#93c5fd", badge="TXT", badge_fill="#2563eb", status="已完成", status_fill="#dbeafe", status_text="#1d4ed8")
     node(lines, "ocr", 1240, 615, 220, "OCR Provider", "DeepSeek OCR，可选", fill="#fff7ed", stroke="#fdba74", badge="OCR", badge_fill="#ea580c", status="可配置", status_fill="#fed7aa", status_text="#9a3412")
     node(lines, "redact", 650, 615, 220, "本地脱敏", "身份证 / 手机 / 银行卡", fill="#fff7ed", stroke="#fdba74", badge="PII", badge_fill="#ea580c", status="已完成", status_fill="#fed7aa", status_text="#9a3412")
     node(lines, "quality", 380, 615, 220, "文本质量门禁", "页级质量 / 需确认", fill="#fff7ed", stroke="#fdba74", badge="Q", badge_fill="#ea580c", status="已完成", status_fill="#fed7aa", status_text="#9a3412")
     node(lines, "clause-extraction", 380, 760, 300, "条款与事实提取", "Schema / 证据定位 / 确认问题", fill="#eff6ff", stroke="#93c5fd", badge="C", badge_fill="#2563eb", status="已接入", status_fill="#dbeafe", status_text="#1d4ed8")
-    node(lines, "workflow", 720, 760, 240, "LangGraph Workflow", "接收结构化事实", fill="#f3f4f6", stroke="#9ca3af", badge="LG", badge_fill="#6b7280", status="下一步", status_fill="#e5e7eb", status_text="#4b5563")
-    node(lines, "confirmation", 1100, 760, 250, "用户确认 / 重传", "OCR 失败或页面不清晰", fill="#f3f4f6", stroke="#9ca3af", badge="?", badge_fill="#6b7280", status="下一步", status_fill="#e5e7eb", status_text="#4b5563")
+    node(lines, "workflow", 720, 760, 240, "LangGraph Workflow", "事实门禁 → 法律检索 → 报告", fill="#eff6ff", stroke="#93c5fd", badge="LG", badge_fill="#2563eb", status="已接入", status_fill="#dbeafe", status_text="#1d4ed8")
+    node(lines, "confirmation", 1100, 760, 250, "用户确认 / 重传", "事实表单、补充或质量回问", fill="#eff6ff", stroke="#93c5fd", badge="?", badge_fill="#2563eb", status="已接入", status_fill="#dbeafe", status_text="#1d4ed8")
 
     add(lines, '<rect x="70" y="890" width="1460" height="82" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>')
     text(lines, 95, 919, "隐私边界", size=13, fill="#9a3412", weight=700)
