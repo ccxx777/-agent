@@ -124,23 +124,23 @@
 <rect data-node-id="scoped-repository" x="1618" y="589" width="98" height="21" rx="11" fill="#dcfce7"/>
 <text data-graph-role="node" x="1667" y="604" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">隔离查询</text>
 </g>
-<g id="unauthorized" data-node-id="unauthorized" data-graph-role="node" data-graph-bounds="470 650 650 720">
-<rect data-node-id="unauthorized" x="470" y="650" width="180" height="70" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
-<circle data-node-id="unauthorized" cx="502" cy="684" r="20" fill="#ea580c"/>
-<text data-graph-role="node" x="502" y="689" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">!</text>
-<text data-graph-role="node" x="537" y="681" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">401</text>
-<text data-graph-role="node" x="537" y="708" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">令牌无效或过期</text>
-<rect data-node-id="unauthorized" x="538" y="689" width="98" height="21" rx="11" fill="#fed7aa"/>
-<text data-graph-role="node" x="587" y="704" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">拒绝</text>
+<g id="unauthorized" data-node-id="unauthorized" data-graph-role="node" data-graph-bounds="450 650 670 746">
+<rect data-node-id="unauthorized" x="450" y="650" width="220" height="96" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
+<circle data-node-id="unauthorized" cx="482" cy="684" r="20" fill="#ea580c"/>
+<text data-graph-role="node" x="482" y="689" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">!</text>
+<text data-graph-role="node" x="517" y="681" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">401</text>
+<text data-graph-role="node" x="517" y="708" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">令牌无效或过期</text>
+<rect data-node-id="unauthorized" x="558" y="715" width="98" height="21" rx="11" fill="#fed7aa"/>
+<text data-graph-role="node" x="607" y="730" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">拒绝</text>
 </g>
-<g id="forbidden" data-node-id="forbidden" data-graph-role="node" data-graph-bounds="1130 650 1310 720">
-<rect data-node-id="forbidden" x="1130" y="650" width="180" height="70" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
-<circle data-node-id="forbidden" cx="1162" cy="684" r="20" fill="#ea580c"/>
-<text data-graph-role="node" x="1162" y="689" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">!</text>
-<text data-graph-role="node" x="1197" y="681" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">403</text>
-<text data-graph-role="node" x="1197" y="708" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">资源不属于当前用户</text>
-<rect data-node-id="forbidden" x="1198" y="689" width="98" height="21" rx="11" fill="#fed7aa"/>
-<text data-graph-role="node" x="1247" y="704" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">拒绝</text>
+<g id="forbidden" data-node-id="forbidden" data-graph-role="node" data-graph-bounds="1110 650 1330 746">
+<rect data-node-id="forbidden" x="1110" y="650" width="220" height="96" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
+<circle data-node-id="forbidden" cx="1142" cy="684" r="20" fill="#ea580c"/>
+<text data-graph-role="node" x="1142" y="689" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">!</text>
+<text data-graph-role="node" x="1177" y="681" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">403</text>
+<text data-graph-role="node" x="1177" y="708" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">资源不属于当前用户</text>
+<rect data-node-id="forbidden" x="1218" y="715" width="98" height="21" rx="11" fill="#fed7aa"/>
+<text data-graph-role="node" x="1267" y="730" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">拒绝</text>
 </g>
 <g id="personal-space" data-node-id="personal-space" data-graph-role="node" data-graph-bounds="100 895 460 1005">
 <rect data-node-id="personal-space" x="100" y="895" width="360" height="110" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>

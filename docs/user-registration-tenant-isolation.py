@@ -260,8 +260,8 @@ def build_svg() -> str:
     card(lines, "domain-api", 790, 490, 300, "API + Service", "user_id 进入业务调用上下文", fill="#faf5ff", stroke="#d8b4fe", badge="SVC", badge_fill="#9333ea", status="带身份", status_fill="#ede9fe", status_text="#6b21a8")
     decision(lines, "owner-gate", 1220, 540, 100, 40, "归属一致?", "owner = user_id")
     card(lines, "scoped-repository", 1450, 480, 280, "Repository 作用域", "WHERE user_id = JWT.sub", fill="#f0fdf4", stroke="#86efac", badge="SQL", badge_fill="#059669", status="隔离查询", status_fill="#dcfce7", status_text="#166534", height=140)
-    card(lines, "unauthorized", 470, 650, 180, "401", "令牌无效或过期", fill="#fff7ed", stroke="#fdba74", badge="!", badge_fill="#ea580c", status="拒绝", status_fill="#fed7aa", status_text="#9a3412", height=70)
-    card(lines, "forbidden", 1130, 650, 180, "403", "资源不属于当前用户", fill="#fff7ed", stroke="#fdba74", badge="!", badge_fill="#ea580c", status="拒绝", status_fill="#fed7aa", status_text="#9a3412", height=70)
+    card(lines, "unauthorized", 450, 650, 220, "401", "令牌无效或过期", fill="#fff7ed", stroke="#fdba74", badge="!", badge_fill="#ea580c", status="拒绝", status_fill="#fed7aa", status_text="#9a3412", height=96)
+    card(lines, "forbidden", 1110, 650, 220, "403", "资源不属于当前用户", fill="#fff7ed", stroke="#fdba74", badge="!", badge_fill="#ea580c", status="拒绝", status_fill="#fed7aa", status_text="#9a3412", height=96)
 
     # Capability boundary lane.
     card(lines, "personal-space", 100, 895, 360, "个人隔离空间", "sessions · contract_reviews · reports", fill="#f0fdf4", stroke="#86efac", badge="U", badge_fill="#059669", status="已实现", status_fill="#dcfce7", status_text="#166534")

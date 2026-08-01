@@ -8,6 +8,8 @@
 
 当前实现的三张总图分别回答三个问题：Workflow 如何审查合同、聊天与合同如何共享会话、JSON/数据库/私有文件/Qdrant 的边界在哪里。
 
+> 图中 PNG 均按 SVG 原始画布尺寸以 2x 分辨率导出，避免 README 预览出现底部裁剪；需要放大查看时，可打开文档目录中同名的 `.svg` 源图。
+
 ![统一会话数据流](docs/chat-route-data-flow.png)
 
 ![存储边界](docs/storage-boundary.png)

@@ -54,7 +54,7 @@
 <text data-graph-role="label" x="980" y="775" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">用户补充值</text>
 <path id="e-na-snapshot" data-edge-id="e-na-snapshot" data-graph-role="edge" data-source="not-applicable" data-target="effective-snapshot" d="M610 638 H650 V790 H745 V840" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
 <text data-graph-role="label" x="680" y="775" font-size="11px" fill="#6b7280" font-weight="600" text-anchor="middle">无适用值</text>
-<path id="e-defer-status" data-edge-id="e-defer-status" data-graph-role="edge" data-source="defer-review" data-target="status-gate" d="M1395 743 H1580 V960 H1570" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
+<path id="e-defer-status" data-edge-id="e-defer-status" data-graph-role="edge" data-source="defer-review" data-target="status-gate" d="M1395 743 H1560 V960 H1390" fill="none" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow-gray)"/>
 <text data-graph-role="label" x="1510" y="770" font-size="11px" fill="#6b7280" font-weight="600" text-anchor="middle">保留待处理</text>
 <path id="e-reject-supplement" data-edge-id="e-reject-supplement" data-graph-role="edge" data-source="correction-rejected" data-target="supplement-user" d="M1530 581 V620 H1405 V638 H1395" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arrow-orange)"/>
 <text data-graph-role="label" x="1510" y="610" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">不得伪造合同证据</text>
@@ -62,11 +62,11 @@
 <text data-graph-role="label" x="935" y="872" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">保留三层 provenance</text>
 <path id="e-audit-revision" data-edge-id="e-audit-revision" data-graph-role="edge" data-source="audit-event" data-target="revision-store" d="M1200 895 H1300" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
 <text data-graph-role="label" x="1250" y="872" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">事件 + revision</text>
-<path id="e-revision-gate" data-edge-id="e-revision-gate" data-graph-role="edge" data-source="revision-store" data-target="status-gate" d="M1510 895 H1600 V960 H1500" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
-<text data-graph-role="label" x="1580" y="930" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">幂等/乐观锁</text>
-<path id="e-gate-ready" data-edge-id="e-gate-ready" data-graph-role="edge" data-source="status-gate" data-target="legal-gate" d="M1570 1016 H1600" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
-<text data-graph-role="label" x="1585" y="988" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">全部必答项已解决</text>
-<path id="e-gate-pending" data-edge-id="e-gate-pending" data-graph-role="edge" data-source="status-gate" data-target="pending-questions" d="M1320 1016 H1270 V1080 H1210" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
+<path id="e-revision-gate" data-edge-id="e-revision-gate" data-graph-role="edge" data-source="revision-store" data-target="status-gate" d="M1405 952 H1385 V960" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="1500" y="930" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">幂等/乐观锁</text>
+<path id="e-gate-ready" data-edge-id="e-gate-ready" data-graph-role="edge" data-source="status-gate" data-target="legal-gate" d="M1510 1016 H1540" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="1525" y="988" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">全部必答项已解决</text>
+<path id="e-gate-pending" data-edge-id="e-gate-pending" data-graph-role="edge" data-source="status-gate" data-target="pending-questions" d="M1260 1016 H1210 V1080 H1210" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
 <text data-graph-role="label" x="1260" y="1100" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">仍缺失/暂不确认</text>
 <g id="extraction-result" data-node-id="extraction-result" data-graph-role="node" data-graph-bounds="90 165 410 277">
 <rect data-node-id="extraction-result" x="90" y="165" width="320" height="112" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
@@ -197,23 +197,23 @@
 <rect data-node-id="revision-store" x="1406" y="921" width="90" height="21" rx="11" fill="#dcfce7"/>
 <text data-graph-role="node" x="1451" y="936" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">幂等</text>
 </g>
-<g id="status-gate" data-node-id="status-gate" data-graph-role="node" data-graph-bounds="1320 960 1570 1072">
-<rect data-node-id="status-gate" x="1320" y="960" width="250" height="112" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
-<circle data-node-id="status-gate" cx="1352" cy="994" r="20" fill="#ea580c"/>
-<text data-graph-role="node" x="1352" y="999" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">G</text>
-<text data-graph-role="node" x="1387" y="992" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">确认状态门禁</text>
-<text data-graph-role="node" x="1387" y="1020" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">pending / in_progress / completed</text>
-<rect data-node-id="status-gate" x="1466" y="1041" width="90" height="21" rx="11" fill="#fed7aa"/>
-<text data-graph-role="node" x="1511" y="1056" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">状态机</text>
+<g id="status-gate" data-node-id="status-gate" data-graph-role="node" data-graph-bounds="1260 960 1510 1072">
+<rect data-node-id="status-gate" x="1260" y="960" width="250" height="112" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
+<circle data-node-id="status-gate" cx="1292" cy="994" r="20" fill="#ea580c"/>
+<text data-graph-role="node" x="1292" y="999" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">G</text>
+<text data-graph-role="node" x="1327" y="992" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">确认状态门禁</text>
+<text data-graph-role="node" x="1327" y="1020" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">pending / in_progress / completed</text>
+<rect data-node-id="status-gate" x="1406" y="1041" width="90" height="21" rx="11" fill="#fed7aa"/>
+<text data-graph-role="node" x="1451" y="1056" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">状态机</text>
 </g>
-<g id="legal-gate" data-node-id="legal-gate" data-graph-role="node" data-graph-bounds="1600 960 1720 1072">
-<rect data-node-id="legal-gate" x="1600" y="960" width="120" height="112" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
-<circle data-node-id="legal-gate" cx="1632" cy="994" r="20" fill="#059669"/>
-<text data-graph-role="node" x="1632" y="999" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">→</text>
-<text data-graph-role="node" x="1667" y="992" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">法律分析</text>
-<text data-graph-role="node" x="1667" y="1020" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">仅接收已确认事实</text>
-<rect data-node-id="legal-gate" x="1616" y="1041" width="90" height="21" rx="11" fill="#dcfce7"/>
-<text data-graph-role="node" x="1661" y="1056" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">ready</text>
+<g id="legal-gate" data-node-id="legal-gate" data-graph-role="node" data-graph-bounds="1540 960 1750 1072">
+<rect data-node-id="legal-gate" x="1540" y="960" width="210" height="112" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="legal-gate" cx="1572" cy="994" r="20" fill="#059669"/>
+<text data-graph-role="node" x="1572" y="999" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">→</text>
+<text data-graph-role="node" x="1607" y="992" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">法律分析</text>
+<text data-graph-role="node" x="1607" y="1020" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">仅接收已确认事实</text>
+<rect data-node-id="legal-gate" x="1646" y="1041" width="90" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1691" y="1056" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">ready</text>
 </g>
 <g id="pending-questions" data-node-id="pending-questions" data-graph-role="node" data-graph-bounds="930 1000 1210 1112">
 <rect data-node-id="pending-questions" x="930" y="1000" width="280" height="112" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>

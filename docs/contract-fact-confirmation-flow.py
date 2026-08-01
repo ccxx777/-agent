@@ -213,13 +213,13 @@ def build_svg() -> str:
     edge(lines, "e-corrected-snapshot", "M1300 582 H1040 V790 H745 V840", source="corrected-contract", target="effective-snapshot", color="#059669", marker="arrow-green", label="合同修正值 + 新证据", label_x=820, label_y=775)
     edge(lines, "e-supplement-snapshot", "M1115 638 H1040 V790 H745 V840", source="supplement-user", target="effective-snapshot", color="#9333ea", marker="arrow-purple", label="用户补充值", label_x=980, label_y=775)
     edge(lines, "e-na-snapshot", "M610 638 H650 V790 H745 V840", source="not-applicable", target="effective-snapshot", color="#6b7280", marker="arrow-gray", label="无适用值", label_x=680, label_y=775)
-    edge(lines, "e-defer-status", "M1395 743 H1580 V960 H1570", source="defer-review", target="status-gate", color="#6b7280", marker="arrow-gray", label="保留待处理", label_x=1510, label_y=770)
+    edge(lines, "e-defer-status", "M1395 743 H1560 V960 H1390", source="defer-review", target="status-gate", color="#6b7280", marker="arrow-gray", label="保留待处理", label_x=1510, label_y=770)
     edge(lines, "e-reject-supplement", "M1530 581 V620 H1405 V638 H1395", source="correction-rejected", target="supplement-user", color="#ea580c", marker="arrow-orange", label="不得伪造合同证据", label_x=1510, label_y=610, dashed=True)
     edge(lines, "e-snapshot-audit", "M880 895 H990", source="effective-snapshot", target="audit-event", color="#059669", marker="arrow-green", label="保留三层 provenance", label_x=935, label_y=872)
     edge(lines, "e-audit-revision", "M1200 895 H1300", source="audit-event", target="revision-store", color="#059669", marker="arrow-green", label="事件 + revision", label_x=1250, label_y=872)
-    edge(lines, "e-revision-gate", "M1510 895 H1600 V960 H1500", source="revision-store", target="status-gate", color="#059669", marker="arrow-green", label="幂等/乐观锁", label_x=1580, label_y=930)
-    edge(lines, "e-gate-ready", "M1570 1016 H1600", source="status-gate", target="legal-gate", color="#059669", marker="arrow-green", label="全部必答项已解决", label_x=1585, label_y=988)
-    edge(lines, "e-gate-pending", "M1320 1016 H1270 V1080 H1210", source="status-gate", target="pending-questions", color="#ea580c", marker="arrow-orange", label="仍缺失/暂不确认", label_x=1260, label_y=1100)
+    edge(lines, "e-revision-gate", "M1405 952 H1385 V960", source="revision-store", target="status-gate", color="#059669", marker="arrow-green", label="幂等/乐观锁", label_x=1500, label_y=930)
+    edge(lines, "e-gate-ready", "M1510 1016 H1540", source="status-gate", target="legal-gate", color="#059669", marker="arrow-green", label="全部必答项已解决", label_x=1525, label_y=988)
+    edge(lines, "e-gate-pending", "M1260 1016 H1210 V1080 H1210", source="status-gate", target="pending-questions", color="#ea580c", marker="arrow-orange", label="仍缺失/暂不确认", label_x=1260, label_y=1100)
 
     # Top lane.
     card(lines, "extraction-result", 90, 165, 320, "提取结果", "ContractFact[] + 结构化问题", fill="#eff6ff", stroke="#93c5fd", badge="F", badge_fill="#2563eb", status="输入", status_fill="#dbeafe", status_text="#1d4ed8")
@@ -244,8 +244,8 @@ def build_svg() -> str:
     card(lines, "effective-snapshot", 610, 840, 270, "有效事实快照", "effective_value + source + state", fill="#eff6ff", stroke="#93c5fd", badge="S", badge_fill="#2563eb", status="可供规则层", status_fill="#dbeafe", status_text="#1d4ed8")
     card(lines, "audit-event", 990, 840, 210, "确认事件", "append-only JSONB", fill="#f0fdf4", stroke="#86efac", badge="A", badge_fill="#059669", status="可追溯", status_fill="#dcfce7", status_text="#166534")
     card(lines, "revision-store", 1300, 840, 210, "版本控制", "base_revision + request_id", fill="#f0fdf4", stroke="#86efac", badge="R", badge_fill="#059669", status="幂等", status_fill="#dcfce7", status_text="#166534")
-    card(lines, "status-gate", 1320, 960, 250, "确认状态门禁", "pending / in_progress / completed", fill="#fff7ed", stroke="#fdba74", badge="G", badge_fill="#ea580c", status="状态机", status_fill="#fed7aa", status_text="#9a3412")
-    card(lines, "legal-gate", 1600, 960, 120, "法律分析", "仅接收已确认事实", fill="#f0fdf4", stroke="#86efac", badge="→", badge_fill="#059669", status="ready", status_fill="#dcfce7", status_text="#166534", height=112)
+    card(lines, "status-gate", 1260, 960, 250, "确认状态门禁", "pending / in_progress / completed", fill="#fff7ed", stroke="#fdba74", badge="G", badge_fill="#ea580c", status="状态机", status_fill="#fed7aa", status_text="#9a3412")
+    card(lines, "legal-gate", 1540, 960, 210, "法律分析", "仅接收已确认事实", fill="#f0fdf4", stroke="#86efac", badge="→", badge_fill="#059669", status="ready", status_fill="#dcfce7", status_text="#166534", height=112)
     card(lines, "pending-questions", 930, 1000, 280, "待补充问题", "缺失 / 冲突 / 暂不确认项", fill="#fff7ed", stroke="#fdba74", badge="?", badge_fill="#ea580c", status="阻断", status_fill="#fed7aa", status_text="#9a3412")
 
     add(lines, '<rect data-graph-role="note" x="70" y="1080" width="800" height="26" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"/>')
