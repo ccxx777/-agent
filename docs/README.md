@@ -18,6 +18,7 @@
 | [`contract-fact-confirmation-flow.png`](contract-fact-confirmation-flow.png) | 五类用户动作、证据复核、有效事实快照、revision 和审计门禁 | 已实现基础模块 |
 | [`user-registration-tenant-isolation.png`](user-registration-tenant-isolation.png) | 用户注册、JWT 身份解析、user_id 作用域与当前租户能力边界 | 当前认证与隔离 |
 | [`chat-route-data-flow.png`](chat-route-data-flow.png) | 统一 session 中的文字提问、合同上传/审查和合同追问数据流 | 当前对话数据流 |
+| [`storage-boundary.md`](storage-boundary.md) | JSON/JSONL 离线工件、PostgreSQL 生产数据、私有合同文件与 Qdrant 的存储边界 | 当前实现 |
 | [`api/backend.md`](api/backend.md) | Backend、RAG 和合同上传 API | 当前 API |
 | [`self-developed-retrieval-algorithm.md`](self-developed-retrieval-algorithm.md) | L1/L2/L3 Cascade Funnel 的设计和边界 | 当前 v2 |
 | [`retrieval-v2-migration.md`](retrieval-v2-migration.md) | Qdrant 升级、离线迁移、门禁和回滚 | 已执行，可复用 |

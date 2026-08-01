@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 960" width="1440" height="960">
+<style>
+text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', 'Microsoft JhengHei', SimHei, sans-serif; }
+</style>
+<defs>
+  <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
+  <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/></marker>
+  <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#9333ea"/></marker>
+  <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ea580c"/></marker>
+  <marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/></marker>
+</defs>
+<rect width="1440" height="960" fill="#ffffff"/>
+
+<text x="42" y="45" fill="#111827" font-size="26px" font-weight="600" text-anchor="start" opacity="1.0">存储边界：JSON 文件 vs PostgreSQL 生产数据</text>
+<text x="42" y="73" fill="#6b7280" font-size="14px" font-weight="400" text-anchor="start" opacity="1.0">合同正文、事实 JSON、风险报告和会话上下文的真实落点</text>
+<rect x="40" y="112" width="315" height="720" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="7,5"/>
+<text x="58" y="140" fill="#111827" font-size="17px" font-weight="600" text-anchor="start" opacity="1.0">JSON / JSONL 文件工件</text>
+<text x="58" y="162" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">离线输入、评测输出、断点状态；不是生产会话真相</text>
+<path d="M66,175 h24 l10,10 v34 h-34 z" fill="#2563eb" opacity="0.95"/>
+<path d="M90,175 v10 h10" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.75"/>
+<line x1="73" y1="199" x2="93" y2="199" stroke="#ffffff" stroke-width="1.2" opacity="0.8"/>
+<line x1="73" y1="206" x2="90" y2="206" stroke="#ffffff" stroke-width="1.2" opacity="0.8"/>
+<rect x="108" y="160" width="220" height="112" rx="10" fill="#ffffff" stroke="#bfdbfe" stroke-width="1.5"/>
+<rect x="108" y="160" width="6" height="112" rx="3" fill="#2563eb"/>
+<text x="126" y="189" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">法律语料 prepared/</text>
+<text x="126" y="212" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">*.json / *.jsonl / manifest.json</text>
+<text x="126" y="255" fill="#2563eb" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">data_worker 的入库输入</text>
+<path d="M66,330 h24 l10,10 v34 h-34 z" fill="#16a34a" opacity="0.95"/>
+<path d="M90,330 v10 h10" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.75"/>
+<line x1="73" y1="354" x2="93" y2="354" stroke="#ffffff" stroke-width="1.2" opacity="0.8"/>
+<line x1="73" y1="361" x2="90" y2="361" stroke="#ffffff" stroke-width="1.2" opacity="0.8"/>
+<rect x="108" y="315" width="220" height="112" rx="10" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.5"/>
+<rect x="108" y="315" width="6" height="112" rx="3" fill="#16a34a"/>
+<text x="126" y="344" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">评测与 Smoke 结果</text>
+<text x="126" y="367" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">retrieval / generation / RAGAS</text>
+<text x="126" y="410" fill="#16a34a" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">离线评测输出</text>
+<path d="M66,485 h24 l10,10 v34 h-34 z" fill="#9333ea" opacity="0.95"/>
+<path d="M90,485 v10 h10" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.75"/>
+<line x1="73" y1="509" x2="93" y2="509" stroke="#ffffff" stroke-width="1.2" opacity="0.8"/>
+<line x1="73" y1="516" x2="90" y2="516" stroke="#ffffff" stroke-width="1.2" opacity="0.8"/>
+<rect x="108" y="470" width="220" height="112" rx="10" fill="#ffffff" stroke="#ddd6fe" stroke-width="1.5"/>
+<rect x="108" y="470" width="6" height="112" rx="3" fill="#9333ea"/>
+<text x="126" y="499" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">断点与诊断状态</text>
+<text x="126" y="522" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">legal-ingest-state/*.json</text>
+<text x="126" y="565" fill="#9333ea" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">resume / 调试</text>
+<rect x="64" y="640" width="264" height="142" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5"/>
+<text x="80" y="672" fill="#ea580c" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">边界提醒</text>
+<text x="80" y="700" fill="#111827" font-size="12px" font-weight="400" text-anchor="start" opacity="1.0">JSON 文件不会作为合同问答</text>
+<text x="80" y="721" fill="#111827" font-size="12px" font-weight="400" text-anchor="start" opacity="1.0">的生产上下文来源。</text>
+<text x="80" y="750" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">生产合同数据走 PostgreSQL + 私有文件存储。</text>
+<rect x="390" y="112" width="350" height="720" rx="14" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" stroke-dasharray="7,5"/>
+<text x="408" y="140" fill="#111827" font-size="17px" font-weight="600" text-anchor="start" opacity="1.0">Backend / LangGraph</text>
+<text x="408" y="162" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">把文件、数据库记录组装成一次请求的上下文</text>
+<rect x="420" y="160" width="290" height="82" rx="10" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.5"/>
+<rect x="420" y="160" width="6" height="82" rx="3" fill="#16a34a"/>
+<text x="438" y="189" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">合同上传 API</text>
+<text x="438" y="212" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">创建 review_id / session_id</text>
+<rect x="420" y="280" width="290" height="106" rx="10" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.5"/>
+<rect x="420" y="280" width="6" height="106" rx="3" fill="#9333ea"/>
+<text x="438" y="309" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">解析、脱敏、事实提取</text>
+<text x="438" y="332" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">PDF / DOC / DOCX → 脱敏页文本 + facts JSON</text>
+<rect x="420" y="450" width="290" height="106" rx="10" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.5"/>
+<rect x="420" y="450" width="6" height="106" rx="3" fill="#2563eb"/>
+<text x="438" y="479" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">ChatService 上下文组装</text>
+<text x="438" y="502" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">读取正文、确认事实、风险报告，形成 contract_context</text>
+<rect x="420" y="620" width="290" height="86" rx="10" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.5"/>
+<rect x="420" y="620" width="6" height="86" rx="3" fill="#ea580c"/>
+<text x="438" y="649" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">Agent / LangGraph</text>
+<text x="438" y="672" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">问题 → 法律检索 → 答案或风险说明</text>
+<rect x="775" y="112" width="345" height="720" rx="14" fill="#eef2ff" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="7,5"/>
+<text x="793" y="140" fill="#111827" font-size="17px" font-weight="600" text-anchor="start" opacity="1.0">PostgreSQL</text>
+<text x="793" y="162" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">生产运行时的权限控制与持久化真相</text>
+<ellipse cx="812" cy="154" rx="20" ry="7" fill="#336791" opacity="0.9"/>
+<rect x="792" y="154" width="40" height="36" fill="#336791"/>
+<ellipse cx="812" cy="190" rx="20" ry="7" fill="#336791"/>
+<ellipse cx="812" cy="167" rx="20" ry="7" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.55"/>
+<rect x="840" y="145" width="255" height="104" rx="10" fill="#ffffff" stroke="#c7d2fe" stroke-width="1.5"/>
+<rect x="840" y="145" width="6" height="104" rx="3" fill="#336791"/>
+<text x="858" y="174" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">contract_review_tasks</text>
+<text x="858" y="197" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">元数据 + quality/privacy JSONB</text>
+<text x="858" y="232" fill="#336791" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">extraction_result / confirmation_result</text>
+<rect x="840" y="285" width="255" height="92" rx="10" fill="#ffffff" stroke="#c7d2fe" stroke-width="1.5"/>
+<rect x="840" y="285" width="6" height="92" rx="3" fill="#336791"/>
+<text x="858" y="314" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">contract_review_pages</text>
+<text x="858" y="337" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">脱敏正文 redacted_text（按页）</text>
+<rect x="840" y="413" width="255" height="92" rx="10" fill="#ffffff" stroke="#c7d2fe" stroke-width="1.5"/>
+<rect x="840" y="413" width="6" height="92" rx="3" fill="#336791"/>
+<text x="858" y="442" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">contract_review_reports</text>
+<text x="858" y="465" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">报告 JSONB + report_version</text>
+<rect x="840" y="541" width="255" height="106" rx="10" fill="#ffffff" stroke="#c7d2fe" stroke-width="1.5"/>
+<rect x="840" y="541" width="6" height="106" rx="3" fill="#336791"/>
+<text x="858" y="570" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">sessions + checkpoints</text>
+<text x="858" y="593" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">用户归属、scope 版本、消息、摘要</text>
+<text x="858" y="630" fill="#336791" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">LangGraph checkpoint 也在 PostgreSQL</text>
+<rect x="800" y="685" width="295" height="112" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+<text x="818" y="715" fill="#16a34a" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">PostgreSQL 保存什么？</text>
+<text x="818" y="741" fill="#111827" font-size="12px" font-weight="400" text-anchor="start" opacity="1.0">可恢复、可鉴权、可审计的生产数据</text>
+<text x="818" y="763" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">不是原始合同二进制，也不是 JSON 文件目录。</text>
+<rect x="1155" y="112" width="245" height="720" rx="14" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5" stroke-dasharray="7,5"/>
+<text x="1173" y="140" fill="#111827" font-size="17px" font-weight="600" text-anchor="start" opacity="1.0">其他存储</text>
+<text x="1173" y="162" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">不与 JSON / PostgreSQL 混为一谈</text>
+<path d="M1180,185 h24 l10,10 v34 h-34 z" fill="#ea580c" opacity="0.95"/>
+<path d="M1204,185 v10 h10" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.75"/>
+<line x1="1187" y1="209" x2="1207" y2="209" stroke="#ffffff" stroke-width="1.2" opacity="0.8"/>
+<line x1="1187" y1="216" x2="1204" y2="216" stroke="#ffffff" stroke-width="1.2" opacity="0.8"/>
+<rect x="1220" y="170" width="150" height="130" rx="10" fill="#ffffff" stroke="#fed7aa" stroke-width="1.5"/>
+<rect x="1220" y="170" width="6" height="130" rx="3" fill="#ea580c"/>
+<text x="1238" y="199" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">私有文件目录</text>
+<text x="1238" y="222" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">original.pdf / .doc / .docx</text>
+<text x="1238" y="283" fill="#ea580c" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">原始二进制</text>
+<ellipse cx="1198" cy="387" rx="20" ry="7" fill="#dc244c" opacity="0.9"/>
+<rect x="1178" y="387" width="40" height="36" fill="#dc244c"/>
+<ellipse cx="1198" cy="423" rx="20" ry="7" fill="#dc244c"/>
+<ellipse cx="1198" cy="400" rx="20" ry="7" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.55"/>
+<rect x="1220" y="365" width="150" height="130" rx="10" fill="#ffffff" stroke="#fecdd3" stroke-width="1.5"/>
+<rect x="1220" y="365" width="6" height="130" rx="3" fill="#dc244c"/>
+<text x="1238" y="394" fill="#111827" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">Qdrant</text>
+<text x="1238" y="417" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">法律语料向量 / 全文索引</text>
+<text x="1238" y="478" fill="#dc244c" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">不写入私有合同</text>
+<rect x="1175" y="565" width="200" height="170" rx="10" fill="#ffffff" stroke="#fed7aa" stroke-width="1.5"/>
+<text x="1192" y="596" fill="#ea580c" font-size="14px" font-weight="600" text-anchor="start" opacity="1.0">不会进入共享 RAG</text>
+<text x="1192" y="624" fill="#111827" font-size="12px" font-weight="400" text-anchor="start" opacity="1.0">上传合同的原始文件、</text>
+<text x="1192" y="646" fill="#111827" font-size="12px" font-weight="400" text-anchor="start" opacity="1.0">脱敏前 OCR 图像和私有路径</text>
+<text x="1192" y="668" fill="#111827" font-size="12px" font-weight="400" text-anchor="start" opacity="1.0">不会写入 Qdrant。</text>
+<text x="1192" y="704" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">问答只读取治理后的法律库。</text>
+<path d="M 328,212 L 360,212 L 360,96 L 1140,96 L 1140,430 L 1220,430" fill="none" stroke="#16a34a" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#arrow-green)" data-graph-role="edge" data-source="legal-prepared-json" data-target="qdrant-legal"/>
+<rect x="614" y="76" width="182" height="22" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="620" y="91" fill="#16a34a" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">data_worker 入库</text>
+<path d="M 710,201 L 750,201 L 750,101 L 1160,101 L 1160,245 L 1220,245" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)" data-graph-role="edge" data-source="upload-api" data-target="private-original"/>
+<rect x="924" y="81" width="80" height="22" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="930" y="96" fill="#ea580c" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">原始二进制</text>
+<path d="M 710,327 L 775,327 L 775,197 L 840,197" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)" data-graph-role="edge" data-source="extractor" data-target="contract-tasks"/>
+<rect x="718" y="255" width="206" height="22" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="724" y="270" fill="#9333ea" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">metadata / JSONB</text>
+<path d="M 710,355 L 790,355 L 790,331 L 840,331" fill="none" stroke="#16a34a" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#arrow-green)" data-graph-role="edge" data-source="extractor" data-target="contract-pages"/>
+<rect x="724" y="359" width="80" height="22" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="730" y="374" fill="#16a34a" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">脱敏正文</text>
+<path d="M 710,372 L 780,372 L 780,459 L 840,459" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)" data-graph-role="edge" data-source="workflow" data-target="contract-reports"/>
+<rect x="714" y="437" width="110" height="22" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="720" y="452" fill="#9333ea" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">报告 JSONB</text>
+<path d="M 840,590 L 780,590 L 780,503 L 710,503" fill="none" stroke="#16a34a" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#arrow-green)" data-graph-role="edge" data-source="postgres-context" data-target="chat-context"/>
+<rect x="710" y="565" width="242" height="22" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="716" y="580" fill="#16a34a" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">正文 + facts + report</text>
+<path d="M 565,556 L 565,620" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" data-graph-role="edge" data-source="chat-context" data-target="agent"/>
+<rect x="569" y="579" width="206" height="22" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="575" y="594" fill="#2563eb" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">contract_context</text>
+<path d="M 710,663 L 755,663 L 755,594 L 840,594" fill="none" stroke="#16a34a" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#arrow-green)" data-graph-role="edge" data-source="agent" data-target="langgraph-checkpoint"/>
+<rect x="729" y="635" width="230" height="22" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="735" y="650" fill="#16a34a" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">messages / summary</text>
+<path d="M 420,663 L 380,663 L 380,371 L 328,371" fill="none" stroke="#9333ea" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#arrow-purple)" data-graph-role="edge" data-source="agent" data-target="evaluation-json"/>
+<rect x="244" y="505" width="86" height="22" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="250" y="520" fill="#9333ea" font-size="11px" font-weight="600" text-anchor="start" opacity="1.0">离线评测写入</text>
+<rect x="40" y="866" width="1360" height="60" rx="10" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1.5"/>
+<text x="58" y="892" fill="#6b7280" font-size="12px" font-weight="600" text-anchor="start" opacity="1.0">图例</text>
+<line x1="102" y1="888" x2="142" y2="888" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" data-graph-role="decoration"/>
+<text x="151" y="892" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">Agent 主流程</text>
+<line x1="252" y1="888" x2="292" y2="888" stroke="#16a34a" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#arrow-green)" data-graph-role="decoration"/>
+<text x="301" y="892" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">存储读写</text>
+<line x1="390" y1="888" x2="430" y2="888" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)" data-graph-role="decoration"/>
+<text x="439" y="892" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">解析 / 结构化转换</text>
+<line x1="575" y1="888" x2="615" y2="888" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)" data-graph-role="decoration"/>
+<text x="624" y="892" fill="#6b7280" font-size="11px" font-weight="400" text-anchor="start" opacity="1.0">原始文件边界</text>
+<text x="820" y="892" fill="#111827" font-size="12px" font-weight="600" text-anchor="start" opacity="1.0">一句话：JSON 是离线工件；PostgreSQL 是生产会话与合同结构化数据的真相源。</text>
+</svg>
