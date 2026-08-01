@@ -6,15 +6,35 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 
 from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from argon2.low_level import Type
 from jose import JWTError, jwt
 
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = 24
-SECRET_KEY = "ai-assistant-secret-change-in-production"
+_MIN_SECRET_KEY_LENGTH = 32
+
+
+def _secret_key() -> str:
+    """读取生产签名密钥；缺失或过短时拒绝继续运行。"""
+
+    value = os.getenv("AUTH_SECRET_KEY", "").strip()
+    if len(value) < _MIN_SECRET_KEY_LENGTH:
+        raise RuntimeError(
+            "AUTH_SECRET_KEY must be configured with at least 32 characters; "
+            "the development fallback is disabled"
+        )
+    return value
+
+
+def validate_security_config() -> None:
+    """在应用启动时验证 JWT 配置，避免服务以可伪造密钥运行。"""
+
+    _secret_key()
 
 _password_hasher = PasswordHasher(
     time_cost=2,
@@ -35,7 +55,7 @@ def verify_password(password: str, password_hash: str) -> bool:
     """验证明文密码；格式错误或不匹配时统一返回 ``False``。"""
     try:
         return _password_hasher.verify(password_hash, password)
-    except Exception:
+    except (InvalidHashError, VerificationError, VerifyMismatchError):
         return False
 
 
@@ -44,7 +64,7 @@ def create_access_token(user_id: str, username: str) -> str:
     expires_at = datetime.now(timezone.utc) + timedelta(hours=TOKEN_EXPIRE_HOURS)
     return jwt.encode(
         {"sub": user_id, "username": username, "exp": expires_at},
-        SECRET_KEY,
+        _secret_key(),
         algorithm=ALGORITHM,
     )
 
@@ -52,6 +72,6 @@ def create_access_token(user_id: str, username: str) -> str:
 def decode_token(token: str) -> dict | None:
     """验证并解码 JWT；无效或过期时返回 ``None``。"""
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except JWTError:
+        return jwt.decode(token, _secret_key(), algorithms=[ALGORITHM])
+    except (JWTError, RuntimeError):
         return None

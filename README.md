@@ -296,3 +296,49 @@ uv run \
 ## 安全与法律边界
 
 请勿把真实合同、身份证号、手机号、银行卡号、API Key、Cookie 或 `.env` 提交到公开仓库。合同原文只在私有存储中处理，公共 Qdrant 仅用于公共法律/案例资料。任何法律风险结论都应以证据、规则版本和人工复核为前提；本项目当前只提供参考性信息，不承担法律责任或签署决策责任。
+
+## 当前开发闭环：统一会话、报告与发布治理
+
+当前产品主线已经从“上传后单独提取”扩展为同一 `session_id` 下的连续工作流：用户可以先问全国通用劳动法问题，再上传合同；也可以先上传合同、确认事实、生成报告后，继续在同一个会话中针对报告提问。合同原文不会进入普通聊天上下文，报告问答只注入结构化摘要、风险事实、待确认项和法律来源。
+
+### 已完成的后端能力
+
+- 合同上传时绑定会话，并支持 `short`（默认 7 天）和 `long_opt_in`（默认 30 天）留存策略；
+- 报告按版本持久化到 PostgreSQL，可通过 JSON 查询或下载为 PDF；
+- 报告问答使用 `mode=contract_review` 与 `review_id`，服务端校验会话和用户归属；
+- 合同删除会同时删除数据库记录和私有文件；服务启动时清理到期记录；
+- 留存清理任务会持续运行（默认每 300 秒），不会只依赖重启触发；
+- 统一会话历史接口需要认证，避免跨用户读取；
+- 本地法律评测题生成、安全冒烟和发布门禁脚本已经加入 `evaluation/`。
+
+### 迁移与验证
+
+旧数据库按顺序执行：
+
+```bash
+docker exec -i db_pg psql -U admin -d ai_assistant < backend/sql/migrations/005-session-contract-report.sql
+docker exec -i db_pg psql -U admin -d ai_assistant < backend/sql/migrations/006-contract-retention.sql
+```
+
+运行后端测试、前端构建和治理检查：
+
+```bash
+uv run --with-requirements backend/requirements.txt --with pytest python -m pytest backend/tests -q
+npm --prefix frontend run lint
+npm --prefix frontend run build
+uv run --with-requirements evaluation/requirements.txt --with-requirements backend/requirements.txt --with pytest python -m pytest evaluation/test_contract_release_gate.py -q
+```
+
+评测门禁要求法律 Smoke Test、安全 Smoke Test 和专家评测集全部通过；专家题目生成器只读取本地 A 级法条，初始结果标记为 `DRAFT_NEEDS_EXPERT_REVIEW`，未经法律人士复核不得作为发布依据。
+
+生产环境必须在 `.env` 中设置至少 32 个字符的随机 `AUTH_SECRET_KEY`；缺失或过短时 Backend 会拒绝启动。例如：
+
+```bash
+printf 'AUTH_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
+```
+
+可通过 `CONTRACT_RETENTION_CLEANUP_INTERVAL_SECONDS` 调整留存清理周期。
+
+### 尚未完成的产品任务
+
+邀请制访客 token、审查历史前端页面、删除审计事件和 B 级指导案例的专家复核仍是后续开发项。它们不能在当前版本中被当作已上线能力。

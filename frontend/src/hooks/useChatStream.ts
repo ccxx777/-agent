@@ -74,7 +74,13 @@ function createSSEReader(
  * - sendMessage: 发送消息并开始流式接收
  * - isStreaming: 是否正在接收回复
  */
-export function useChatStream(token: string, sessionId: string, initialMessages: Message[] = []) {
+export function useChatStream(
+  token: string,
+  sessionId: string,
+  initialMessages: Message[] = [],
+  mode: "general" | "legal" | "contract_review" = "general",
+  reviewId: string | null = null,
+) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -143,11 +149,15 @@ export function useChatStream(token: string, sessionId: string, initialMessages:
       try {
         const response = await fetch("/api/chat/stream", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
-            token: token,
+            query: text,
             session_id: sessionId,
-            message: text,
+            mode,
+            ...(reviewId ? { review_id: reviewId } : {}),
           }),
           signal: abort.signal,
         });
@@ -179,7 +189,7 @@ export function useChatStream(token: string, sessionId: string, initialMessages:
         abortRef.current = null;
       }
     },
-    [token, sessionId],
+    [mode, reviewId, sessionId, token],
   );
 
   const cancel = useCallback(() => {

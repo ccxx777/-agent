@@ -248,10 +248,12 @@ curl -X POST http://127.0.0.1:8000/api/contract-reviews/$REVIEW_ID/workflow \
 - `LEGAL_A_ALLOW_PENDING_GOVERNANCE`（默认 `false`）：仅 staging 测试允许读取 `PENDING_LEGAL_REVIEW` 资料
 - `LEGAL_B_COLLECTION`（默认空）：显式启用独立 B 级官方案例 Collection
 - `LEGAL_B_ALLOW_PENDING_GOVERNANCE`（默认 `false`）：B 级资料的 staging 治理开关
+- `AUTH_SECRET_KEY`：必填，至少 32 个字符的随机 JWT 签名密钥；未配置时拒绝启动
+- `CONTRACT_RETENTION_CLEANUP_INTERVAL_SECONDS`（默认 `300`）：到期合同清理周期
 
 法律检索使用独立 `LegalRetrievalService`。它在 Cascade Funnel 结果之后再次执行 `source_level`、`citation_eligible` 和治理状态过滤，并保留条号、引用标签、生效日期和官方链接。法律 Collection 不得配置为 `rag_chunks`、`watsonxDocsQA` 或其他通用评测库。
 
-旧 PostgreSQL 需要按顺序执行 `backend/sql/migrations/002-contract-review.sql`、`backend/sql/migrations/003-contract-extraction.sql` 和 `backend/sql/migrations/004-contract-confirmation.sql`；新建数据库会执行 `backend/sql/init/03-contract-review.sql`。
+旧 PostgreSQL 需要按顺序执行 `backend/sql/migrations/002-contract-review.sql`、`backend/sql/migrations/003-contract-extraction.sql`、`backend/sql/migrations/004-contract-confirmation.sql`、`backend/sql/migrations/005-session-contract-report.sql` 和 `backend/sql/migrations/006-contract-retention.sql`；新建数据库会执行 `backend/sql/init/03-contract-review.sql`。
 
 ## 运行与验证
 
@@ -263,3 +265,41 @@ curl http://127.0.0.1:8000/health
 ```
 
 修改依赖或 Dockerfile 才需要重建 Backend。RAGAS 依赖留在 `evaluation/requirements.txt`，不安装进生产镜像。合同模块上线前至少应分别用 PDF、DOC、DOCX 验证成功、失败和隐私脱敏路径。
+
+## 统一会话与报告接口
+
+合同上传接口支持通过 multipart 表单传入 `session_id` 和 `retention_policy`：
+
+```text
+POST /api/contract-reviews/upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+file=<合同文件>
+session_id=<可选 UUID>
+retention_policy=short|long_opt_in
+```
+
+响应中的 `review_id` 与 `session_id` 是后续查询和对话绑定的唯一标识。`short` 默认保留 7 天，`long_opt_in` 默认保留 30 天，实际天数由 `CONTRACT_SHORT_RETENTION_DAYS` 和 `CONTRACT_LONG_RETENTION_DAYS` 控制。
+
+报告接口：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/contract-reviews/{review_id}/report` | 查询最新结构化报告，需当前用户拥有该审查 |
+| `GET` | `/api/contract-reviews/{review_id}/report.pdf` | 下载报告 PDF，使用同一权限校验 |
+| `DELETE` | `/api/contract-reviews/{review_id}` | 删除审查、报告和私有合同文件 |
+| `GET` | `/api/sessions/{session_id}/reviews` | 查询当前用户在会话内的审查列表 |
+
+法律/报告对话统一使用：
+
+```json
+{
+  "query": "这份报告中的加班条款有什么风险？",
+  "session_id": "<session UUID>",
+  "mode": "contract_review",
+  "review_id": "<review UUID>"
+}
+```
+
+`mode` 可取 `general`、`legal`、`contract_review`。服务端会检查 `session_id`、`review_id` 和当前认证用户是否一致；报告模式只向 Agent 提供结构化报告上下文，不把合同原文直接放入普通聊天提示词。报告接口返回的 `disclaimer` 仍然强调：风险等级是当前证据下的提示，不构成律师意见或是否签署的决定。

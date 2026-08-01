@@ -81,6 +81,9 @@ export interface ContractPage {
 
 export interface ContractReviewSummary {
   review_id: string;
+  session_id: string | null;
+  retention_policy: "short" | "long_opt_in" | string;
+  expires_at: string | null;
   status: ReviewStatus;
   filename: string;
   content_type: string;
@@ -196,6 +199,9 @@ export interface ReviewFinding {
 
 export interface ContractReviewReport {
   review_id: string;
+  report_id?: string | null;
+  report_version?: number;
+  session_id?: string | null;
   workflow_status: "completed" | "awaiting_confirmation" | "partial" | "out_of_scope" | "failed";
   scope: string;
   generated_at: string;
@@ -247,13 +253,44 @@ async function request<T>(token: string, path: string, init?: RequestInit): Prom
   return (await response.json()) as T;
 }
 
-export async function uploadContract(token: string, file: File): Promise<ContractReviewSummary> {
+export async function uploadContract(
+  token: string,
+  file: File,
+  sessionId?: string,
+  retentionPolicy: "short" | "long_opt_in" = "short",
+): Promise<ContractReviewSummary> {
   const body = new FormData();
   body.append("file", file);
+  if (sessionId) body.append("session_id", sessionId);
+  body.append("retention_policy", retentionPolicy);
   return request<ContractReviewSummary>(token, "/api/contract-reviews", {
     method: "POST",
     body,
   });
+}
+
+export function getContractReport(token: string, reviewId: string): Promise<ContractReviewReport> {
+  return request<ContractReviewReport>(
+    token,
+    `/api/contract-reviews/${encodeURIComponent(reviewId)}/report`,
+  );
+}
+
+export async function downloadContractReport(token: string, reviewId: string): Promise<Blob> {
+  const response = await fetch(
+    `/api/contract-reviews/${encodeURIComponent(reviewId)}/report.pdf`,
+    { headers: authHeaders(token) },
+  );
+  if (!response.ok) throw await parseError(response);
+  return response.blob();
+}
+
+export async function deleteContractReview(token: string, reviewId: string): Promise<void> {
+  const response = await fetch(
+    `/api/contract-reviews/${encodeURIComponent(reviewId)}`,
+    { method: "DELETE", headers: authHeaders(token) },
+  );
+  if (!response.ok) throw await parseError(response);
 }
 
 export function getContractReview(token: string, reviewId: string): Promise<ContractReviewDetail> {

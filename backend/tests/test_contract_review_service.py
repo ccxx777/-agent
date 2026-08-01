@@ -42,7 +42,65 @@ class _FakeOCR:
     enabled = False
 
 
+class _PurgeRepository:
+    async def purge_expired(self):
+        return [("00000000-0000-0000-0000-000000000001", "/private/original.pdf")]
+
+    def __init__(self) -> None:
+        self.finalize_calls = 0
+
+    async def finalize_expired(self, review_id: str) -> bool:
+        self.finalize_calls += 1
+        return True
+
+
+class _FailingStorage:
+    def delete(self, review_id: str) -> None:
+        raise OSError("disk unavailable")
+
+
+class _WorkingStorage:
+    def delete(self, review_id: str) -> None:
+        return None
+
+
 class ContractReviewServiceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_upload_creates_session_and_short_retention_metadata(self):
+        inspection = PDFInspection(
+            page_count=1,
+            pages=(
+                PDFPageInspection(
+                    page_no=1,
+                    mode="native",
+                    text="劳动合同",
+                    image_area_ratio=0.0,
+                    quality_flags=(),
+                ),
+            ),
+        )
+        repository = _FakeRepository()
+        with tempfile.TemporaryDirectory() as directory:
+            service = ContractReviewService(
+                repository,
+                PrivateContractStorage(directory),
+                _FakeParser(inspection),
+                _FakeOCR(),
+                max_upload_bytes=1024 * 1024,
+                max_pages=10,
+                short_retention_days=1,
+            )
+            summary = await service.create_review(
+                user_id="00000000-0000-0000-0000-000000000001",
+                filename="contract.pdf",
+                content_type="application/pdf",
+                content=b"%PDF-fake",
+            )
+
+        self.assertIsNotNone(summary.session_id)
+        self.assertEqual(summary.retention_policy, "short")
+        self.assertIsNotNone(summary.expires_at)
+        self.assertEqual(repository.tasks[summary.review_id]["retention_policy"], "short")
+
     async def test_docx_upload_is_extracted_and_requires_format_confirmation(self):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
         <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
@@ -141,6 +199,38 @@ class ContractReviewServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(repository.tasks[summary.review_id]["status"], "needs_confirmation")
         self.assertEqual(repository.tasks[summary.review_id]["quality"]["suspicious_pages"], [1])
+
+    async def test_expired_cleanup_keeps_retry_record_when_file_delete_fails(self):
+        repository = _PurgeRepository()
+        service = ContractReviewService(
+            repository,
+            _FailingStorage(),
+            _FakeParser(PDFInspection(page_count=0, pages=())),
+            _FakeOCR(),
+            max_upload_bytes=1024,
+            max_pages=1,
+        )
+
+        removed = await service.purge_expired()
+
+        self.assertEqual(removed, 0)
+        self.assertEqual(repository.finalize_calls, 0)
+
+    async def test_expired_cleanup_finalizes_after_file_delete(self):
+        repository = _PurgeRepository()
+        service = ContractReviewService(
+            repository,
+            _WorkingStorage(),
+            _FakeParser(PDFInspection(page_count=0, pages=())),
+            _FakeOCR(),
+            max_upload_bytes=1024,
+            max_pages=1,
+        )
+
+        removed = await service.purge_expired()
+
+        self.assertEqual(removed, 1)
+        self.assertEqual(repository.finalize_calls, 1)
 
 
 if __name__ == "__main__":

@@ -28,14 +28,33 @@ function saveConversations(list: { id: string; title: string }[]) {
   localStorage.setItem("ai_conversations", JSON.stringify(list.slice(0, 50)));
 }
 
-function ChatPage({ onOpenContract }: { onOpenContract: () => void }) {
+function ChatPage({
+  onOpenContract,
+  sessionId,
+  onSessionChange,
+  mode,
+  reviewId,
+  onModeChange,
+}: {
+  onOpenContract: () => void;
+  sessionId: string;
+  onSessionChange: (sessionId: string) => void;
+  mode: "general" | "legal" | "contract_review";
+  reviewId: string | null;
+  onModeChange: (mode: "general" | "legal", reviewId?: string | null) => void;
+}) {
   const { token } = useAuth();
   const [conversations, setConversations] = useState<{ id: string; title: string }[]>(loadConversations);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string>(generateId());
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyMessages, setHistoryMessages] = useState<Message[]>([]);
-  const { messages, sendMessage, isStreaming, cancel } = useChatStream(token!, sessionId, historyMessages);
+  const { messages, sendMessage, isStreaming, cancel } = useChatStream(
+    token!,
+    sessionId,
+    historyMessages,
+    mode,
+    reviewId,
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,28 +73,28 @@ function ChatPage({ onOpenContract }: { onOpenContract: () => void }) {
         return [{ id: activeId, title }, ...previous];
       });
     }
-    setSessionId(generateId());
+    onSessionChange(generateId());
     setActiveId(null);
     setHistoryMessages([]);
-  }, [activeId, messages]);
+  }, [activeId, messages, onSessionChange]);
 
   const handleSelect = useCallback(async (id: string) => {
     setActiveId(id);
     setLoadingHistory(true);
     try {
-      const response = await fetch(`/api/chat/history?session_id=${encodeURIComponent(id)}`, {
+      const response = await fetch(`/api/chat/history/${encodeURIComponent(id)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = (await response.json()) as { messages?: Message[] };
       setHistoryMessages(data.messages || []);
-      setSessionId(id);
+      onSessionChange(id);
     } catch {
       setHistoryMessages([]);
-      setSessionId(id);
+      onSessionChange(id);
     } finally {
       setLoadingHistory(false);
     }
-  }, [token]);
+  }, [onSessionChange, token]);
 
   const handleSend = useCallback((text: string) => {
     if (!activeId) {
@@ -99,7 +118,17 @@ function ChatPage({ onOpenContract }: { onOpenContract: () => void }) {
       <div className="chat-workspace">
         <header className="chat-header">
           <div className="eyebrow">AI ASSISTANT / GENERAL KNOWLEDGE</div>
-          <span className="connection-status"><span /> 在线</span>
+          <div className="chat-header-actions">
+            {mode === "contract_review" ? (
+              <span className="chat-mode-chip">当前：报告问答</span>
+            ) : (
+              <>
+                <button type="button" className={mode === "general" ? "chat-mode-active" : "chat-mode-button"} onClick={() => onModeChange("general")}>通用问答</button>
+                <button type="button" className={mode === "legal" ? "chat-mode-active" : "chat-mode-button"} onClick={() => onModeChange("legal")}>法律问答</button>
+              </>
+            )}
+            <span className="connection-status"><span /> 在线</span>
+          </div>
         </header>
         <main className="chat-main">
           {messages.length === 0 ? (
@@ -146,6 +175,16 @@ function AuthPage() {
 
 function AppInner() {
   const { isAuthenticated } = useAuth();
+  const [sessionId, setSessionId] = useState<string>(() => {
+    const stored = localStorage.getItem("ai_active_session_id");
+    const value = stored || generateId();
+    localStorage.setItem("ai_active_session_id", value);
+    return value;
+  });
+  const [chatContext, setChatContext] = useState<{
+    mode: "general" | "legal" | "contract_review";
+    reviewId: string | null;
+  }>({ mode: "general", reviewId: null });
   const [view, setView] = useState<"chat" | "contract">(() => (
     window.location.pathname.startsWith("/contracts") ? "contract" : "chat"
   ));
@@ -155,9 +194,42 @@ function AppInner() {
     window.history.replaceState({}, "", next === "contract" ? "/contracts" : "/");
   };
 
+  const changeSession = (next: string) => {
+    setSessionId(next);
+    setChatContext({ mode: "general", reviewId: null });
+    localStorage.setItem("ai_active_session_id", next);
+  };
+
+  const openReportChat = (reviewId: string, reportSessionId: string) => {
+    changeSession(reportSessionId);
+    setChatContext({ mode: "contract_review", reviewId });
+    switchView("chat");
+  };
+
+  const changeChatMode = (mode: "general" | "legal", reviewId: string | null = null) => {
+    setChatContext({ mode, reviewId });
+  };
+
   if (!isAuthenticated) return <AuthPage />;
-  if (view === "contract") return <ContractReviewPage onOpenChat={() => switchView("chat")} />;
-  return <ChatPage onOpenContract={() => switchView("contract")} />;
+  if (view === "contract") {
+    return (
+      <ContractReviewPage
+        sessionId={sessionId}
+        onOpenChat={() => switchView("chat")}
+        onOpenReportChat={openReportChat}
+      />
+    );
+  }
+  return (
+    <ChatPage
+      sessionId={sessionId}
+      onSessionChange={changeSession}
+      mode={chatContext.mode}
+      reviewId={chatContext.reviewId}
+      onModeChange={changeChatMode}
+      onOpenContract={() => switchView("contract")}
+    />
+  );
 }
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {

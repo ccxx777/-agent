@@ -38,6 +38,7 @@ from app.infrastructure.embedding_client import EmbeddingClient
 from app.infrastructure.model_provider import ModelProvider
 from app.infrastructure.postgres import close_postgres_pool, create_postgres_pool
 from app.infrastructure.qdrant import QdrantGateway
+from app.infrastructure.security import validate_security_config
 from app.services.auth_service import AuthService
 from app.services.chat_service import ChatService
 from app.services.contract_confirmation_service import ContractFactConfirmationService
@@ -55,10 +56,30 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def _contract_retention_loop(
+    service: ContractReviewService,
+    interval_seconds: int,
+) -> None:
+    """持续执行留存清理，避免常驻进程跨过 expires_at 后继续保存原件。"""
+
+    interval = max(30, interval_seconds)
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            purged = await service.purge_expired()
+            if purged:
+                logger.info("Purged expired contract reviews: count=%s", purged)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Periodic contract retention cleanup skipped")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """创建共享资源、挂载路由，并在进程关闭时释放连接池。"""
     logger.info("Starting AI Assistant backend...")
+    validate_security_config()
 
     pg_pool = create_postgres_pool(settings.pg_dsn)
     app.state.pg_pool = pg_pool
@@ -97,6 +118,8 @@ async def lifespan(app: FastAPI):
         ),
         max_upload_bytes=settings.contract_max_upload_bytes,
         max_pages=settings.contract_max_pages,
+        short_retention_days=settings.contract_short_retention_days,
+        long_retention_days=settings.contract_long_retention_days,
         extraction_service=extraction_service,
     )
     contract_confirmation_service = ContractFactConfirmationService(contract_repository)
@@ -144,16 +167,20 @@ async def lifespan(app: FastAPI):
         pg_pool,
         retrieval_service=retrieval_service,
         model_provider=model_provider,
+        legal_retrieval_service=legal_a_retrieval_service,
     )
-    chat_service = ChatService(graph)
-    session_service = SessionService(graph)
+    chat_service = ChatService(graph, contract_repository)
+    session_service = SessionService(graph, contract_repository)
     contract_review_workflow = build_contract_review_workflow(
         repository=contract_repository,
         confirmation_service=contract_confirmation_service,
         legal_retrieval_service=legal_a_retrieval_service,
         case_retrieval_service=legal_b_retrieval_service,
     )
-    contract_review_workflow_service = ContractReviewWorkflowService(contract_review_workflow)
+    contract_review_workflow_service = ContractReviewWorkflowService(
+        contract_review_workflow,
+        contract_repository,
+    )
 
     app.state.auth_service = auth_service
     app.state.retrieval_service = retrieval_service
@@ -162,12 +189,25 @@ async def lifespan(app: FastAPI):
     app.state.contract_review_service = contract_review_service
     app.state.contract_confirmation_service = contract_confirmation_service
     app.state.contract_review_workflow_service = contract_review_workflow_service
+    try:
+        purged = await contract_review_service.purge_expired()
+        if purged:
+            logger.info("Purged expired contract reviews: count=%s", purged)
+    except Exception:
+        logger.exception("Contract retention cleanup skipped")
+    retention_task = asyncio.create_task(
+        _contract_retention_loop(
+            contract_review_service,
+            settings.contract_retention_cleanup_interval_seconds,
+        )
+    )
+    app.state.contract_retention_task = retention_task
     contract_recovery_task = asyncio.create_task(contract_review_service.resume_pending())
     app.state.contract_recovery_task = contract_recovery_task
 
     app.include_router(create_auth_router(auth_service))
     app.include_router(create_chat_router(chat_service))
-    app.include_router(create_sessions_router(session_service))
+    app.include_router(create_sessions_router(session_service, contract_repository))
     app.include_router(
         create_contract_review_router(
             contract_review_service,
@@ -180,11 +220,15 @@ async def lifespan(app: FastAPI):
     logger.info("Backend ready")
     yield
 
-    await close_postgres_pool(pg_pool)
     if not contract_recovery_task.done():
         contract_recovery_task.cancel()
         with suppress(asyncio.CancelledError):
             await contract_recovery_task
+    if not retention_task.done():
+        retention_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await retention_task
+    await close_postgres_pool(pg_pool)
     logger.info("Shutting down...")
 
 

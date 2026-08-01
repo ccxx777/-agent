@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from hashlib import sha256
 from typing import Any
 from uuid import uuid4
 
@@ -14,28 +16,68 @@ class ConfirmationRevisionConflict(RuntimeError):
     """事实确认提交基于过期 revision，调用方应重新读取表单。"""
 
 
+class SessionOwnershipError(RuntimeError):
+    """会话已属于其他用户，不能被合同任务接管。"""
+
+
 class ContractReviewRepository:
     def __init__(self, pool: AsyncConnectionPool):
         self._pool = pool
 
+    async def ensure_session(self, session_id: str, user_id: str) -> None:
+        """幂等创建会话，并拒绝把已有会话转移给其他用户。"""
+
+        async with self._pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
+            await cur.execute(
+                """
+                INSERT INTO sessions (session_id, user_id, title)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (session_id) DO NOTHING
+                """,
+                (session_id, user_id, "合同审查会话"),
+            )
+            await cur.execute(
+                "SELECT user_id FROM sessions WHERE session_id = %s",
+                (session_id,),
+            )
+            row = await cur.fetchone()
+            if row is None or str(row[0]) != str(user_id):
+                raise SessionOwnershipError(session_id)
+
+    async def get_session_owner(self, session_id: str) -> str | None:
+        """Return the owner of a persisted session, or ``None`` when unknown."""
+
+        async with self._pool.connection() as conn, conn.cursor() as cur:
+            await cur.execute(
+                "SELECT user_id FROM sessions WHERE session_id = %s",
+                (session_id,),
+            )
+            row = await cur.fetchone()
+            return str(row[0]) if row else None
+
     async def create_task(self, record: dict[str, Any]) -> None:
+        if record.get("session_id"):
+            await self.ensure_session(str(record["session_id"]), str(record["user_id"]))
         async with self._pool.connection() as conn, conn.cursor() as cur:
             await cur.execute(
                 """
                     INSERT INTO contract_review_tasks
-                        (review_id, user_id, filename, content_type, size_bytes,
-                         sha256, storage_path, page_count, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'queued')
+                        (review_id, user_id, session_id, filename, content_type, size_bytes,
+                         sha256, storage_path, page_count, retention_policy, expires_at, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'queued')
                     """,
                 (
                     record["review_id"],
                     record["user_id"],
+                    record.get("session_id"),
                     record["filename"],
                     record["content_type"],
                     record["size_bytes"],
                     record["sha256"],
                     record["storage_path"],
                     record.get("page_count"),
+                    record.get("retention_policy", "short"),
+                    record.get("expires_at"),
                 ),
             )
 
@@ -131,13 +173,16 @@ class ContractReviewRepository:
                 await cur.execute(
                     """
                     SELECT review_id, user_id, filename, content_type, size_bytes,
-                           sha256, storage_path, status, page_count, quality,
+                           session_id, sha256, storage_path, status, page_count, quality,
                            privacy, extraction_status, extraction_result,
+                           retention_policy, expires_at, deleted_at,
                            confirmation_status, confirmation_revision,
                            confirmation_result, confirmed_at,
                            error_message, created_at, updated_at
                     FROM contract_review_tasks
                     WHERE review_id = %s AND user_id = %s
+                      AND deleted_at IS NULL
+                      AND COALESCE(expires_at, created_at + INTERVAL '7 days') > NOW()
                     """,
                     (review_id, user_id),
                 )
@@ -156,6 +201,181 @@ class ContractReviewRepository:
                 )
                 task["pages"] = await cur.fetchall()
                 return dict(task)
+
+    async def purge_expired(self) -> list[tuple[str, str]]:
+        """列出到期任务但暂不删除，等待文件清理成功后再 finalize。"""
+
+        async with self._pool.connection() as conn, conn.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT review_id, storage_path
+                FROM contract_review_tasks
+                WHERE deleted_at IS NULL
+                  AND COALESCE(expires_at, created_at + INTERVAL '7 days') <= NOW()
+                ORDER BY expires_at NULLS FIRST, created_at
+                """
+            )
+            return [(str(row[0]), str(row[1])) for row in await cur.fetchall()]
+
+    async def finalize_expired(self, review_id: str) -> bool:
+        """文件清理成功后删除到期任务及其级联数据。"""
+
+        async with self._pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
+            await cur.execute(
+                """
+                DELETE FROM contract_review_tasks
+                WHERE review_id = %s
+                  AND deleted_at IS NULL
+                  AND COALESCE(expires_at, created_at + INTERVAL '7 days') <= NOW()
+                """,
+                (review_id,),
+            )
+            return cur.rowcount > 0
+
+    async def delete_task(self, review_id: str, user_id: str) -> str | None:
+        """删除任务及其级联事实/报告，返回私有文件路径。"""
+
+        async with self._pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT storage_path
+                FROM contract_review_tasks
+                WHERE review_id = %s AND user_id = %s AND deleted_at IS NULL
+                FOR UPDATE
+                """,
+                (review_id, user_id),
+            )
+            row = await cur.fetchone()
+            if row is None:
+                return None
+            await cur.execute(
+                "DELETE FROM contract_review_tasks WHERE review_id = %s AND user_id = %s",
+                (review_id, user_id),
+            )
+            return str(row[0])
+
+    async def save_report(
+        self,
+        review_id: str,
+        user_id: str,
+        report: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """保存一份不可变报告版本，并返回带 report_id 的快照。"""
+
+        report_id = str(uuid4())
+        async with self._pool.connection() as conn, conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT session_id, sha256
+                FROM contract_review_tasks
+                WHERE review_id = %s AND user_id = %s
+                FOR UPDATE
+                """,
+                (review_id, user_id),
+            )
+            task = await cur.fetchone()
+            if task is None:
+                return None
+
+            await cur.execute(
+                """
+                SELECT COALESCE(MAX(report_version), 0) + 1 AS next_version
+                FROM contract_review_reports
+                WHERE review_id = %s
+                """,
+                (review_id,),
+            )
+            version = int((await cur.fetchone())["next_version"])
+            persisted = {
+                **report,
+                "report_id": report_id,
+                "report_version": version,
+                "session_id": str(task["session_id"]) if task["session_id"] else None,
+            }
+            canonical = json.dumps(
+                persisted,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+            report_hash = sha256(canonical).hexdigest()
+            await cur.execute(
+                """
+                INSERT INTO contract_review_reports
+                    (report_id, review_id, session_id, report_version,
+                     workflow_status, report, input_sha256, report_sha256)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    report_id,
+                    review_id,
+                    task["session_id"],
+                    version,
+                    persisted.get("workflow_status", "partial"),
+                    Jsonb(persisted),
+                    task["sha256"] or "",
+                    report_hash,
+                ),
+            )
+            return {
+                "report_id": report_id,
+                "report_version": version,
+                "report": persisted,
+                "report_sha256": report_hash,
+                "session_id": str(task["session_id"]) if task["session_id"] else None,
+            }
+
+    async def get_report(self, review_id: str, user_id: str) -> dict[str, Any] | None:
+        """读取用户有权访问的最新报告版本。"""
+
+        async with self._pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT r.report_id, r.review_id, r.session_id, r.report_version,
+                       r.report, r.report_sha256, r.assessment_date, r.created_at,
+                       t.sha256 AS input_sha256
+                FROM contract_review_reports r
+                JOIN contract_review_tasks t ON t.review_id = r.review_id
+                WHERE r.review_id = %s AND t.user_id = %s
+                  AND t.deleted_at IS NULL
+                  AND COALESCE(t.expires_at, t.created_at + INTERVAL '7 days') > NOW()
+                ORDER BY r.report_version DESC
+                LIMIT 1
+                """,
+                (review_id, user_id),
+            )
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+    async def list_session_reviews(
+        self,
+        session_id: str,
+        user_id: str,
+    ) -> list[dict[str, Any]]:
+        """列出当前用户会话中的合同任务及最新报告标识。"""
+
+        async with self._pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT t.review_id, t.session_id, t.filename, t.status,
+                       t.confirmation_status, t.created_at,
+                       r.report_id, r.report_version
+                FROM contract_review_tasks t
+                LEFT JOIN LATERAL (
+                    SELECT report_id, report_version
+                    FROM contract_review_reports
+                    WHERE review_id = t.review_id
+                    ORDER BY report_version DESC
+                    LIMIT 1
+                ) r ON TRUE
+                WHERE t.session_id = %s AND t.user_id = %s
+                  AND t.deleted_at IS NULL
+                  AND COALESCE(t.expires_at, t.created_at + INTERVAL '7 days') > NOW()
+                ORDER BY t.created_at DESC
+                """,
+                (session_id, user_id),
+            )
+            return [dict(row) for row in await cur.fetchall()]
 
     async def get_confirmation_request(
         self,

@@ -26,3 +26,22 @@ CHAT_SYSTEM_PROMPT = (
     "你是一个严谨的通用知识库助手。"
     "当用户询问知识库中的事实、制度、产品、流程或专业资料时，必须调用 search_knowledge_base 工具。"
 )
+
+
+def build_chat_system_prompt(*, mode: str = "general", report_context: str = "") -> str:
+    """按当前会话模式生成系统提示，不把报告伪装成用户消息。"""
+
+    base = CHAT_SYSTEM_PROMPT
+    if mode == "legal":
+        base += (
+            "当前模式是法律知识问答。用户询问中国大陆劳动法相关知识时，必须优先调用 "
+            "search_legal_knowledge_base，不得用通用知识库替代法律资料；回答应标明资料不足和适用边界。"
+        )
+    elif mode == "contract_review":
+        base += (
+            "当前模式是合同报告问答。只能基于下方已持久化的报告、已确认事实和检索到的法律资料回答；"
+            "不能把未确认事实当成事实，也不能替用户决定是否签署合同。"
+        )
+    if report_context:
+        base += f"\n\n## 当前合同报告上下文（只读）\n{report_context}"
+    return base

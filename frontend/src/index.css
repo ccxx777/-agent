@@ -51,6 +51,10 @@ button:disabled { cursor: not-allowed; }
 
 .chat-workspace { display: flex; min-width: 0; flex: 1; flex-direction: column; }
 .chat-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #303034; padding: 17px 30px; }
+.chat-header-actions { display: flex; align-items: center; gap: 8px; }
+.chat-mode-button, .chat-mode-active { border: 1px solid #45444b; border-radius: 999px; padding: 6px 10px; background: transparent; color: #8f8c96; font-size: 11px; }
+.chat-mode-button:hover, .chat-mode-active { border-color: #6c85bb; color: #dce6ff; background: rgba(108, 133, 187, .12); }
+.chat-mode-chip { border: 1px solid #6c85bb; border-radius: 999px; padding: 6px 10px; color: #dce6ff; font-size: 11px; }
 .eyebrow, .stage-kicker { color: #85838a; font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .14em; }
 .connection-status { display: inline-flex; align-items: center; gap: 7px; color: #9b989e; font-size: 12px; }
 .connection-status span { width: 7px; height: 7px; border-radius: 50%; background: var(--color-success); box-shadow: 0 0 0 4px #8ee0bd1c; }
@@ -93,6 +97,10 @@ button:disabled { cursor: not-allowed; }
 .contract-topbar { display: flex; align-items: center; justify-content: space-between; min-height: 76px; border-bottom: 1px solid #303034; padding: 15px clamp(20px, 4vw, 52px); }
 .contract-topbar h1 { margin: 3px 0 0; font-size: 19px; letter-spacing: -.02em; }
 .contract-topbar-actions { display: flex; gap: 9px; }
+.report-heading-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.danger-ghost { border-color: rgba(239, 68, 68, .45); color: #fca5a5; }
+.retention-choice { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; color: var(--color-text-muted); font-size: 12px; }
+.retention-choice input { accent-color: var(--color-primary); }
 .ghost-button { border: 1px solid #45444b; border-radius: 8px; background: transparent; padding: 9px 13px; color: #b8b5bc; font-size: 12px; transition: border-color .18s ease, color .18s ease; }
 .ghost-button:hover { border-color: #6c85bb; color: var(--color-primary); }
 .danger-ghost:hover { border-color: #965c5d; color: var(--color-error); }

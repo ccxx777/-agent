@@ -71,6 +71,17 @@ class Settings:
     contract_storage_dir: str = field(
         default_factory=lambda: os.getenv("CONTRACT_STORAGE_DIR", "/app/private-data/contracts")
     )
+    contract_short_retention_days: int = field(
+        default_factory=lambda: int(os.getenv("CONTRACT_SHORT_RETENTION_DAYS", "7"))
+    )
+    contract_long_retention_days: int = field(
+        default_factory=lambda: int(os.getenv("CONTRACT_LONG_RETENTION_DAYS", "30"))
+    )
+    contract_retention_cleanup_interval_seconds: int = field(
+        default_factory=lambda: int(
+            os.getenv("CONTRACT_RETENTION_CLEANUP_INTERVAL_SECONDS", "300")
+        )
+    )
     contract_max_upload_bytes: int = field(
         default_factory=lambda: int(os.getenv("CONTRACT_MAX_UPLOAD_BYTES", str(20 * 1024 * 1024)))
     )

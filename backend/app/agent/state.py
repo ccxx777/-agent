@@ -18,3 +18,6 @@ class AgentState(TypedDict):
 
     messages: Annotated[list[AnyMessage], add_messages]
     summary: str
+    conversation_mode: str
+    active_review_id: str
+    report_context: str

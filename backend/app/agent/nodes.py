@@ -11,9 +11,15 @@ import json
 import logging
 from typing import Any
 
-from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, SystemMessage
+from langchain_core.messages import (
+    AIMessage,
+    HumanMessage,
+    RemoveMessage,
+    SystemMessage,
+    ToolMessage,
+)
 
-from app.agent.prompts import ANSWER_PROMPT, CHAT_SYSTEM_PROMPT, SUMMARY_PROMPT
+from app.agent.prompts import ANSWER_PROMPT, SUMMARY_PROMPT, build_chat_system_prompt
 from app.agent.state import AgentState
 
 logger = logging.getLogger(__name__)
@@ -58,20 +64,32 @@ class AgentNodes:
         """注入系统提示和历史摘要，让模型决定是否调用检索工具。"""
         messages = list(state["messages"])
         summary = state.get("summary", "")
-        system_content = CHAT_SYSTEM_PROMPT
+        system_content = build_chat_system_prompt(
+            mode=state.get("conversation_mode", "general"),
+            report_context=state.get("report_context", ""),
+        )
         if summary:
             system_content = f"## 历史对话摘要（长期记忆）\n{summary}\n\n{system_content}"
-        if not any(isinstance(message, SystemMessage) for message in messages):
+        system_index = next(
+            (index for index, message in enumerate(messages) if isinstance(message, SystemMessage)),
+            None,
+        )
+        if system_index is None:
             messages = [SystemMessage(content=system_content), *messages]
+        else:
+            # 系统提示不写回历史消息，但每轮都按当前 mode/report_context 更新。
+            messages[system_index] = SystemMessage(content=system_content)
         return {"messages": [self._llm_with_tools.invoke(messages)]}
 
     async def generate_answer(self, state: AgentState) -> dict:
         """读取 ToolMessage 的结构化上下文并生成有引用的最终答案。"""
-        raw_content = state["messages"][-1].content
-        try:
-            retrieval_result = json.loads(raw_content)
-        except (json.JSONDecodeError, TypeError):
-            return {"messages": [AIMessage(content="[retrieval parse error]")]}
+        last_message = state["messages"][-1]
+        retrieval_result: dict[str, Any] = {}
+        if isinstance(last_message, ToolMessage):
+            try:
+                retrieval_result = json.loads(last_message.content)
+            except (json.JSONDecodeError, TypeError):
+                retrieval_result = {}
 
         query = next(
             (
@@ -81,7 +99,17 @@ class AgentNodes:
             ),
             "",
         )
-        context = str(retrieval_result.get("context", ""))
+        report_context = state.get("report_context", "")
+        retrieval_context = str(retrieval_result.get("context", ""))
+        if not report_context and not retrieval_context:
+            return {
+                "messages": [
+                    AIMessage(content="抱歉，当前模式没有可用的、经过治理的参考资料。")
+                ]
+            }
+        context = "\n\n".join(
+            part for part in (report_context, retrieval_context) if part
+        ) or "(empty)"
         logger.info("[Funnel] q=%.50s | ctx_len=%d", query, len(context))
         result = await self._llm.ainvoke([
             {"role": "user", "content": ANSWER_PROMPT.format(context=context, query=query)}

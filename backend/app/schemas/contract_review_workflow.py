@@ -89,6 +89,9 @@ class ContractReviewReport(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     review_id: str
+    session_id: str | None = None
+    report_id: str | None = None
+    report_version: int = Field(default=1, ge=1)
     workflow_status: WorkflowStatus
     scope: str
     generated_at: datetime
@@ -107,5 +110,6 @@ class ContractReviewWorkflowResponse(BaseModel):
     """API 返回的 Workflow 包装对象，便于未来增加 trace 和版本信息。"""
 
     review_id: str
+    report_id: str | None = None
     workflow_status: WorkflowStatus
     report: ContractReviewReport

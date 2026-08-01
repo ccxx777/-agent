@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
@@ -54,6 +55,8 @@ class ContractReviewService:
         max_upload_bytes: int,
         max_pages: int,
         extraction_service: Any | None = None,
+        short_retention_days: int = 7,
+        long_retention_days: int = 30,
     ) -> None:
         self.repository = repository
         self.storage = storage
@@ -62,15 +65,33 @@ class ContractReviewService:
         self.max_upload_bytes = max_upload_bytes
         self.max_pages = max_pages
         self.extraction_service = extraction_service
+        self.short_retention_days = short_retention_days
+        self.long_retention_days = long_retention_days
 
     async def create_review(
         self,
         *,
         user_id: str,
+        session_id: str | None = None,
         filename: str,
         content_type: str | None,
         content: bytes,
+        retention_policy: str = "short",
     ) -> ContractReviewSummary:
+        if retention_policy not in {"short", "long_opt_in"}:
+            raise ContractUploadError("retention_policy 只能是 short 或 long_opt_in")
+        retention_days = (
+            self.long_retention_days
+            if retention_policy == "long_opt_in"
+            else self.short_retention_days
+        )
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=retention_days)
+        normalized_session_id = str(uuid.uuid4())
+        if session_id and session_id.strip():
+            try:
+                normalized_session_id = str(uuid.UUID(session_id.strip()))
+            except ValueError as error:
+                raise ContractUploadError("session_id 不是有效的会话标识") from error
         safe_filename = Path(filename or "contract.pdf").name
         suffix = Path(safe_filename).suffix.lower()
         if suffix not in SUPPORTED_CONTRACT_SUFFIXES:
@@ -95,6 +116,9 @@ class ContractReviewService:
                 {
                     "review_id": review_id,
                     "user_id": user_id,
+                    "session_id": normalized_session_id,
+                    "retention_policy": retention_policy,
+                    "expires_at": expires_at,
                     "filename": safe_filename,
                     "content_type": resolved_content_type,
                     "size_bytes": len(content),
@@ -112,6 +136,9 @@ class ContractReviewService:
 
         return ContractReviewSummary(
             review_id=review_id,
+            session_id=normalized_session_id,
+            retention_policy=retention_policy,
+            expires_at=expires_at,
             status="queued",
             filename=safe_filename,
             content_type=resolved_content_type,
@@ -241,6 +268,9 @@ class ContractReviewService:
             return None
         return ContractReviewDetail(
             review_id=str(record["review_id"]),
+            session_id=(str(record["session_id"]) if record.get("session_id") else None),
+            retention_policy=record.get("retention_policy") or "short",
+            expires_at=record.get("expires_at"),
             status=record["status"],
             filename=record["filename"],
             content_type=record["content_type"],
@@ -262,6 +292,41 @@ class ContractReviewService:
                 else None
             ),
         )
+
+    async def delete_review(self, review_id: str, user_id: str) -> bool:
+        """幂等删除合同任务、报告和私有文件。"""
+
+        record = await self.repository.get_task(review_id, user_id)
+        if record is None:
+            return False
+        try:
+            # 先可靠删除原件，再物理删除数据库记录；失败时保留记录以便重试，
+            # 避免数据库已删而文件遗留且无法定位。
+            self.storage.delete(review_id)
+        except OSError:
+            logger.exception("Contract private file cleanup failed: review_id=%s", review_id)
+            raise ContractUploadError("合同原件清理失败，请稍后重试")
+        deleted_path = await self.repository.delete_task(review_id, user_id)
+        return deleted_path is not None or record is not None
+
+    async def purge_expired(self) -> int:
+        """删除已过留存期的数据库记录和私有文件，返回删除数量。"""
+
+        purge = getattr(self.repository, "purge_expired", None)
+        if purge is None:
+            return 0
+        paths = await purge()
+        finalize = getattr(self.repository, "finalize_expired", None)
+        removed = 0
+        for review_id, _storage_path in paths:
+            try:
+                self.storage.delete(str(review_id))
+            except OSError:
+                logger.exception("Expired contract cleanup failed: review_id=%s", review_id)
+                continue
+            if finalize is None or await finalize(str(review_id)):
+                removed += 1
+        return removed
 
     async def resume_pending(self) -> None:
         """进程启动时接管上次未完成的任务。"""

@@ -298,7 +298,7 @@ def build_contract_review_workflow(
     case_retrieval_service: Any | None,
     rule_engine: ContractRuleEngine | None = None,
 ) -> Any:
-    """构建无 Checkpointer 的 v0.1 审查图；报告持久化留给下一阶段。"""
+    """构建无 Checkpointer 的 v0.1 审查图；报告持久化由外层服务负责。"""
 
     nodes = ContractReviewWorkflowNodes(
         repository=repository,
@@ -338,8 +338,9 @@ def build_contract_review_workflow(
 class ContractReviewWorkflowService:
     """API 与 LangGraph 之间的薄服务边界。"""
 
-    def __init__(self, graph: Any) -> None:
+    def __init__(self, graph: Any, repository: Any | None = None) -> None:
         self.graph = graph
+        self.repository = repository
 
     async def run(self, review_id: str, user_id: str) -> ContractReviewWorkflowResponse:
         try:
@@ -354,8 +355,43 @@ class ContractReviewWorkflowService:
         report = state.get("report")
         if not isinstance(report, ContractReviewReport):
             report = ContractReviewReport.model_validate(report)
+        report_id: str | None = None
+        if self.repository is not None and hasattr(self.repository, "save_report"):
+            persisted = await self.repository.save_report(
+                review_id,
+                user_id,
+                report.model_dump(mode="json"),
+            )
+            if persisted:
+                report = ContractReviewReport.model_validate(persisted["report"])
+                report_id = report.report_id
         return ContractReviewWorkflowResponse(
             review_id=review_id,
+            report_id=report_id or report.report_id,
             workflow_status=report.workflow_status,
             report=report,
         )
+
+    async def get_report(
+        self,
+        review_id: str,
+        user_id: str,
+    ) -> ContractReviewReport | None:
+        """读取已持久化的最新报告，不重新执行法律检索。"""
+
+        if self.repository is None or not hasattr(self.repository, "get_report"):
+            return None
+        row = await self.repository.get_report(review_id, user_id)
+        if not row:
+            return None
+        return ContractReviewReport.model_validate(row["report"])
+
+    async def render_report_pdf(self, review_id: str, user_id: str) -> bytes | None:
+        """按已持久化的报告版本生成下载内容，不重新执行 Workflow。"""
+
+        report = await self.get_report(review_id, user_id)
+        if report is None:
+            return None
+        from app.infrastructure.contract_report_pdf import render_contract_report_pdf
+
+        return render_contract_report_pdf(report.model_dump(mode="json"))

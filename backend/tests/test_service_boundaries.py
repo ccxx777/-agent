@@ -6,13 +6,17 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from langchain_core.messages import AIMessage
-
-from app.infrastructure.embedding_client import EmbeddingClient
 from app.components.retriever.qdrant.v2_0_0.main import _sparse_search_scored
-from app.services.chat_service import ChatService
+from app.infrastructure.contract_review_repository import SessionOwnershipError
+from app.infrastructure.embedding_client import EmbeddingClient
+from app.services.chat_service import (
+    ChatReportNotFound,
+    ChatReportSessionMismatch,
+    ChatService,
+)
 from app.services.retrieval_service import RetrievalService
 from app.services.session_service import SessionService
+from langchain_core.messages import AIMessage
 
 
 class _FakeEmbeddingClient:
@@ -133,9 +137,119 @@ class ServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
         result = await SessionService(graph).get_history("session")
 
         self.assertEqual(result, {
-            "messages": [{"role": "ai", "content": "answer"}],
+            "messages": [{"role": "assistant", "content": "answer"}],
             "summary": "memory",
         })
+
+    async def test_session_service_rejects_history_from_another_user(self):
+        graph = SimpleNamespace(aget_state=AsyncMock())
+        repository = SimpleNamespace(
+            get_session_owner=AsyncMock(return_value="owner-1"),
+        )
+
+        with self.assertRaises(SessionOwnershipError):
+            await SessionService(graph, repository).get_history("session", "owner-2")
+
+        graph.aget_state.assert_not_awaited()
+
+    async def test_chat_service_creates_or_checks_session_before_graph_call(self):
+        graph = SimpleNamespace(
+            ainvoke=AsyncMock(return_value={"messages": [AIMessage(content="answer")]}),
+        )
+        repository = SimpleNamespace(ensure_session=AsyncMock())
+        service = ChatService(graph, repository)
+
+        await service.ask(
+            query="q",
+            session_id="00000000-0000-0000-0000-000000000001",
+            user_id="00000000-0000-0000-0000-000000000002",
+        )
+
+        repository.ensure_session.assert_awaited_once_with(
+            "00000000-0000-0000-0000-000000000001",
+            "00000000-0000-0000-0000-000000000002",
+        )
+
+    async def test_chat_service_binds_report_context_to_same_session(self):
+        graph = SimpleNamespace(
+            ainvoke=AsyncMock(return_value={"messages": [AIMessage(content="answer")]}),
+        )
+        repository = SimpleNamespace(
+            ensure_session=AsyncMock(),
+            get_report=AsyncMock(
+                return_value={
+                    "session_id": "00000000-0000-0000-0000-000000000001",
+                    "report_version": 1,
+                    "report": {
+                        "scope": "labor_contract_national",
+                        "findings": [],
+                        "pending_questions": [],
+                        "legal_sources": [],
+                        "disclaimer": "仅供参考",
+                    },
+                }
+            ),
+        )
+        service = ChatService(graph, repository)
+
+        await service.invoke(
+            query="这份报告的结论是什么？",
+            session_id="00000000-0000-0000-0000-000000000001",
+            user_id="00000000-0000-0000-0000-000000000002",
+            mode="contract_review",
+            review_id="review-1",
+        )
+
+        input_state = graph.ainvoke.await_args.args[0]
+        self.assertEqual(input_state["conversation_mode"], "contract_review")
+        self.assertEqual(input_state["active_review_id"], "review-1")
+        self.assertIn("labor_contract_national", input_state["report_context"])
+        repository.get_report.assert_awaited_once_with(
+            "review-1", "00000000-0000-0000-0000-000000000002"
+        )
+
+    async def test_chat_service_rejects_non_uuid_session_for_authenticated_user(self):
+        graph = SimpleNamespace(ainvoke=AsyncMock())
+        repository = SimpleNamespace(ensure_session=AsyncMock())
+        service = ChatService(graph, repository)
+
+        with self.assertRaises(ValueError):
+            await service.ask(
+                query="q",
+                session_id="shared",
+                user_id="00000000-0000-0000-0000-000000000002",
+            )
+        graph.ainvoke.assert_not_awaited()
+        repository.ensure_session.assert_not_awaited()
+
+    async def test_chat_service_requires_report_and_matching_session(self):
+        graph = SimpleNamespace(ainvoke=AsyncMock())
+        repository = SimpleNamespace(
+            ensure_session=AsyncMock(),
+            get_report=AsyncMock(return_value=None),
+        )
+        service = ChatService(graph, repository)
+
+        with self.assertRaises(ChatReportNotFound):
+            await service.invoke(
+                query="q",
+                session_id="00000000-0000-0000-0000-000000000001",
+                user_id="00000000-0000-0000-0000-000000000002",
+                mode="contract_review",
+            )
+
+        repository.get_report.return_value = {
+            "session_id": "00000000-0000-0000-0000-000000000003",
+            "report": {"findings": []},
+        }
+        with self.assertRaises(ChatReportSessionMismatch):
+            await service.invoke(
+                query="q",
+                session_id="00000000-0000-0000-0000-000000000001",
+                user_id="00000000-0000-0000-0000-000000000002",
+                mode="contract_review",
+                review_id="review-1",
+            )
 
 
 if __name__ == "__main__":

@@ -3,8 +3,11 @@ import { Sidebar } from "./Sidebar";
 import { useAuth } from "../contexts/AuthContext";
 import {
   ContractApiError,
+  deleteContractReview,
+  downloadContractReport,
   getContractConfirmation,
   getContractReview,
+  getContractReport,
   runContractWorkflow,
   saveContractConfirmation,
   uploadContract,
@@ -21,6 +24,8 @@ type ContractStage = "upload" | "processing" | "confirmation" | "report";
 
 interface ContractReviewPageProps {
   onOpenChat: () => void;
+  onOpenReportChat: (reviewId: string, sessionId: string) => void;
+  sessionId: string;
 }
 
 type UiFactAction = "confirm" | "edit" | "not_applicable" | "defer";
@@ -311,7 +316,7 @@ function FactCard({
   );
 }
 
-export function ContractReviewPage({ onOpenChat }: ContractReviewPageProps) {
+export function ContractReviewPage({ onOpenChat, onOpenReportChat, sessionId }: ContractReviewPageProps) {
   const { token } = useAuth();
   const [reviewId, setReviewId] = useState<string | null>(() => localStorage.getItem(REVIEW_ID_KEY));
   const [review, setReview] = useState<ContractReviewDetail | null>(null);
@@ -327,6 +332,7 @@ export function ContractReviewPage({ onOpenChat }: ContractReviewPageProps) {
   const [focusedFactId, setFocusedFactId] = useState<string | null>(null);
   const [focusRequestId, setFocusRequestId] = useState(0);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [retentionPolicy, setRetentionPolicy] = useState<"short" | "long_opt_in">("short");
 
   const groupedFacts = useMemo(() => {
     if (!confirmation) return [] as [string, FactConfirmationView[]][];
@@ -371,6 +377,21 @@ export function ContractReviewPage({ onOpenChat }: ContractReviewPageProps) {
           setError(latest.error_message || "合同处理失败，请重新上传。 ");
           return;
         }
+        try {
+          const persistedReport = await getContractReport(token, reviewId);
+          if (!stopped) {
+            setReport(persistedReport);
+            setStage("report");
+          }
+          return;
+        } catch (reportError) {
+          if (!(reportError instanceof ContractApiError && reportError.status === 404)) {
+            // 报告读取失败不阻断上传/确认轮询；下一轮继续尝试恢复。
+            if (reportError instanceof ContractApiError && reportError.status >= 500) {
+              setNotice("报告恢复暂时不可用，正在重试。");
+            }
+          }
+        }
         if (latest.extraction_status === "ready" || latest.extraction_status === "needs_confirmation") {
           if (await loadConfirmation(reviewId)) return;
         }
@@ -401,7 +422,7 @@ export function ContractReviewPage({ onOpenChat }: ContractReviewPageProps) {
     }
     setBusy(true);
     try {
-      const summary = await uploadContract(token, file);
+      const summary = await uploadContract(token, file, sessionId, retentionPolicy);
       localStorage.setItem(REVIEW_ID_KEY, summary.review_id);
       setReviewId(summary.review_id);
       setReview(summary as ContractReviewDetail);
@@ -417,7 +438,7 @@ export function ContractReviewPage({ onOpenChat }: ContractReviewPageProps) {
     } finally {
       setBusy(false);
     }
-  }, [token]);
+  }, [retentionPolicy, sessionId, token]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -539,6 +560,32 @@ export function ContractReviewPage({ onOpenChat }: ContractReviewPageProps) {
     setError(null);
   };
 
+  const handleDownloadReport = async () => {
+    if (!token || !reviewId) return;
+    try {
+      const blob = await downloadContractReport(token, reviewId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `contract-review-${reviewId}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      setError(errorMessage(downloadError));
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!token || !reviewId || !window.confirm("确定删除这份合同、报告和相关脱敏数据吗？")) return;
+    try {
+      await deleteContractReview(token, reviewId);
+      resetReview();
+      setNotice("合同和报告已删除。");
+    } catch (deleteError) {
+      setError(errorMessage(deleteError));
+    }
+  };
+
   return (
     <div className="flex h-screen min-h-[680px] bg-[var(--color-background)] text-[var(--color-text)]">
       <Sidebar
@@ -571,7 +618,15 @@ export function ContractReviewPage({ onOpenChat }: ContractReviewPageProps) {
           )}
 
           {stage === "upload" && (
-            <UploadStage busy={busy} dragging={dragging} onChange={handleFileChange} onDrop={handleDrop} onDrag={setDragging} />
+            <UploadStage
+              busy={busy}
+              dragging={dragging}
+              retentionPolicy={retentionPolicy}
+              onRetentionPolicyChange={setRetentionPolicy}
+              onChange={handleFileChange}
+              onDrop={handleDrop}
+              onDrag={setDragging}
+            />
           )}
 
           {stage === "processing" && (
@@ -597,7 +652,13 @@ export function ContractReviewPage({ onOpenChat }: ContractReviewPageProps) {
           )}
 
           {stage === "report" && report && (
-            <ReportStage report={report} onBack={() => setStage("confirmation")} />
+            <ReportStage
+              report={report}
+              onBack={() => setStage("confirmation")}
+              onOpenChat={() => onOpenReportChat(report.review_id, report.session_id ?? review?.session_id ?? sessionId)}
+              onDownload={handleDownloadReport}
+              onDelete={handleDeleteReview}
+            />
           )}
         </div>
       </main>
@@ -608,12 +669,16 @@ export function ContractReviewPage({ onOpenChat }: ContractReviewPageProps) {
 function UploadStage({
   busy,
   dragging,
+  retentionPolicy,
+  onRetentionPolicyChange,
   onChange,
   onDrop,
   onDrag,
 }: {
   busy: boolean;
   dragging: boolean;
+  retentionPolicy: "short" | "long_opt_in";
+  onRetentionPolicyChange: (value: "short" | "long_opt_in") => void;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onDrop: (event: DragEvent<HTMLLabelElement>) => void;
   onDrag: (value: boolean) => void;
@@ -640,6 +705,16 @@ function UploadStage({
         <strong>{busy ? "正在上传…" : "拖拽文件到这里，或点击选择"}</strong>
         <span>支持 PDF、DOC、DOCX · 建议单个文件不超过 20 MB</span>
         <span className="upload-secondary">原始文件仅用于本次审查，不会展示给模型以外的服务。</span>
+      </label>
+
+      <label className="retention-choice">
+        <input
+          type="checkbox"
+          checked={retentionPolicy === "long_opt_in"}
+          onChange={(event) => onRetentionPolicyChange(event.target.checked ? "long_opt_in" : "short")}
+          disabled={busy}
+        />
+        <span>需要更长时间查看时，选择保留 30 天（默认仅保留 7 天）</span>
       </label>
 
       <div className="upload-feature-grid">
@@ -853,7 +928,19 @@ function ConfirmationStage({
   );
 }
 
-function ReportStage({ report, onBack }: { report: ContractReviewReport; onBack: () => void }) {
+function ReportStage({
+  report,
+  onBack,
+  onOpenChat,
+  onDownload,
+  onDelete,
+}: {
+  report: ContractReviewReport;
+  onBack: () => void;
+  onOpenChat: () => void;
+  onDownload: () => void;
+  onDelete: () => void;
+}) {
   const counts = report.findings.reduce<Record<string, number>>((result, finding) => {
     result[finding.risk_level] = (result[finding.risk_level] ?? 0) + 1;
     return result;
@@ -866,7 +953,12 @@ function ReportStage({ report, onBack }: { report: ContractReviewReport; onBack:
           <h2>合同风险评估报告</h2>
           <p>报告基于已确认事实与当前可用的全国通用规则，仅供参考，不替代律师意见。</p>
         </div>
-        <button type="button" className="ghost-button" onClick={onBack}>返回事实表单</button>
+        <div className="report-heading-actions">
+          <button type="button" className="ghost-button" onClick={onBack}>返回事实表单</button>
+          <button type="button" className="secondary-button" onClick={onDownload}>下载 PDF</button>
+          <button type="button" className="primary-button" onClick={onOpenChat}>针对报告提问</button>
+          <button type="button" className="ghost-button danger-ghost" onClick={onDelete}>删除审查</button>
+        </div>
       </div>
 
       <div className="report-summary-grid">

@@ -61,6 +61,9 @@ class ContractReviewSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     review_id: str
+    session_id: str | None = None
+    retention_policy: str = "short"
+    expires_at: datetime | None = None
     status: ReviewStatus
     filename: str
     content_type: str
