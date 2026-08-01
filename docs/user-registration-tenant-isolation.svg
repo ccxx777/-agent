@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1220" viewBox="0 0 1800 1220" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-schema-version="1" data-style-id="1" data-visual-theme="flat-icon" data-diagram-type="data-flow" data-semantic-profile="generic" data-quality-profile="standard" data-min-node-gap="40" data-min-container-gutter="20" data-min-label-clearance="4" data-min-segment-length="16">
+<title id="title">用户注册与租户隔离流程</title>
+<desc id="desc">展示当前系统从注册登录、JWT 身份解析，到 user_id 作用域查询、会话归属校验和合同报告访问控制的完整链路，并标明当前尚未实现的组织级多租户能力。</desc>
+<style>text{font-family:'Helvetica Neue',Helvetica,Arial,'PingFang SC','Microsoft YaHei','Microsoft JhengHei','SimHei',sans-serif;}</style>
+<defs>
+<marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#9333ea"/></marker>
+<marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#059669"/></marker>
+<marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ea580c"/></marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/></marker>
+</defs>
+<rect data-graph-role="background" width="1800" height="1220" fill="#ffffff"/>
+<text data-graph-role="label" x="60" y="48" font-size="28px" fill="#111827" font-weight="600" text-anchor="start">用户注册与租户隔离流程</text>
+<text data-graph-role="label" x="60" y="80" font-size="14px" fill="#6b7280" font-weight="400" text-anchor="start">当前实现：user_id 作为隔离边界；每个注册账号相当于一个个人空间</text>
+<text data-graph-role="label" x="1310" y="43" font-size="12px" fill="#6b7280" font-weight="600" text-anchor="start">图例</text>
+<line x1="1310" y1="64" x2="1340" y2="64" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" x="1350" y="68" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">请求/响应</text>
+<line x1="1460" y1="64" x2="1490" y2="64" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" x="1500" y="68" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">身份变换</text>
+<line x1="1610" y1="64" x2="1640" y2="64" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" x="1650" y="68" font-size="12px" fill="#374151" font-weight="400" text-anchor="start">数据/允许</text>
+<rect data-graph-role="container" x="45" y="105" width="1710" height="285" rx="14" fill="#f8fbff" stroke="#bfdbfe" stroke-width="1.4"/>
+<rect data-graph-role="container" x="45" y="425" width="1710" height="365" rx="14" fill="#faf8ff" stroke="#ddd6fe" stroke-width="1.4"/>
+<rect data-graph-role="container" x="45" y="825" width="1710" height="300" rx="14" fill="#fffdf8" stroke="#fed7aa" stroke-width="1.4"/>
+<text data-graph-role="label" x="70" y="135" font-size="16px" fill="#1d4ed8" font-weight="600" text-anchor="start">① 注册、登录与签发身份</text>
+<text data-graph-role="label" x="70" y="455" font-size="16px" fill="#6b21a8" font-weight="600" text-anchor="start">② 每次请求的 user_id 租户边界</text>
+<text data-graph-role="label" x="70" y="855" font-size="16px" fill="#9a3412" font-weight="600" text-anchor="start">③ 当前隔离能力与未实现边界</text>
+<path id="e-auth-request" data-edge-id="e-auth-request" data-graph-role="edge" data-source="browser-auth" data-target="auth-api" d="M340 225 H420" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" data-owner="e-auth-request" x="380" y="150" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">register / login</text>
+<path id="e-api-service" data-edge-id="e-api-service" data-graph-role="edge" data-source="auth-api" data-target="auth-service" d="M720 225 H800" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" data-owner="e-api-service" x="760" y="202" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">校验请求</text>
+<path id="e-user-profile" data-edge-id="e-user-profile" data-graph-role="edge" data-source="auth-service" data-target="user-profiles" d="M1160 225 H1260" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" data-owner="e-user-profile" x="1210" y="202" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">查重 + 写入</text>
+<path id="e-profile-response" data-edge-id="e-profile-response" data-graph-role="edge" data-source="user-profiles" data-target="auth-service" d="M1260 270 H1160" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" data-owner="e-profile-response" x="1210" y="292" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">用户记录</text>
+<path id="e-jwt-response" data-edge-id="e-jwt-response" data-graph-role="edge" data-source="auth-service" data-target="browser-auth" d="M980 280 V350 H340 V280" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<text data-graph-role="label" data-owner="e-jwt-response" x="650" y="344" font-size="11px" fill="#9333ea" font-weight="600" text-anchor="middle">JWT: sub=user_id, exp=24h</text>
+<path id="e-request-guard" data-edge-id="e-request-guard" data-graph-role="edge" data-source="protected-request" data-target="jwt-gate" d="M350 540 H470" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" data-owner="e-request-guard" x="410" y="475" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">Authorization: Bearer</text>
+<path id="e-valid-yes" data-edge-id="e-valid-yes" data-graph-role="edge" data-source="jwt-gate" data-target="domain-api" d="M650 540 H790" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" data-owner="e-valid-yes" x="720" y="517" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">有效 + 注入 user_id</text>
+<path id="e-valid-no" data-edge-id="e-valid-no" data-graph-role="edge" data-source="jwt-gate" data-target="unauthorized" d="M560 580 V650" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
+<text data-graph-role="label" data-owner="e-valid-no" x="620" y="620" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">无效 / 过期</text>
+<path id="e-api-owner" data-edge-id="e-api-owner" data-graph-role="edge" data-source="domain-api" data-target="owner-gate" d="M1090 540 H1120" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<text data-graph-role="label" data-owner="e-api-owner" x="1105" y="470" font-size="11px" fill="#2563eb" font-weight="600" text-anchor="middle">review_id / session_id</text>
+<path id="e-owner-yes" data-edge-id="e-owner-yes" data-graph-role="edge" data-source="owner-gate" data-target="scoped-repository" d="M1320 540 H1450" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" data-owner="e-owner-yes" x="1385" y="517" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">owner=user_id</text>
+<path id="e-owner-no" data-edge-id="e-owner-no" data-graph-role="edge" data-source="owner-gate" data-target="forbidden" d="M1220 580 V650" fill="none" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange)"/>
+<text data-graph-role="label" data-owner="e-owner-no" x="1295" y="620" font-size="11px" fill="#ea580c" font-weight="600" text-anchor="middle">不属于当前用户</text>
+<path id="e-user-space" data-edge-id="e-user-space" data-graph-role="edge" data-source="scoped-repository" data-target="personal-space" d="M1680 620 H1720 V1070 H460 V950" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow-green)"/>
+<text data-graph-role="label" data-owner="e-user-space" x="1260" y="1050" font-size="11px" fill="#059669" font-weight="600" text-anchor="middle">按 user_id / session_id 过滤</text>
+<path id="e-shared-rag" data-edge-id="e-shared-rag" data-graph-role="edge" data-source="domain-api" data-target="shared-legal-rag" d="M940 600 V780 H800 V895" fill="none" stroke="#6b7280" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arrow-gray)"/>
+<text data-graph-role="label" data-owner="e-shared-rag" x="870" y="768" font-size="11px" fill="#6b7280" font-weight="600" text-anchor="middle">共享法律 RAG</text>
+<g id="browser-auth" data-node-id="browser-auth" data-graph-role="node" data-graph-bounds="80 170 340 280">
+<rect data-node-id="browser-auth" x="80" y="170" width="260" height="110" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle data-node-id="browser-auth" cx="112" cy="204" r="20" fill="#2563eb"/>
+<text data-graph-role="node" x="112" y="209" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">WEB</text>
+<text data-graph-role="node" x="147" y="201" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">浏览器 / 前端</text>
+<text data-graph-role="node" x="147" y="228" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">注册、登录、保存 token</text>
+<rect data-node-id="browser-auth" x="228" y="249" width="98" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="277" y="264" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">入口</text>
+</g>
+<g id="auth-api" data-node-id="auth-api" data-graph-role="node" data-graph-bounds="420 170 720 280">
+<rect data-node-id="auth-api" x="420" y="170" width="300" height="110" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle data-node-id="auth-api" cx="452" cy="204" r="20" fill="#2563eb"/>
+<text data-graph-role="node" x="452" y="209" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">API</text>
+<text data-graph-role="node" x="487" y="201" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">Auth API</text>
+<text data-graph-role="node" x="487" y="228" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">/api/auth/register + /login</text>
+<rect data-node-id="auth-api" x="608" y="249" width="98" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="657" y="264" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">受保护</text>
+</g>
+<g id="auth-service" data-node-id="auth-service" data-graph-role="node" data-graph-bounds="800 170 1160 280">
+<rect data-node-id="auth-service" x="800" y="170" width="360" height="110" rx="12" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<circle data-node-id="auth-service" cx="832" cy="204" r="20" fill="#9333ea"/>
+<text data-graph-role="node" x="832" y="209" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">AUTH</text>
+<text data-graph-role="node" x="867" y="201" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">AuthService + Security</text>
+<text data-graph-role="node" x="867" y="228" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">Argon2id 哈希 · JWT HS256</text>
+<rect data-node-id="auth-service" x="1048" y="249" width="98" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="1097" y="264" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">24 小时</text>
+</g>
+<g id="user-profiles" data-node-id="user-profiles" data-graph-role="node" data-graph-bounds="1260 170 1560 280">
+<rect data-node-id="user-profiles" x="1260" y="170" width="300" height="110" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="user-profiles" cx="1292" cy="204" r="20" fill="#059669"/>
+<text data-graph-role="node" x="1292" y="209" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">DB</text>
+<text data-graph-role="node" x="1327" y="201" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">user_profiles</text>
+<text data-graph-role="node" x="1327" y="228" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">username 唯一 · user_id 主键</text>
+<rect data-node-id="user-profiles" x="1448" y="249" width="98" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1497" y="264" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">持久化</text>
+</g>
+<g id="protected-request" data-node-id="protected-request" data-graph-role="node" data-graph-bounds="80 490 350 600">
+<rect data-node-id="protected-request" x="80" y="490" width="270" height="110" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<circle data-node-id="protected-request" cx="112" cy="524" r="20" fill="#2563eb"/>
+<text data-graph-role="node" x="112" y="529" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">REQ</text>
+<text data-graph-role="node" x="147" y="521" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">受保护请求</text>
+<text data-graph-role="node" x="147" y="548" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">合同 / 对话 / 历史 / 报告</text>
+<rect data-node-id="protected-request" x="238" y="569" width="98" height="21" rx="11" fill="#dbeafe"/>
+<text data-graph-role="node" x="287" y="584" font-size="10px" fill="#1d4ed8" font-weight="600" text-anchor="middle">Bearer</text>
+</g>
+<g id="jwt-gate" data-node-id="jwt-gate" data-graph-role="decision" data-graph-bounds="470 500 650 580">
+<polygon data-node-id="jwt-gate" points="560,500 650,540 560,580 470,540" fill="#fff7ed" stroke="#ea580c" stroke-width="1.7"/>
+<text data-graph-role="node" x="560" y="537" font-size="13px" fill="#111827" font-weight="600" text-anchor="middle">JWT 有效?</text>
+<text data-graph-role="node" x="560" y="558" font-size="11px" fill="#9a3412" font-weight="400" text-anchor="middle">decode_token</text>
+</g>
+<g id="domain-api" data-node-id="domain-api" data-graph-role="node" data-graph-bounds="790 490 1090 600">
+<rect data-node-id="domain-api" x="790" y="490" width="300" height="110" rx="12" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<circle data-node-id="domain-api" cx="822" cy="524" r="20" fill="#9333ea"/>
+<text data-graph-role="node" x="822" y="529" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">SVC</text>
+<text data-graph-role="node" x="857" y="521" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">API + Service</text>
+<text data-graph-role="node" x="857" y="548" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">user_id 进入业务调用上下文</text>
+<rect data-node-id="domain-api" x="978" y="569" width="98" height="21" rx="11" fill="#ede9fe"/>
+<text data-graph-role="node" x="1027" y="584" font-size="10px" fill="#6b21a8" font-weight="600" text-anchor="middle">带身份</text>
+</g>
+<g id="owner-gate" data-node-id="owner-gate" data-graph-role="decision" data-graph-bounds="1120 500 1320 580">
+<polygon data-node-id="owner-gate" points="1220,500 1320,540 1220,580 1120,540" fill="#fff7ed" stroke="#ea580c" stroke-width="1.7"/>
+<text data-graph-role="node" x="1220" y="537" font-size="13px" fill="#111827" font-weight="600" text-anchor="middle">归属一致?</text>
+<text data-graph-role="node" x="1220" y="558" font-size="11px" fill="#9a3412" font-weight="400" text-anchor="middle">owner = user_id</text>
+</g>
+<g id="scoped-repository" data-node-id="scoped-repository" data-graph-role="node" data-graph-bounds="1450 480 1730 620">
+<rect data-node-id="scoped-repository" x="1450" y="480" width="280" height="140" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="scoped-repository" cx="1482" cy="514" r="20" fill="#059669"/>
+<text data-graph-role="node" x="1482" y="519" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">SQL</text>
+<text data-graph-role="node" x="1517" y="511" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">Repository 作用域</text>
+<text data-graph-role="node" x="1517" y="538" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">WHERE user_id = JWT.sub</text>
+<rect data-node-id="scoped-repository" x="1618" y="589" width="98" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="1667" y="604" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">隔离查询</text>
+</g>
+<g id="unauthorized" data-node-id="unauthorized" data-graph-role="node" data-graph-bounds="470 650 650 720">
+<rect data-node-id="unauthorized" x="470" y="650" width="180" height="70" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
+<circle data-node-id="unauthorized" cx="502" cy="684" r="20" fill="#ea580c"/>
+<text data-graph-role="node" x="502" y="689" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">!</text>
+<text data-graph-role="node" x="537" y="681" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">401</text>
+<text data-graph-role="node" x="537" y="708" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">令牌无效或过期</text>
+<rect data-node-id="unauthorized" x="538" y="689" width="98" height="21" rx="11" fill="#fed7aa"/>
+<text data-graph-role="node" x="587" y="704" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">拒绝</text>
+</g>
+<g id="forbidden" data-node-id="forbidden" data-graph-role="node" data-graph-bounds="1130 650 1310 720">
+<rect data-node-id="forbidden" x="1130" y="650" width="180" height="70" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.6"/>
+<circle data-node-id="forbidden" cx="1162" cy="684" r="20" fill="#ea580c"/>
+<text data-graph-role="node" x="1162" y="689" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">!</text>
+<text data-graph-role="node" x="1197" y="681" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">403</text>
+<text data-graph-role="node" x="1197" y="708" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">资源不属于当前用户</text>
+<rect data-node-id="forbidden" x="1198" y="689" width="98" height="21" rx="11" fill="#fed7aa"/>
+<text data-graph-role="node" x="1247" y="704" font-size="10px" fill="#9a3412" font-weight="600" text-anchor="middle">拒绝</text>
+</g>
+<g id="personal-space" data-node-id="personal-space" data-graph-role="node" data-graph-bounds="100 895 460 1005">
+<rect data-node-id="personal-space" x="100" y="895" width="360" height="110" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<circle data-node-id="personal-space" cx="132" cy="929" r="20" fill="#059669"/>
+<text data-graph-role="node" x="132" y="934" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">U</text>
+<text data-graph-role="node" x="167" y="926" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">个人隔离空间</text>
+<text data-graph-role="node" x="167" y="953" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">sessions · contract_reviews · reports</text>
+<rect data-node-id="personal-space" x="348" y="974" width="98" height="21" rx="11" fill="#dcfce7"/>
+<text data-graph-role="node" x="397" y="989" font-size="10px" fill="#166534" font-weight="600" text-anchor="middle">已实现</text>
+</g>
+<g id="shared-legal-rag" data-node-id="shared-legal-rag" data-graph-role="node" data-graph-bounds="620 895 980 1005">
+<rect data-node-id="shared-legal-rag" x="620" y="895" width="360" height="110" rx="12" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.6"/>
+<circle data-node-id="shared-legal-rag" cx="652" cy="929" r="20" fill="#6b7280"/>
+<text data-graph-role="node" x="652" y="934" font-size="10px" fill="#ffffff" font-weight="700" text-anchor="middle">RAG</text>
+<text data-graph-role="node" x="687" y="926" font-size="15px" fill="#111827" font-weight="600" text-anchor="start">共享法律 RAG</text>
+<text data-graph-role="node" x="687" y="953" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">全国通用法条 / 官方案例语料</text>
+<rect data-node-id="shared-legal-rag" x="868" y="974" width="98" height="21" rx="11" fill="#e5e7eb"/>
+<text data-graph-role="node" x="917" y="989" font-size="10px" fill="#4b5563" font-weight="600" text-anchor="middle">共享</text>
+</g>
+<g id="future-tenant-model" data-node-id="future-tenant-model" data-graph-role="node" data-graph-bounds="1140 895 1640 1007">
+<rect data-node-id="future-tenant-model" x="1140" y="895" width="500" height="112" rx="12" fill="#fff7ed" stroke="#fb923c" stroke-width="1.6" stroke-dasharray="7,5"/>
+<text data-graph-role="node" x="1160" y="925" font-size="15px" fill="#9a3412" font-weight="600" text-anchor="start">尚未实现：组织级多租户</text>
+<text data-graph-role="node" x="1160" y="953" font-size="12px" fill="#7c2d12" font-weight="400" text-anchor="start">tenant_id / organization / member roles</text>
+<text data-graph-role="node" x="1160" y="973" font-size="12px" fill="#7c2d12" font-weight="400" text-anchor="start">跨用户共享、管理员权限、数据库 RLS</text>
+</g>
+<text data-graph-role="label" x="70" y="1165" font-size="12px" fill="#6b7280" font-weight="400" text-anchor="start">注意：当前是“每个账号一个个人空间”的 user-level isolation，不等同于企业 SaaS 的 organization-level multi-tenancy。</text>
+</svg>

@@ -1,6 +1,6 @@
 # 项目文档索引
 
-> 更新时间：2026-07-31
+> 更新时间：2026-08-01
 >
 > 本目录区分当前实现、可执行 Runbook、评测记录和历史经验。文档中的“已完成”必须能在当前源码、Compose 配置或评测 `summary.json` 中找到证据。
 
@@ -16,6 +16,7 @@
 | [`contract-extraction-module.png`](contract-extraction-module.png) | 条款切分、结构化事实提取、证据定位和确认门禁 | 已实现基础模块 |
 | [`contract-fact-extraction-flow.png`](contract-fact-extraction-flow.png) | 事实提取内部步骤、状态门禁、冲突检测和结果持久化 | 详细流程 |
 | [`contract-fact-confirmation-flow.png`](contract-fact-confirmation-flow.png) | 五类用户动作、证据复核、有效事实快照、revision 和审计门禁 | 已实现基础模块 |
+| [`user-registration-tenant-isolation.png`](user-registration-tenant-isolation.png) | 用户注册、JWT 身份解析、user_id 作用域与当前租户能力边界 | 当前认证与隔离 |
 | [`api/backend.md`](api/backend.md) | Backend、RAG 和合同上传 API | 当前 API |
 | [`self-developed-retrieval-algorithm.md`](self-developed-retrieval-algorithm.md) | L1/L2/L3 Cascade Funnel 的设计和边界 | 当前 v2 |
 | [`retrieval-v2-migration.md`](retrieval-v2-migration.md) | Qdrant 升级、离线迁移、门禁和回滚 | 已执行，可复用 |
@@ -46,6 +47,10 @@
 ![合同事实提取详细流程](contract-fact-extraction-flow.png)
 
 ![合同事实确认模块流程](contract-fact-confirmation-flow.png)
+
+![用户注册与租户隔离流程](user-registration-tenant-isolation.png)
+
+当前认证模型是“每个账号一个个人空间”：`user_id` 来自 JWT，并贯穿合同、报告和会话访问检查；法律 RAG 语料是共享知识库。组织级 `tenant_id`、成员角色、跨用户共享和数据库 RLS 尚未实现，不能把当前能力描述成完整的企业 SaaS 多租户。
 
 ![合同审查 Workflow v0.1](contract-review-workflow.png)
 
