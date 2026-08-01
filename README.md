@@ -318,6 +318,7 @@ uv run \
 ```bash
 docker exec -i db_pg psql -U admin -d ai_assistant < backend/sql/migrations/005-session-contract-report.sql
 docker exec -i db_pg psql -U admin -d ai_assistant < backend/sql/migrations/006-contract-retention.sql
+docker exec -i db_pg psql -U admin -d ai_assistant < backend/sql/migrations/007-session-conversation-scope.sql
 ```
 
 运行后端测试、前端构建和治理检查：

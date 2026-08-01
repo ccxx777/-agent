@@ -55,11 +55,22 @@ class SessionService:
         return await self._read_thread(session_id.strip())
 
     async def get_report_history(self, review_id: str, user_id: str) -> dict | None:
-        """读取一份报告专属 thread；不存在或无权访问时返回 ``None``。"""
+        """读取绑定合同所在的统一 session 历史。
+
+        新版本合同上下文问答不再创建 ``contract-review:*`` 专属 thread，而是与上传前
+        的文字问答共享同一个 ``session_id``。如果读取到旧报告记录但统一 thread
+        还没有消息，则回退读取旧 thread，保证历史数据可恢复。
+        """
 
         if self._repository is None or not hasattr(self._repository, "get_report"):
             return None
         report = await self._repository.get_report(review_id, user_id)
         if not report:
             return None
+        session_id = report.get("session_id")
+        if session_id:
+            current = await self.get_history(str(session_id), user_id)
+            if current.get("messages") or current.get("summary"):
+                return current
+        # 兼容迁移前已经产生的报告专属对话历史。
         return await self._read_thread(report_chat_thread_id(review_id))

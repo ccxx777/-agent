@@ -1,6 +1,6 @@
 # Backend API：FastAPI + LangGraph
 
-> 本文描述当前源码已经挂载的接口。合同接口已覆盖上传、解析、脱敏、事实提取、事实确认和 Workflow v0.1；法律资料导入、规则卡片专家复核、报告持久化和前端展示仍在进行中。
+> 本文描述当前源码已经挂载的接口。合同接口已覆盖上传、解析、脱敏、事实提取、事实确认、Workflow v0.1 和统一会话上下文；合同上传前后的文字问题共享同一个 `session_id`。
 
 | 服务 | 端口 | 职责 |
 |---|---:|---|
@@ -27,7 +27,7 @@ curl http://127.0.0.1:8000/health
 
 ## POST /api/chat
 
-非流式问答接口。Frontend 的 Nginx 可以代理到该路径；评测脚本也通过同一 Backend 边界验证 Agent/RAG 主链。
+非流式问答接口。Frontend 的 Nginx 可以代理到该路径；评测脚本也通过同一 Backend 边界验证 Agent/RAG 主链。`session_id` 是唯一对话 thread；如果请求携带 `review_id`，服务会校验合同归属并把脱敏合同正文、事实 JSON 和风险报告装配为 `contract_context`。
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/chat \
@@ -42,6 +42,8 @@ curl -X POST http://127.0.0.1:8000/api/chat \
 | `query` | `string` | 用户问题 |
 | `session_id` | `string` | 会话/ LangGraph thread 标识 |
 | `user_id` | `string` | 用户标识；生产环境来自认证上下文 |
+| `mode` | `general\|legal\|contract_review` | 普通知识问答、法律问答或当前合同问答 |
+| `review_id` | `string?` | 可选；绑定同一 `session_id` 的合同任务。携带后自动加载脱敏正文、结构化事实和报告 |
 
 典型响应：
 
@@ -57,15 +59,27 @@ curl -X POST http://127.0.0.1:8000/api/chat \
 ### LangGraph 执行路径
 
 ```text
-START → condense_memory → chatbot → tools/search_knowledge_base
-      → RetrievalService → generate_answer → END
+START → condense_memory → chatbot
+      ├─ 无合同上下文：tools/search_knowledge_base 或 search_legal_knowledge_base
+      ├─ 有合同上下文：contract_context（正文 + facts JSON + report JSON）
+      │                └─ 法律问题时调用 search_legal_knowledge_base
+      └─ generate_answer → END
 ```
 
 `RetrievalService` 是 Agent、Eval API 和离线基线共享的唯一检索业务入口。答案生成必须遵守“仅基于上下文、证据不足时明确拒答”的约束。
 
+合同上下文只使用数据库中保存的脱敏页文本和结构化结果；原始文件、私有存储路径和未脱敏 OCR 图像不会进入 Prompt，也不会写入共享 Qdrant Collection。删除合同会清理旧版报告 thread 并在下一次普通请求中显式清空 `contract_context`，不会删除用户的整条文字聊天历史。
+合同上下文所在的 session 会在进入合同模式时清空旧摘要；后续摘要只压缩非合同消息，普通/法律模式会过滤合同轮次，避免合同事实或风险结论从 `summary` 和历史消息泄漏。
+同一 session 切换多份合同仍会按 `active_review_id` 过滤 `conversation_scope=contract:<review_id>` 消息，合同 B 不会把合同 A 的工资、风险或条款回答传给模型。
+升级兼容由 `sessions.conversation_scope_version` 持久化。由于任务删除/过期后无法准确还原
+历史合同绑定，迁移前所有尚未有 scope 版本的旧 session 都只扫描一次 checkpoint。若历史消息
+没有 `conversation_scope`，系统会设置 `legacy_unscoped_messages`；无标签历史仍可展示，但会
+从后续模型输入和摘要压缩中排除。该保守策略可能让旧普通会话丢失模型侧连续记忆，却能阻止
+已删除合同内容泄漏；新消息会继续写入明确的 `general`、`legal` 或 `contract:<review_id>` 标签。
+
 ## GET /api/chat/history/{session_id}
 
-从 PostgreSQL Checkpoint 中读取会话历史，仅返回 `human` 和 `ai` 消息，不返回 Tool/System 消息。
+从 PostgreSQL Checkpoint 中读取统一会话历史，仅返回 `human` 和 `ai` 消息，不返回 Tool/System 消息。报告历史兼容接口会先读取报告绑定的 `session_id` thread，旧数据才回退到历史的 `contract-review:{review_id}` thread。
 
 ```bash
 curl http://127.0.0.1:8000/api/chat/history/s1 \
@@ -253,7 +267,7 @@ curl -X POST http://127.0.0.1:8000/api/contract-reviews/$REVIEW_ID/workflow \
 
 法律检索使用独立 `LegalRetrievalService`。它在 Cascade Funnel 结果之后再次执行 `source_level`、`citation_eligible` 和治理状态过滤，并保留条号、引用标签、生效日期和官方链接。法律 Collection 不得配置为 `rag_chunks`、`watsonxDocsQA` 或其他通用评测库。
 
-旧 PostgreSQL 需要按顺序执行 `backend/sql/migrations/002-contract-review.sql`、`backend/sql/migrations/003-contract-extraction.sql`、`backend/sql/migrations/004-contract-confirmation.sql`、`backend/sql/migrations/005-session-contract-report.sql` 和 `backend/sql/migrations/006-contract-retention.sql`；新建数据库会执行 `backend/sql/init/03-contract-review.sql`。
+旧 PostgreSQL 需要按顺序执行 `backend/sql/migrations/002-contract-review.sql`、`backend/sql/migrations/003-contract-extraction.sql`、`backend/sql/migrations/004-contract-confirmation.sql`、`backend/sql/migrations/005-session-contract-report.sql`、`backend/sql/migrations/006-contract-retention.sql` 和 `backend/sql/migrations/007-session-conversation-scope.sql`；新建数据库会执行 `backend/sql/init/03-contract-review.sql`。
 
 ## 运行与验证
 

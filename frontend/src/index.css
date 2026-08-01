@@ -22,7 +22,7 @@
   --color-success: #8ee0bd;
 }
 
-/* 报告问答是一个可恢复的专属会话，不再用左上角的小标签单独提示。 */
+/* 合同上下文问答与上传前的文字历史共享同一个可恢复 session。 */
 .report-chat-banner {
   width: min(820px, 100%);
   display: flex;

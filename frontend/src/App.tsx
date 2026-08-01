@@ -108,6 +108,7 @@ function ChatPage({
   conversations,
   onConversationsChange,
   onConversationSelect,
+  onReportUnavailable,
 }: {
   onOpenContract: (reviewId?: unknown) => void;
   sessionId: string;
@@ -118,6 +119,7 @@ function ChatPage({
   conversations: Conversation[];
   onConversationsChange: (updater: (previous: Conversation[]) => Conversation[]) => void;
   onConversationSelect: (conversation: Conversation) => void;
+  onReportUnavailable: (reviewId: string) => void;
 }) {
   const { token } = useAuth();
   const [activeId, setActiveId] = useState<string | null>(() => (
@@ -140,6 +142,12 @@ function ChatPage({
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (activeId && !conversations.some((conversation) => conversation.id === activeId)) {
+      setActiveId(null);
+    }
+  }, [activeId, conversations]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -160,7 +168,13 @@ function ChatPage({
         headers: { Authorization: `Bearer ${token}` },
         signal: controller.signal,
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        if (response.status === 404 && historyReviewId) {
+          setActiveId(null);
+          onReportUnavailable(historyReviewId);
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
       const data = (await response.json()) as { messages?: Message[] };
       const expectedReviewId = mode === "contract_review" ? reviewId ?? undefined : undefined;
       const isCurrent = requestId === historyRequestRef.current
@@ -177,7 +191,7 @@ function ChatPage({
         historyAbortRef.current = null;
       }
     }
-  }, [mode, reviewId, sessionId, token]);
+  }, [mode, onReportUnavailable, reviewId, sessionId, token]);
 
   useEffect(() => () => {
     historyRequestRef.current += 1;
@@ -257,7 +271,7 @@ function ChatPage({
           <div className="eyebrow">{mode === "contract_review" ? "CONTRACT REVIEW / REPORT CHAT" : "AI ASSISTANT / GENERAL KNOWLEDGE"}</div>
           <div className="chat-header-actions">
             {mode === "contract_review" ? (
-                <span className="chat-mode-chip report-chip">报告专属会话</span>
+                <span className="chat-mode-chip report-chip">当前合同上下文</span>
             ) : (
               <>
                 <button type="button" className={mode === "general" ? "chat-mode-active" : "chat-mode-button"} onClick={() => onModeChange("general")}>通用问答</button>
@@ -272,8 +286,8 @@ function ChatPage({
             <div className="report-chat-inline-header">
               <span className="report-chat-banner-icon" aria-hidden="true">▣</span>
               <div>
-                <strong>当前报告会话</strong>
-                <span>针对本次合同风险报告提问</span>
+                    <strong>当前合同会话</strong>
+                    <span>可以继续追问合同正文、事实和风险报告</span>
               </div>
               <button type="button" className="ghost-button" onClick={() => onOpenContract(reviewId)}>查看报告</button>
             </div>
@@ -284,9 +298,9 @@ function ChatPage({
                 <div className="report-chat-banner" role="status">
                   <div className="report-chat-banner-icon" aria-hidden="true">▣</div>
                   <div className="report-chat-banner-copy">
-                    <span className="report-chat-eyebrow">当前报告会话</span>
-                    <h1>针对这份合同风险报告提问</h1>
-                    <p>这条对话已经绑定到本次审查报告。你可以继续追问报告中的风险事实、法律依据和修改建议。</p>
+                    <span className="report-chat-eyebrow">当前合同上下文</span>
+                    <h1>继续询问这份合同</h1>
+                    <p>这条对话与上传前的文字问答共用同一个会话。你可以追问合同正文、结构化事实、风险报告，也可以继续询问法律依据。</p>
                   </div>
                   <button type="button" className="secondary-button" onClick={() => onOpenContract(reviewId)}>查看完整报告</button>
                 </div>
@@ -362,6 +376,21 @@ function AppInner() {
     return viewStorageKey && localStorage.getItem(viewStorageKey) === "contract" ? "contract" : "chat";
   });
 
+  const removeReportConversation = useCallback((reviewId: string) => {
+    setConversations((previous) => previous.filter(
+      (conversation) => !(conversation.kind === "report" && conversation.reviewId === reviewId),
+    ));
+    const nextContext: ChatContext = { mode: "general", reviewId: null };
+    setChatContext((current) => current.reviewId === reviewId ? nextContext : current);
+    const storedContext = loadStoredChatContext(contextStorageKey);
+    if (storedContext.reviewId === reviewId && contextStorageKey) {
+      localStorage.setItem(contextStorageKey, JSON.stringify({ ...nextContext, sessionId }));
+    }
+    if (reviewStorageKey && localStorage.getItem(reviewStorageKey) === reviewId) {
+      localStorage.removeItem(reviewStorageKey);
+    }
+  }, [contextStorageKey, reviewStorageKey, sessionId]);
+
   useEffect(() => {
     saveConversations(conversations, conversationsStorageKey);
   }, [conversations, conversationsStorageKey]);
@@ -376,11 +405,18 @@ function AppInner() {
           .filter((review) => Boolean(review.report_id))
           .map((review) => reportConversation(review))
           .filter((item): item is Conversation => Boolean(item));
+        const serverReportIds = new Set(reportItems.map((item) => item.reviewId));
         setConversations((previous) => {
           const byId = new Map(previous.map((item) => [item.id, item]));
+          previous.forEach((item) => {
+            if (item.kind === "report" && !serverReportIds.has(item.reviewId)) byId.delete(item.id);
+          });
           reportItems.forEach((item) => byId.set(item.id, { ...byId.get(item.id), ...item }));
           return [...byId.values()].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "")).slice(0, 50);
         });
+        if (chatContext.reviewId && !serverReportIds.has(chatContext.reviewId)) {
+          removeReportConversation(chatContext.reviewId);
+        }
       })
       .catch(() => {
         // 历史接口不可用时仍保留本地最近对话，避免影响当前问答。
@@ -388,7 +424,7 @@ function AppInner() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, token]);
+  }, [chatContext.reviewId, isAuthenticated, removeReportConversation, token]);
 
   const switchView = useCallback((next: "chat" | "contract", nextReviewId?: string) => {
     setView(next);
@@ -468,7 +504,24 @@ function AppInner() {
   const handleReportReady = useCallback((review: ReportConversationSource) => {
     const item = reportConversation(review);
     if (item) upsertConversation(item);
-  }, [upsertConversation]);
+    // 报告生成后立即把当前会话切换到合同上下文；用户返回聊天时，
+    // 仍使用上传前的 session_id，而不是创建第二条 report thread。
+    if (review.review_id && review.session_id) {
+      const nextContext: ChatContext = {
+        mode: "contract_review",
+        reviewId: review.review_id,
+      };
+      setSessionId(review.session_id);
+      setChatContext(nextContext);
+      if (sessionStorageKey) localStorage.setItem(sessionStorageKey, review.session_id);
+      if (contextStorageKey) {
+        localStorage.setItem(
+          contextStorageKey,
+          JSON.stringify({ ...nextContext, sessionId: review.session_id }),
+        );
+      }
+    }
+  }, [contextStorageKey, sessionStorageKey, upsertConversation]);
 
   const selectConversationFromContract = useCallback((id: string) => {
     const conversation = conversations.find((item) => item.id === id);
@@ -489,6 +542,7 @@ function AppInner() {
         sessionId={sessionId}
         onOpenChat={() => switchView("chat")}
         onResetReportContext={resetReportContext}
+        onRemoveConversation={removeReportConversation}
         onOpenReportChat={openReportChat}
         onReportReady={handleReportReady}
         conversations={conversations}
@@ -512,6 +566,7 @@ function AppInner() {
       conversations={conversations}
       onConversationsChange={(updater) => setConversations(updater)}
       onConversationSelect={openConversation}
+      onReportUnavailable={removeReportConversation}
     />
   );
 }

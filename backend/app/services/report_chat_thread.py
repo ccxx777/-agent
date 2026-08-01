@@ -1,8 +1,7 @@
-"""合同报告问答的 LangGraph thread 标识。
+"""旧版本合同报告 thread 标识的兼容映射。
 
-普通对话使用用户会话 UUID；报告问答必须使用报告级 thread，避免同一普通
-session 中的多份合同共享 checkpoint。该函数只做稳定的命名空间映射，不创建
-数据库或图客户端。
+当前合同问答与普通文字问答统一使用 ``session_id``。该函数只用于读取和清理
+迁移前已经创建的 ``contract-review:<review_id>`` checkpoint，不再用于新请求。
 """
 
 from __future__ import annotations

@@ -17,7 +17,7 @@
 | [`contract-fact-extraction-flow.png`](contract-fact-extraction-flow.png) | 事实提取内部步骤、状态门禁、冲突检测和结果持久化 | 详细流程 |
 | [`contract-fact-confirmation-flow.png`](contract-fact-confirmation-flow.png) | 五类用户动作、证据复核、有效事实快照、revision 和审计门禁 | 已实现基础模块 |
 | [`user-registration-tenant-isolation.png`](user-registration-tenant-isolation.png) | 用户注册、JWT 身份解析、user_id 作用域与当前租户能力边界 | 当前认证与隔离 |
-| [`chat-route-data-flow.png`](chat-route-data-flow.png) | 合同上传、报告专属问答和直接聊天三条线路，以及“工资是多少”当前无法回答的上下文断点 | 当前对话数据流 |
+| [`chat-route-data-flow.png`](chat-route-data-flow.png) | 统一 session 中的文字提问、合同上传/审查和合同追问数据流 | 当前对话数据流 |
 | [`api/backend.md`](api/backend.md) | Backend、RAG 和合同上传 API | 当前 API |
 | [`self-developed-retrieval-algorithm.md`](self-developed-retrieval-algorithm.md) | L1/L2/L3 Cascade Funnel 的设计和边界 | 当前 v2 |
 | [`retrieval-v2-migration.md`](retrieval-v2-migration.md) | Qdrant 升级、离线迁移、门禁和回滚 | 已执行，可复用 |
@@ -53,9 +53,9 @@
 
 当前认证模型是“每个账号一个个人空间”：`user_id` 来自 JWT，并贯穿合同、报告和会话访问检查；法律 RAG 语料是共享知识库。组织级 `tenant_id`、成员角色、跨用户共享和数据库 RLS 尚未实现，不能把当前能力描述成完整的企业 SaaS 多租户。
 
-![合同审查、报告问答与通用聊天数据流](chat-route-data-flow.png)
+![文字聊天、合同上传与合同上下文问答统一数据流](chat-route-data-flow.png)
 
-这张图按当前代码区分三条线路：合同上传会经过解析、事实确认和审查 Workflow；点击“针对报告提问”会绑定 `review_id`，读取报告摘要后进入独立的报告 thread；直接聊天只使用普通/法律知识库检索，不会自动读取私有合同。当前报告问答的 `_report_context` 只拼接风险发现、法律依据和待确认问题，没有读取已确认事实的 `effective_value`，因此像“工资是多少”这类事实问题可能被错误拒答。下一步应在保留 `user_id`、`review_id` 归属校验的前提下，补充报告事实查询上下文。
+这张图按当前代码区分三类入口，但它们最终共享同一个 `session_id`：合同上传完成解析、事实确认和审查 Workflow 后，会把脱敏正文、结构化事实 JSON 和风险报告 JSON 作为 `contract_context` 写入该会话；用户可以先文字提问，再上传合同后继续追问，也可以直接从合同页面进入问答。合同问答需要法律依据时才调用治理后的法律 RAG，不把私有合同写入共享知识库。没有合同绑定时，直接聊天仍只使用普通/法律知识库检索。
 
 ![合同审查 Workflow v0.1](contract-review-workflow.png)
 

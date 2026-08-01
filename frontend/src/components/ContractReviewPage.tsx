@@ -26,6 +26,7 @@ type ContractStage = "upload" | "processing" | "confirmation" | "report";
 interface ContractReviewPageProps {
   onOpenChat: () => void;
   onResetReportContext: () => void;
+  onRemoveConversation: (reviewId: string) => void;
   onOpenReportChat: (reviewId: string, sessionId: string) => void;
   onReportReady: (report: {
     review_id: string;
@@ -398,6 +399,7 @@ function FactCard({
 export function ContractReviewPage({
   onOpenChat,
   onResetReportContext,
+  onRemoveConversation,
   onOpenReportChat,
   onReportReady,
   conversations,
@@ -438,7 +440,8 @@ export function ContractReviewPage({
     setNotice(message);
     setError(null);
     onResetReportContext();
-  }, [onResetReportContext, reviewStorageKey]);
+    if (reviewId) onRemoveConversation(reviewId);
+  }, [onRemoveConversation, onResetReportContext, reviewId, reviewStorageKey]);
 
   const groupedFacts = useMemo(() => {
     if (!confirmation) return [] as [string, FactConfirmationView[]][];

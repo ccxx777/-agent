@@ -29,6 +29,9 @@ CREATE TABLE IF NOT EXISTS sessions (
     session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES user_profiles(user_id) ON DELETE CASCADE,
     title TEXT,
+    -- 1=scope 标签已验证；2=旧合同消息存在无标签历史，模型输入需隔离。
+    conversation_scope_version SMALLINT NOT NULL DEFAULT 1,
+    has_contract_context BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );

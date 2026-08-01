@@ -25,13 +25,30 @@ from app.services.retrieval_service import RetrievalService
 logger = logging.getLogger(__name__)
 
 
+def _message_scope(state: AgentState) -> str:
+    review_id = state.get("active_review_id", "")
+    if state.get("conversation_mode") == "contract_review" and review_id:
+        return f"contract:{review_id}"
+    return state.get("conversation_mode", "general")
+
+
+def _tag_tool_message(message: Any, scope: str) -> Any:
+    additional_kwargs = dict(getattr(message, "additional_kwargs", {}) or {})
+    additional_kwargs["conversation_scope"] = scope
+    if hasattr(message, "model_copy"):
+        return message.model_copy(update={"additional_kwargs": additional_kwargs})
+    return message
+
+
 class ModeAwareToolNode:
     """在工具真正执行前按会话模式做服务端 allowlist 校验。"""
 
     _ALLOWED_TOOLS: ClassVar[dict[str, set[str]]] = {
         "general": {"search_knowledge_base"},
         "legal": {"search_legal_knowledge_base"},
-        "contract_review": set(),
+        # 合同问答可以读取已注入的私有上下文；需要法律依据时允许调用
+        # 已治理的法律资料库，但仍禁止通用知识库混入合同回答。
+        "contract_review": {"search_legal_knowledge_base"},
     }
 
     def __init__(self, tools: list[Any]) -> None:
@@ -40,6 +57,7 @@ class ModeAwareToolNode:
     async def __call__(self, state: AgentState) -> dict[str, Any]:
         mode = state.get("conversation_mode", "general")
         allowed = self._ALLOWED_TOOLS.get(mode, self._ALLOWED_TOOLS["general"])
+        scope = _message_scope(state)
         last_message = state["messages"][-1]
         calls = getattr(last_message, "tool_calls", []) or []
         blocked = [call for call in calls if call.get("name") not in allowed]
@@ -61,11 +79,16 @@ class ModeAwareToolNode:
                             ensure_ascii=False,
                         ),
                         tool_call_id=str(call.get("id") or "blocked-tool"),
+                        additional_kwargs={"conversation_scope": scope},
                     )
                     for call in calls
                 ]
             }
-        return await self._tool_node.ainvoke(state)
+        result = await self._tool_node.ainvoke(state)
+        return {
+            **result,
+            "messages": [_tag_tool_message(message, scope) for message in result.get("messages", [])],
+        }
 
 
 def _route_after_chat(state: AgentState) -> str:

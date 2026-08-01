@@ -30,8 +30,9 @@ class ContractReviewRepository:
         async with self._pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
             await cur.execute(
                 """
-                INSERT INTO sessions (session_id, user_id, title)
-                VALUES (%s, %s, %s)
+                INSERT INTO sessions
+                    (session_id, user_id, title, conversation_scope_version, has_contract_context)
+                VALUES (%s, %s, %s, 1, FALSE)
                 ON CONFLICT (session_id) DO NOTHING
                 """,
                 (session_id, user_id, "合同审查会话"),
@@ -55,10 +56,59 @@ class ContractReviewRepository:
             row = await cur.fetchone()
             return str(row[0]) if row else None
 
+    async def get_conversation_scope_state(
+        self,
+        session_id: str,
+        user_id: str,
+    ) -> dict[str, Any] | None:
+        """读取统一会话的 scope 迁移状态；调用前已完成会话归属校验。"""
+
+        async with self._pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT conversation_scope_version, has_contract_context
+                FROM sessions
+                WHERE session_id = %s AND user_id = %s
+                """,
+                (session_id, user_id),
+            )
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+    async def mark_conversation_scope_state(
+        self,
+        session_id: str,
+        user_id: str,
+        version: int,
+    ) -> None:
+        """持久化一次性 scope 迁移结果，避免每轮扫描 checkpoint。"""
+
+        if version not in (1, 2):
+            raise ValueError("conversation scope version must be 1 or 2")
+        async with self._pool.connection() as conn, conn.cursor() as cur:
+            await cur.execute(
+                """
+                UPDATE sessions
+                SET conversation_scope_version = %s,
+                    updated_at = NOW()
+                WHERE session_id = %s AND user_id = %s
+                """,
+                (version, session_id, user_id),
+            )
+
     async def create_task(self, record: dict[str, Any]) -> None:
         if record.get("session_id"):
             await self.ensure_session(str(record["session_id"]), str(record["user_id"]))
         async with self._pool.connection() as conn, conn.cursor() as cur:
+            if record.get("session_id"):
+                await cur.execute(
+                    """
+                    UPDATE sessions
+                    SET has_contract_context = TRUE, updated_at = NOW()
+                    WHERE session_id = %s AND user_id = %s
+                    """,
+                    (record["session_id"], record["user_id"]),
+                )
             await cur.execute(
                 """
                     INSERT INTO contract_review_tasks

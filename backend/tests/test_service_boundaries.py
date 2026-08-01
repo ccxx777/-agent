@@ -16,7 +16,7 @@ from app.services.chat_service import (
 )
 from app.services.retrieval_service import RetrievalService
 from app.services.session_service import SessionService
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 
 class _FakeEmbeddingClient:
@@ -121,7 +121,13 @@ class ServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(answer, "answer")
         graph.ainvoke.assert_awaited_once_with(
-            {"messages": [unittest.mock.ANY]},
+            {
+                "messages": [unittest.mock.ANY],
+                "conversation_mode": "general",
+                "active_review_id": "",
+                "contract_context": "",
+                "report_context": "",
+            },
             {"configurable": {"thread_id": "session", "user_id": "user"}},
         )
 
@@ -170,12 +176,151 @@ class ServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
             "00000000-0000-0000-0000-000000000002",
         )
 
+    async def test_chat_service_marks_legacy_contract_checkpoint_after_ownership_check(self):
+        graph = SimpleNamespace(
+            ainvoke=AsyncMock(return_value={"messages": [AIMessage(content="answer")]}),
+            aget_state=AsyncMock(
+                return_value=SimpleNamespace(
+                    values={
+                        "conversation_mode": "contract_review",
+                        "active_review_id": "old-review",
+                        "contract_context": "旧合同正文",
+                    }
+                )
+            ),
+        )
+        repository = SimpleNamespace(ensure_session=AsyncMock())
+        service = ChatService(graph, repository)
+        session_id = "00000000-0000-0000-0000-000000000001"
+        user_id = "00000000-0000-0000-0000-000000000002"
+
+        await service.ask(query="现在的问题", session_id=session_id, user_id=user_id)
+
+        repository.ensure_session.assert_awaited_once_with(session_id, user_id)
+        graph.aget_state.assert_awaited_once_with({"configurable": {"thread_id": session_id}})
+        self.assertTrue(graph.ainvoke.await_args.args[0]["legacy_unscoped_messages"])
+
+    async def test_chat_service_marks_cleared_legacy_contract_history_by_message_scope(self):
+        graph = SimpleNamespace(
+            ainvoke=AsyncMock(return_value={"messages": [AIMessage(content="answer")]}),
+            aget_state=AsyncMock(
+                return_value=SimpleNamespace(
+                    values={
+                        "conversation_mode": "general",
+                        "active_review_id": "",
+                        "contract_context": "",
+                        "report_context": "",
+                        "messages": [HumanMessage(content="旧合同工资为 5000 元")],
+                    }
+                )
+            ),
+        )
+        repository = SimpleNamespace(ensure_session=AsyncMock())
+        service = ChatService(graph, repository)
+        session_id = "00000000-0000-0000-0000-000000000001"
+        user_id = "00000000-0000-0000-0000-000000000002"
+
+        await service.ask(query="升级后的普通问题", session_id=session_id, user_id=user_id)
+
+        self.assertTrue(graph.ainvoke.await_args.args[0]["legacy_unscoped_messages"])
+
+    async def test_chat_service_uses_persisted_scope_decision_without_scanning(self):
+        graph = SimpleNamespace(
+            ainvoke=AsyncMock(return_value={"messages": [AIMessage(content="answer")]}),
+            aget_state=AsyncMock(),
+        )
+        repository = SimpleNamespace(
+            ensure_session=AsyncMock(),
+            get_conversation_scope_state=AsyncMock(
+                return_value={"conversation_scope_version": 2, "has_contract_context": True}
+            ),
+            mark_conversation_scope_state=AsyncMock(),
+        )
+        service = ChatService(graph, repository)
+        session_id = "00000000-0000-0000-0000-000000000001"
+        user_id = "00000000-0000-0000-0000-000000000002"
+
+        await service.ask(query="旧合同问题", session_id=session_id, user_id=user_id)
+
+        graph.aget_state.assert_not_awaited()
+        repository.mark_conversation_scope_state.assert_not_awaited()
+        self.assertTrue(graph.ainvoke.await_args.args[0]["legacy_unscoped_messages"])
+
+    async def test_chat_service_keeps_legacy_general_memory_when_no_contract_history(self):
+        graph = SimpleNamespace(
+            ainvoke=AsyncMock(return_value={"messages": [AIMessage(content="answer")]}),
+            aget_state=AsyncMock(),
+        )
+        repository = SimpleNamespace(
+            ensure_session=AsyncMock(),
+            get_conversation_scope_state=AsyncMock(
+                return_value={"conversation_scope_version": None, "has_contract_context": False}
+            ),
+            mark_conversation_scope_state=AsyncMock(),
+        )
+        service = ChatService(graph, repository)
+        session_id = "00000000-0000-0000-0000-000000000001"
+        user_id = "00000000-0000-0000-0000-000000000002"
+
+        await service.ask(query="旧普通问题", session_id=session_id, user_id=user_id)
+
+        graph.aget_state.assert_not_awaited()
+        repository.mark_conversation_scope_state.assert_awaited_once_with(session_id, user_id, 1)
+        self.assertNotIn("legacy_unscoped_messages", graph.ainvoke.await_args.args[0])
+
+    async def test_chat_service_isolates_deleted_contract_history_after_conservative_migration(self):
+        graph = SimpleNamespace(
+            ainvoke=AsyncMock(return_value={"messages": [AIMessage(content="answer")]}),
+            aget_state=AsyncMock(
+                return_value=SimpleNamespace(
+                    values={
+                        "conversation_mode": "general",
+                        "active_review_id": "",
+                        "contract_context": "",
+                        "messages": [HumanMessage(content="已删除合同中的工资")],
+                    }
+                )
+            ),
+        )
+        repository = SimpleNamespace(
+            ensure_session=AsyncMock(),
+            get_conversation_scope_state=AsyncMock(
+                return_value={"conversation_scope_version": None, "has_contract_context": True}
+            ),
+            mark_conversation_scope_state=AsyncMock(),
+        )
+        service = ChatService(graph, repository)
+        session_id = "00000000-0000-0000-0000-000000000001"
+        user_id = "00000000-0000-0000-0000-000000000002"
+
+        await service.ask(query="删除合同后的普通问题", session_id=session_id, user_id=user_id)
+
+        self.assertTrue(graph.ainvoke.await_args.args[0]["legacy_unscoped_messages"])
+        repository.mark_conversation_scope_state.assert_awaited_once_with(session_id, user_id, 2)
+
     async def test_chat_service_binds_report_context_to_same_session(self):
         graph = SimpleNamespace(
             ainvoke=AsyncMock(return_value={"messages": [AIMessage(content="answer")]}),
         )
         repository = SimpleNamespace(
             ensure_session=AsyncMock(),
+            get_task=AsyncMock(
+                return_value={
+                    "review_id": "review-1",
+                    "session_id": "00000000-0000-0000-0000-000000000001",
+                    "filename": "劳动合同.doc",
+                    "status": "needs_confirmation",
+                    "extraction_status": "needs_confirmation",
+                    "confirmation_status": "completed",
+                    "pages": [{"page_no": 1, "text": "月工资 8000 元。"}],
+                    "extraction_result": {
+                        "facts": [{"field_key": "salary", "value": "8000 元"}],
+                    },
+                    "confirmation_result": {
+                        "facts": [{"field_key": "salary", "effective_value": "8000 元"}],
+                    },
+                }
+            ),
             get_report=AsyncMock(
                 return_value={
                     "session_id": "00000000-0000-0000-0000-000000000001",
@@ -203,14 +348,74 @@ class ServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
         input_state = graph.ainvoke.await_args.args[0]
         self.assertEqual(input_state["conversation_mode"], "contract_review")
         self.assertEqual(input_state["active_review_id"], "review-1")
-        self.assertIn("labor_contract_national", input_state["report_context"])
+        self.assertEqual(input_state["summary"], "")
+        self.assertIn("月工资 8000 元", input_state["contract_context"])
+        self.assertIn('"effective_value": "8000 元"', input_state["contract_context"])
+        self.assertIn("labor_contract_national", input_state["contract_context"])
         self.assertEqual(
             graph.ainvoke.await_args.args[1]["configurable"]["thread_id"],
-            "contract-review:review-1",
+            "00000000-0000-0000-0000-000000000001",
+        )
+        repository.get_task.assert_awaited_once_with(
+            "review-1", "00000000-0000-0000-0000-000000000002"
         )
         repository.get_report.assert_awaited_once_with(
             "review-1", "00000000-0000-0000-0000-000000000002"
         )
+
+    async def test_chat_service_reuses_session_before_and_after_contract_upload(self):
+        graph = SimpleNamespace(
+            ainvoke=AsyncMock(return_value={"messages": [AIMessage(content="answer")]}),
+        )
+        repository = SimpleNamespace(
+            ensure_session=AsyncMock(),
+            get_task=AsyncMock(
+                return_value={
+                    "review_id": "review-1",
+                    "session_id": "00000000-0000-0000-0000-000000000001",
+                    "pages": [{"page_no": 1, "text": "工资为 8000 元。"}],
+                    "extraction_result": {"facts": []},
+                }
+            ),
+        )
+        service = ChatService(graph, repository)
+        session_id = "00000000-0000-0000-0000-000000000001"
+        user_id = "00000000-0000-0000-0000-000000000002"
+
+        await service.ask(
+            query="劳动合同需要约定哪些内容？",
+            session_id=session_id,
+            user_id=user_id,
+        )
+        await service.ask(
+            query="这份合同写的工资是多少？",
+            session_id=session_id,
+            user_id=user_id,
+            review_id="review-1",
+        )
+        await service.ask(
+            query="再给我讲一个通用的统计学概念。",
+            session_id=session_id,
+            user_id=user_id,
+        )
+
+        self.assertEqual(
+            [call.args[1]["configurable"]["thread_id"] for call in graph.ainvoke.await_args_list],
+            [session_id, session_id, session_id],
+        )
+        self.assertEqual(
+            [call.args[0]["conversation_mode"] for call in graph.ainvoke.await_args_list],
+            ["general", "contract_review", "general"],
+        )
+        self.assertEqual(graph.ainvoke.await_args_list[0].args[0]["active_review_id"], "")
+        self.assertEqual(graph.ainvoke.await_args_list[1].args[0]["active_review_id"], "review-1")
+        self.assertEqual(graph.ainvoke.await_args_list[2].args[0]["active_review_id"], "")
+        contract_message = graph.ainvoke.await_args_list[1].args[0]["messages"][0]
+        self.assertEqual(
+            contract_message.additional_kwargs["conversation_scope"],
+            "contract:review-1",
+        )
+        self.assertEqual(repository.ensure_session.await_count, 3)
 
     async def test_chat_service_deletes_report_scoped_thread(self):
         checkpointer = SimpleNamespace(adelete_thread=AsyncMock())
@@ -258,6 +463,7 @@ class ServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
         graph = SimpleNamespace(ainvoke=AsyncMock())
         repository = SimpleNamespace(
             ensure_session=AsyncMock(),
+            get_task=AsyncMock(return_value=None),
             get_report=AsyncMock(return_value=None),
         )
         service = ChatService(graph, repository)
@@ -270,9 +476,8 @@ class ServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 mode="contract_review",
             )
 
-        repository.get_report.return_value = {
+        repository.get_task.return_value = {
             "session_id": "00000000-0000-0000-0000-000000000003",
-            "report": {"findings": []},
         }
         with self.assertRaises(ChatReportSessionMismatch):
             await service.invoke(
