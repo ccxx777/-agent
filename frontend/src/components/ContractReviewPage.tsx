@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type DragEvent, type ChangeEvent } from "react";
 import { Sidebar } from "./Sidebar";
+import type { Conversation } from "./Sidebar";
 import { useAuth } from "../contexts/AuthContext";
 import {
   ContractApiError,
@@ -25,6 +26,18 @@ type ContractStage = "upload" | "processing" | "confirmation" | "report";
 interface ContractReviewPageProps {
   onOpenChat: () => void;
   onOpenReportChat: (reviewId: string, sessionId: string) => void;
+  onReportReady: (report: {
+    review_id: string;
+    session_id?: string | null;
+    filename?: string;
+    generated_at?: string;
+    updated_at?: string | null;
+    created_at?: string | null;
+  }) => void;
+  conversations: Conversation[];
+  activeConversationId: string | null;
+  onSelectConversation: (id: string) => void;
+  onNewConversation: () => void;
   sessionId: string;
 }
 
@@ -316,7 +329,16 @@ function FactCard({
   );
 }
 
-export function ContractReviewPage({ onOpenChat, onOpenReportChat, sessionId }: ContractReviewPageProps) {
+export function ContractReviewPage({
+  onOpenChat,
+  onOpenReportChat,
+  onReportReady,
+  conversations,
+  activeConversationId,
+  onSelectConversation,
+  onNewConversation,
+  sessionId,
+}: ContractReviewPageProps) {
   const { token } = useAuth();
   const [reviewId, setReviewId] = useState<string | null>(() => localStorage.getItem(REVIEW_ID_KEY));
   const [review, setReview] = useState<ContractReviewDetail | null>(null);
@@ -382,6 +404,14 @@ export function ContractReviewPage({ onOpenChat, onOpenReportChat, sessionId }: 
           if (!stopped) {
             setReport(persistedReport);
             setStage("report");
+            onReportReady({
+              review_id: persistedReport.review_id,
+              session_id: persistedReport.session_id ?? latest.session_id,
+              filename: latest.filename,
+              generated_at: persistedReport.generated_at,
+              updated_at: latest.updated_at,
+              created_at: latest.created_at,
+            });
           }
           return;
         } catch (reportError) {
@@ -410,7 +440,7 @@ export function ContractReviewPage({ onOpenChat, onOpenReportChat, sessionId }: 
       stopped = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [loadConfirmation, reviewId, token]);
+  }, [loadConfirmation, onReportReady, reviewId, token]);
 
   const beginUpload = useCallback(async (file: File) => {
     if (!token) return;
@@ -538,6 +568,14 @@ export function ContractReviewPage({ onOpenChat, onOpenReportChat, sessionId }: 
       const response = await runContractWorkflow(token, reviewId);
       setReport(response.report);
       setStage("report");
+      onReportReady({
+        review_id: response.report.review_id,
+        session_id: response.report.session_id ?? review?.session_id,
+        filename: review?.filename,
+        generated_at: response.report.generated_at,
+        updated_at: review?.updated_at,
+        created_at: review?.created_at,
+      });
     } catch (workflowError) {
       setError(errorMessage(workflowError));
     } finally {
@@ -589,10 +627,10 @@ export function ContractReviewPage({ onOpenChat, onOpenReportChat, sessionId }: 
   return (
     <div className="flex h-screen min-h-[680px] bg-[var(--color-background)] text-[var(--color-text)]">
       <Sidebar
-        conversations={[]}
-        activeId={null}
-        onSelect={() => undefined}
-        onNew={onOpenChat}
+        conversations={conversations}
+        activeId={activeConversationId}
+        onSelect={onSelectConversation}
+        onNew={onNewConversation}
         activeView="contract"
         onOpenContract={() => undefined}
       />

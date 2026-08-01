@@ -1,8 +1,12 @@
 import { useAuth } from "../contexts/AuthContext";
 
-interface Conversation {
+export interface Conversation {
   id: string;
   title: string;
+  kind?: "chat" | "report";
+  reviewId?: string;
+  sessionId?: string;
+  updatedAt?: string;
 }
 
 interface Props {
@@ -57,8 +61,11 @@ export function Sidebar({
             onClick={() => onSelect(conversation.id)}
             className={`sidebar-nav-item ${conversation.id === activeId ? "active" : ""}`}
           >
-            <span className="sidebar-nav-icon" aria-hidden="true">◌</span>
+            <span className={`sidebar-nav-icon ${conversation.kind === "report" ? "report-icon" : ""}`} aria-hidden="true">
+              {conversation.kind === "report" ? "▣" : "◉"}
+            </span>
             <span className="truncate">{conversation.title}</span>
+            {conversation.kind === "report" && <span className="sidebar-report-badge">报告</span>}
           </button>
         ))}
         {conversations.length === 0 && <p className="sidebar-empty">暂无对话</p>}

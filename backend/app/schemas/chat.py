@@ -66,3 +66,9 @@ class SessionReviewsResponse(BaseModel):
 
     session_id: str
     reviews: list[SessionReviewSummary] = Field(default_factory=list)
+
+
+class ContractReviewHistoryResponse(BaseModel):
+    """当前用户可见的合同审查历史，供前端恢复最近报告会话。"""
+
+    reviews: list[SessionReviewSummary] = Field(default_factory=list)

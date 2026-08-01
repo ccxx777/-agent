@@ -377,6 +377,43 @@ class ContractReviewRepository:
             )
             return [dict(row) for row in await cur.fetchall()]
 
+    async def list_user_reviews(
+        self,
+        user_id: str,
+        *,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """列出当前用户仍在留存期内的合同审查任务及报告标识。
+
+        该查询不返回合同原文、事实值或证据，只返回用于最近对话导航的最小元数据。
+        ``limit`` 在仓储层再次约束，避免调用方意外请求过大的历史列表。
+        """
+
+        safe_limit = max(1, min(limit, 100))
+        async with self._pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT t.review_id, t.session_id, t.filename, t.status,
+                       t.confirmation_status, t.created_at,
+                       r.report_id, r.report_version
+                FROM contract_review_tasks t
+                LEFT JOIN LATERAL (
+                    SELECT report_id, report_version
+                    FROM contract_review_reports
+                    WHERE review_id = t.review_id
+                    ORDER BY report_version DESC
+                    LIMIT 1
+                ) r ON TRUE
+                WHERE t.user_id = %s
+                  AND t.deleted_at IS NULL
+                  AND COALESCE(t.expires_at, t.created_at + INTERVAL '7 days') > NOW()
+                ORDER BY t.created_at DESC
+                LIMIT %s
+                """,
+                (user_id, safe_limit),
+            )
+            return [dict(row) for row in await cur.fetchall()]
+
     async def get_confirmation_request(
         self,
         review_id: str,

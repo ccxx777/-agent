@@ -92,7 +92,7 @@ export function useChatStream(
     setMessages(initialMessages);
     setIsStreaming(false);
     abortRef.current?.abort();
-  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialMessages, sessionId]);
 
   const sendMessage = useCallback(
     async (text: string) => {

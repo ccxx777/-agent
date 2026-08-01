@@ -22,6 +22,7 @@ from app.schemas.contract_confirmation import (
     ContractConfirmationResponse,
     FactConfirmationRequest,
 )
+from app.schemas.chat import ContractReviewHistoryResponse, SessionReviewSummary
 from app.schemas.contract_review import ContractReviewDetail, ContractReviewSummary
 from app.schemas.contract_review_workflow import (
     ContractReviewReport,
@@ -49,6 +50,20 @@ def create_contract_review_router(
     workflow_service: ContractReviewWorkflowService | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/contract-reviews", tags=["Contract Reviews"])
+
+    @router.get("/history", response_model=ContractReviewHistoryResponse)
+    async def get_contract_review_history(
+        user: dict = Depends(get_current_user),  # noqa: B008 - FastAPI dependency declaration
+    ) -> ContractReviewHistoryResponse:
+        """返回当前用户可恢复的合同审查会话元数据。"""
+
+        repository = getattr(service, "repository", None)
+        if repository is None or not hasattr(repository, "list_user_reviews"):
+            raise HTTPException(status_code=503, detail="合同审查历史暂不可用")
+        reviews = await repository.list_user_reviews(user["user_id"], limit=50)
+        return ContractReviewHistoryResponse(
+            reviews=[SessionReviewSummary.model_validate(review) for review in reviews],
+        )
 
     @router.post("", response_model=ContractReviewSummary, status_code=202)
     async def upload_contract(

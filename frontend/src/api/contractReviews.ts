@@ -100,6 +100,21 @@ export interface ContractReviewSummary {
   updated_at: string | null;
 }
 
+export interface ContractReviewHistoryItem {
+  review_id: string;
+  session_id: string | null;
+  filename: string;
+  status: string;
+  confirmation_status: string;
+  report_id: string | null;
+  report_version: number | null;
+  created_at: string | null;
+}
+
+export interface ContractReviewHistoryResponse {
+  reviews: ContractReviewHistoryItem[];
+}
+
 export interface ContractExtractionResult {
   extraction_mode?: "single" | "batch" | string;
   clauses?: unknown[];
@@ -295,6 +310,10 @@ export async function deleteContractReview(token: string, reviewId: string): Pro
 
 export function getContractReview(token: string, reviewId: string): Promise<ContractReviewDetail> {
   return request<ContractReviewDetail>(token, `/api/contract-reviews/${encodeURIComponent(reviewId)}`);
+}
+
+export function getContractReviewHistory(token: string): Promise<ContractReviewHistoryResponse> {
+  return request<ContractReviewHistoryResponse>(token, "/api/contract-reviews/history");
 }
 
 export function getContractConfirmation(
