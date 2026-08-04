@@ -8,6 +8,7 @@ import zipfile
 from pathlib import Path
 
 from app.infrastructure.contract_document import ContractDocumentParser
+from app.infrastructure.contract_ocr import ContractOCRUnavailable
 from app.infrastructure.contract_pdf import PDFInspection, PDFPageInspection
 from app.infrastructure.contract_storage import PrivateContractStorage
 from app.services.contract_review_service import ContractReviewService
@@ -40,6 +41,21 @@ class _FakeParser:
 
 class _FakeOCR:
     enabled = False
+
+
+class _FailingOCR:
+    enabled = True
+
+    async def extract(self, image_bytes: bytes) -> str:
+        raise ContractOCRUnavailable("provider returned HTTP 500")
+
+
+class _OCRParser(_FakeParser):
+    def supports_ocr(self, path: str | Path) -> bool:
+        return True
+
+    def render_page(self, path: str | Path, page_no: int) -> bytes:
+        return b"rendered-page"
 
 
 class _PurgeRepository:
@@ -210,6 +226,42 @@ class ContractReviewServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(repository.tasks[summary.review_id]["status"], "needs_confirmation")
         self.assertEqual(repository.tasks[summary.review_id]["quality"]["suspicious_pages"], [1])
+
+    async def test_ocr_failure_still_records_external_image_attempt(self):
+        inspection = PDFInspection(
+            page_count=1,
+            pages=(
+                PDFPageInspection(
+                    page_no=1,
+                    mode="scanned",
+                    text="",
+                    image_area_ratio=0.9,
+                    quality_flags=("ocr_candidate",),
+                ),
+            ),
+        )
+        repository = _FakeRepository()
+        with tempfile.TemporaryDirectory() as directory:
+            service = ContractReviewService(
+                repository,
+                PrivateContractStorage(directory),
+                _OCRParser(inspection),
+                _FailingOCR(),
+                max_upload_bytes=1024 * 1024,
+                max_pages=10,
+            )
+            summary = await service.create_review(
+                user_id="00000000-0000-0000-0000-000000000001",
+                filename="scan.pdf",
+                content_type="application/pdf",
+                content=b"%PDF-fake",
+            )
+            await service.process_review(
+                summary.review_id,
+                storage_path=service.storage.path_for(summary.review_id),
+            )
+
+        self.assertTrue(repository.tasks[summary.review_id]["privacy"]["external_raw_image_sent"])
 
     async def test_expired_cleanup_keeps_retry_record_when_file_delete_fails(self):
         repository = _PurgeRepository()

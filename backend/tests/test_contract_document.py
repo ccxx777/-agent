@@ -40,6 +40,28 @@ class ContractDocumentParserTests(unittest.TestCase):
         self.assertIn("甲方 | 乙方", inspection.pages[0].text)
         self.assertIn("format_page_boundary_unavailable", inspection.pages[0].quality_flags)
 
+    def test_extracts_strict_ooxml_docx(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+        <w:document xmlns:w="http://purl.oclc.org/ooxml/wordprocessingml/main">
+          <w:body>
+            <w:p><w:r><w:t>Strict OOXML paragraph</w:t></w:r></w:p>
+            <w:tbl>
+              <w:tr><w:tc><w:p><w:r><w:t>Strict A</w:t></w:r></w:p></w:tc>
+              <w:tc><w:p><w:r><w:t>Strict B</w:t></w:r></w:p></w:tc></w:tr>
+            </w:tbl>
+          </w:body>
+        </w:document>"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "strict-contract.docx"
+            with zipfile.ZipFile(path, "w") as archive:
+                archive.writestr("word/document.xml", xml)
+
+            inspection = ContractDocumentParser().inspect(path)
+
+        self.assertEqual(inspection.pages[0].mode, "native")
+        self.assertIn("Strict OOXML paragraph", inspection.pages[0].text)
+        self.assertIn("Strict A | Strict B", inspection.pages[0].text)
+
     def test_extracts_legacy_doc_with_antiword(self):
         result = SimpleNamespace(stdout=b"first page\fsecond page\f")
         with tempfile.TemporaryDirectory() as directory:

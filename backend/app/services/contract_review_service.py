@@ -184,8 +184,13 @@ class ContractReviewService:
                             image_bytes = await asyncio.to_thread(
                                 self.parser.render_page, storage_path, page_no
                             )
-                            text_from_ocr = await self.ocr_client.extract(image_bytes)
+                            # The privacy flag records that an external OCR request was
+                            # attempted, not merely that the provider returned usable text.
+                            # This must remain true for HTTP errors, timeouts, and malformed
+                            # responses because the raw page image was already prepared for
+                            # the external provider at this point.
                             external_raw_image_sent = True
+                            text_from_ocr = await self.ocr_client.extract(image_bytes)
                             ocr_used = True
                             ocr_pages += 1
                             if inspected_page.mode == "hybrid" and text.strip():

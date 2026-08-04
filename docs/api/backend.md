@@ -100,9 +100,9 @@ curl -X POST http://127.0.0.1:8000/api/contract-reviews \
 
 - 支持 `.pdf`、`.doc`、`.docx`，大小不超过 20 MB，页数不超过 50 页。
 - PDF 会校验 `%PDF-` 文件头，不能只相信扩展名。
-- DOCX 读取正文和表格；DOC 通过容器内 `antiword` 提取文本。
+- DOCX 读取正文和表格，兼容 Transitional 与 Strict OOXML 命名空间；DOC 通过容器内 `antiword` 提取文本。
 - Word 文档不能稳定恢复原始分页、页眉页脚和浮动文本框，可能产生 `format_page_boundary_unavailable` 质量标记。
-- 扫描 PDF 的 OCR 默认关闭；启用后，外部 OCR 原图发送会记录在 `privacy.external_raw_image_sent`。
+- 扫描 PDF 的 OCR 默认关闭；启用后，只要尝试把原始页面图片交给外部 OCR，`privacy.external_raw_image_sent` 就记录为 `true`，即使 OCR 请求失败也不会把外发事实记为 `false`。
 
 ### 202 响应示例
 

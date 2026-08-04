@@ -53,6 +53,7 @@ uv run --with httpx python evaluation/contract_upload_api_smoke.py \
   --base-url http://127.0.0.1:8000 \
   --token "$TOKEN" \
   --require-extraction \
+  --allow-external-ocr \
   --privacy-sentinel "测试手机号" \
   --privacy-sentinel "测试身份证号" \
   --expect-redaction phone=1 \
@@ -60,7 +61,7 @@ uv run --with httpx python evaluation/contract_upload_api_smoke.py \
   --output /app/data/contract_upload_api_smoke.json
 ```
 
-`--privacy-sentinel` 必须替换为测试样本中实际出现的敏感值；脚本不会在结果中回显这些值。如果三份样本的敏感字段数量不同，不要使用全局 `--expect-redaction`，改为分别运行脚本，或先统一测试样本的脱敏字段。
+`--privacy-sentinel` 必须替换为测试样本中实际出现的敏感值；脚本不会在结果中回显这些值。当前脚本要求 PDF、DOC、DOCX 三种格式在一次运行中同时提供，`--expect-redaction` 是对每种格式统一执行的计数门禁；如果三份样本的敏感字段数量不同，应先统一测试样本，或暂不使用该计数参数。
 
 只有当 Backend 的 `CONTRACT_EXTRACTION_ENABLED=true` 时才添加 `--require-extraction`；如果只验收文件解析、脱敏和迁移 API，可暂时省略该参数。
 
@@ -71,7 +72,7 @@ uv run --with httpx python evaluation/contract_upload_api_smoke.py \
 - 合同历史、会话历史、会话合同列表 API 均可读；
 - API JSON 不包含 `storage_path`、原文等私有字段；
 - 隐私哨兵不出现在任何 API JSON；
-- `external_raw_image_sent` 为 `false`；
+- 默认门禁要求 `external_raw_image_sent=false`。本目录的 PDF 含低文字量页面，会触发已配置的外部 OCR，因此本次样本必须显式使用 `--allow-external-ocr`；结果仍必须如实记录 `external_raw_image_sent=true`。如果产品策略禁止原图外发，应关闭 OCR 或换用所有页面均为原生文字层的 PDF，再去掉该参数；
 - 默认删除 Smoke 任务，并确认删除后查询返回 404。
 
 如果需要保留任务供人工查看，添加 `--keep-reviews`；验收结束后必须手动删除。

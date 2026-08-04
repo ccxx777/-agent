@@ -92,6 +92,9 @@
 ### P0：完成上传模块的服务器验收
 
 - [x] 新增 `evaluation/contract_migration_check.py` 和 `evaluation/contract_upload_api_smoke.py`，覆盖迁移 schema、三种格式、会话/历史/留存和隐私边界；仍需在服务器执行并保留结果。
+- [x] Smoke 在 `--require-extraction` 下等待文件解析与事实提取两个独立状态机都进入终态。
+- [x] DOCX 解析兼容 Transitional/Strict OOXML namespace；OCR 外发审计在请求失败时也保留真实尝试记录。
+- [x] Smoke 的隐私哨兵覆盖合同历史、聊天历史和会话合同列表接口；外部 OCR 必须显式 `--allow-external-ocr`。
 - [ ] 在服务器重建/重启 Backend 后，用真实 PDF、DOC、DOCX 分别上传。
 - [ ] 验证 `queued → extracting → ready` 和异常时的 `failed` 路径。
 - [ ] 验证 DOC 容器内 `antiword` 可执行；若本机 Windows 没有该运行时，先转换为 PDF/DOCX。

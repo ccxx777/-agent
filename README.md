@@ -67,7 +67,7 @@
 ### 当前支持
 
 - **PDF**：使用 PyMuPDF 逐页检查文本层；扫描页或文本覆盖率不足时标记为 `needs_confirmation`，可在配置 OCR 后处理。
-- **DOCX**：读取 OOXML 正文和表格，保留段落顺序。
+- **DOCX**：读取 OOXML 正文和表格，兼容 Transitional 与 Strict 两种命名空间；仍可能产生 `format_page_boundary_unavailable`。
 - **DOC**：通过 `antiword` 提取旧式 Word 文本；Docker 镜像会安装该运行时。若本机没有可用的 `antiword`，应先转换为 PDF 或 DOCX。
 - **隐私处理**：进入后续 LLM、Embedding、Reranker 和日志前，脱敏身份证号、手机号、银行卡号，并清理零宽字符等不可见字符。
 - **任务状态**：`queued → extracting → ready / needs_confirmation / failed`。任务和结果写入 PostgreSQL，原始文件保存在私有目录，不进入公共 Qdrant 语料库。
@@ -298,7 +298,8 @@ uv run --with httpx python evaluation/contract_upload_api_smoke.py \
   --file doc=/root/my-ai-research/test_contract/劳动合同.doc \
   --file docx=/root/my-ai-research/test_contract/劳动合同.docx \
   --base-url http://127.0.0.1:8000 --token "$TOKEN" \
-  --require-extraction --output data/contract_upload_api_smoke.json
+  --require-extraction --allow-external-ocr \
+  --output data/contract_upload_api_smoke.json
 ```
 
 完整前置检查、隐私哨兵和失败诊断见 [`docs/contract-server-acceptance.md`](docs/contract-server-acceptance.md)。

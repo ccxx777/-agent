@@ -32,38 +32,54 @@ DOC_SUFFIX = ".doc"
 PDF_SUFFIX = ".pdf"
 
 _WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+_STRICT_WORD_NS = "http://purl.oclc.org/ooxml/wordprocessingml/main"
+_SUPPORTED_WORD_NAMESPACES = frozenset({_WORD_NS, _STRICT_WORD_NS})
 MAX_DOCX_XML_BYTES = 10 * 1024 * 1024
 
 
-def _w(name: str) -> str:
-    return f"{{{_WORD_NS}}}{name}"
+def _w(name: str, namespace: str = _WORD_NS) -> str:
+    return f"{{{namespace}}}{name}"
+
+
+def _namespace_from_tag(tag: str) -> str | None:
+    if tag.startswith("{") and "}" in tag:
+        return tag[1 : tag.index("}")]
+    return None
 
 
 class DocumentParseError(PDFParseError):
     """Word 文档无法读取或服务器缺少对应解析组件。"""
 
 
-def _paragraph_text(element: ElementTree.Element) -> str:
+def _paragraph_text(element: ElementTree.Element, namespace: str = _WORD_NS) -> str:
     """提取一个段落中的文字和显式换行。"""
 
     parts: list[str] = []
     for node in element.iter():
-        if node.tag == _w("t"):
+        if node.tag == _w("t", namespace):
             parts.append(node.text or "")
-        elif node.tag in {_w("tab"), _w("br"), _w("cr")}:
-            parts.append("\t" if node.tag == _w("tab") else "\n")
+        elif node.tag in {
+            _w("tab", namespace),
+            _w("br", namespace),
+            _w("cr", namespace),
+        }:
+            parts.append("\t" if node.tag == _w("tab", namespace) else "\n")
     return "".join(parts).strip()
 
 
-def _table_text(element: ElementTree.Element) -> str:
+def _table_text(element: ElementTree.Element, namespace: str = _WORD_NS) -> str:
     """按行列提取 DOCX 表格，避免合同表格内容静默丢失。"""
 
     rows: list[str] = []
-    for row in element.findall(_w("tr")):
+    for row in element.findall(_w("tr", namespace)):
         cells: list[str] = []
-        for cell in row.findall(_w("tc")):
+        for cell in row.findall(_w("tc", namespace)):
             paragraphs = [
-                value for value in (_paragraph_text(p) for p in cell.findall(f".//{_w('p')}"))
+                value
+                for value in (
+                    _paragraph_text(p, namespace)
+                    for p in cell.findall(f".//{_w('p', namespace)}")
+                )
                 if value
             ]
             cells.append("\n".join(paragraphs))
@@ -116,16 +132,20 @@ class ContractDocumentParser:
         except Exception as error:
             raise DocumentParseError("DOCX 文档结构无法读取") from error
 
-        body = root.find(f".//{_w('body')}")
+        namespace = _namespace_from_tag(root.tag)
+        if namespace not in _SUPPORTED_WORD_NAMESPACES:
+            raise DocumentParseError("DOCX 使用了不支持的 OOXML 命名空间")
+
+        body = root.find(f".//{_w('body', namespace)}")
         if body is None:
             raise DocumentParseError("DOCX 文档没有正文内容")
 
         blocks: list[str] = []
         for child in list(body):
-            if child.tag == _w("p"):
-                value = _paragraph_text(child)
-            elif child.tag == _w("tbl"):
-                value = _table_text(child)
+            if child.tag == _w("p", namespace):
+                value = _paragraph_text(child, namespace)
+            elif child.tag == _w("tbl", namespace):
+                value = _table_text(child, namespace)
             else:
                 continue
             if value:

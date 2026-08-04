@@ -71,6 +71,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout-seconds", type=float, default=300.0)
     parser.add_argument("--require-extraction", action="store_true")
     parser.add_argument(
+        "--allow-external-ocr",
+        action="store_true",
+        help="允许扫描页通过外部 OCR 处理；仍会记录 external_raw_image_sent=true",
+    )
+    parser.add_argument(
         "--privacy-sentinel",
         action="append",
         default=[],
@@ -171,12 +176,26 @@ def _find_private_keys(value: Any, path: str = "$") -> list[str]:
     return found
 
 
+def validate_public_payload(value: Any, *, privacy_sentinels: list[str]) -> list[str]:
+    """检查任意 API JSON 的隐私边界，不要求它是合同详情结构。"""
+
+    errors: list[str] = []
+    if _find_private_keys(value):
+        errors.append("public response contains private fields")
+    serialized = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    for index, sentinel in enumerate(privacy_sentinels):
+        if sentinel and sentinel in serialized:
+            errors.append(f"public response contains privacy sentinel #{index + 1}")
+    return errors
+
+
 def validate_public_detail(
     detail: dict[str, Any],
     *,
     privacy_sentinels: list[str],
     expected_redactions: dict[str, int],
     require_extraction: bool,
+    allow_external_ocr: bool = False,
 ) -> list[str]:
     """验证 API 公共响应不越过私有文件和脱敏边界。"""
 
@@ -201,7 +220,10 @@ def validate_public_detail(
     if not isinstance(privacy, dict):
         errors.append("响应缺少 privacy 对象")
     else:
-        if privacy.get("external_raw_image_sent") is not False:
+        external_raw_image_sent = privacy.get("external_raw_image_sent")
+        if not isinstance(external_raw_image_sent, bool):
+            errors.append("external_raw_image_sent 必须是布尔值")
+        elif external_raw_image_sent and not allow_external_ocr:
             errors.append("external_raw_image_sent 必须为 false")
         counts = privacy.get("redaction_counts")
         if not isinstance(counts, dict):
@@ -222,6 +244,22 @@ def validate_public_detail(
     if require_extraction and detail.get("extraction_status") == "failed":
         errors.append("事实提取状态为 failed")
     return errors
+
+
+def review_is_terminal(detail: dict[str, Any], *, require_extraction: bool) -> bool:
+    """判断上传回归是否可以结束轮询。
+
+    文件解析和事实提取是两个独立状态机。启用 ``--require-extraction`` 时，
+    不能在文件状态先进入终态后就提前结束，否则会把合法的 running 状态误判为失败。
+    文件解析失败时可以立即结束，因为事实提取不会再产生可用结果。
+    """
+
+    review_status = detail.get("status")
+    if review_status not in TERMINAL_REVIEW_STATUSES:
+        return False
+    if review_status == "failed" or not require_extraction:
+        return True
+    return detail.get("extraction_status") in TERMINAL_EXTRACTION_STATUSES
 
 
 def _safe_file_result(label: str, detail: dict[str, Any], elapsed: float) -> dict[str, Any]:
@@ -251,8 +289,17 @@ def _safe_file_result(label: str, detail: dict[str, Any], elapsed: float) -> dic
     }
 
 
-def _history_check(client: httpx.Client, base_url: str, headers: dict[str, str]) -> dict[str, Any]:
+def _history_check(
+    client: httpx.Client,
+    base_url: str,
+    headers: dict[str, str],
+    *,
+    privacy_sentinels: list[str],
+) -> dict[str, Any]:
     history = _json_response(client.get(f"{base_url}/api/contract-reviews/history", headers=headers))
+    privacy_errors = validate_public_payload(history, privacy_sentinels=privacy_sentinels)
+    if privacy_errors:
+        raise ContractUploadGateError("contract history privacy boundary failed")
     reviews = history.get("reviews")
     if not isinstance(reviews, list):
         raise ContractUploadGateError("合同历史响应缺少 reviews 数组")
@@ -271,7 +318,12 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
 
     with httpx.Client(timeout=60.0) as client:
         try:
-            history_before = _history_check(client, base_url, headers)
+            history_before = _history_check(
+                client,
+                base_url,
+                headers,
+                privacy_sentinels=args.privacy_sentinel,
+            )
         except ContractUploadGateError as error:
             history_before = {"status": "failed"}
             errors.append(f"迁移 API 回归：合同历史不可用（{error}）")
@@ -299,6 +351,7 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
                     privacy_sentinels=args.privacy_sentinel,
                     expected_redactions={},
                     require_extraction=False,
+                    allow_external_ocr=args.allow_external_ocr,
                 )
                 # 上传瞬间通常还没有 privacy/终态字段，只检查私有字段和哨兵。
                 created_errors = [
@@ -328,6 +381,7 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
                         privacy_sentinels=args.privacy_sentinel,
                         expected_redactions={},
                         require_extraction=False,
+                        allow_external_ocr=args.allow_external_ocr,
                     )
                     boundary_errors = [
                         item
@@ -337,7 +391,7 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
                     ]
                     if boundary_errors:
                         raise ContractUploadGateError("任务查询响应越过隐私边界")
-                    if detail.get("status") in TERMINAL_REVIEW_STATUSES:
+                    if review_is_terminal(detail, require_extraction=args.require_extraction):
                         break
                     time.sleep(max(0.1, args.poll_seconds))
                 else:
@@ -348,6 +402,7 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
                     privacy_sentinels=args.privacy_sentinel,
                     expected_redactions=expected_redactions,
                     require_extraction=args.require_extraction,
+                    allow_external_ocr=args.allow_external_ocr,
                 )
                 if final_errors:
                     raise ContractUploadGateError("；".join(final_errors))
@@ -357,12 +412,22 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
                 created_ids.append((review_id, session_id))
 
                 # 005/007 的真实 API 回归：会话历史与会话绑定合同列表都必须可读。
-                _json_response(
+                chat_history = _json_response(
                     client.get(f"{base_url}/api/chat/history/{session_id}", headers=headers)
                 )
+                if validate_public_payload(
+                    chat_history,
+                    privacy_sentinels=args.privacy_sentinel,
+                ):
+                    raise ContractUploadGateError("chat history privacy boundary failed")
                 session_reviews = _json_response(
                     client.get(f"{base_url}/api/sessions/{session_id}/reviews", headers=headers)
                 )
+                if validate_public_payload(
+                    session_reviews,
+                    privacy_sentinels=args.privacy_sentinel,
+                ):
+                    raise ContractUploadGateError("session reviews privacy boundary failed")
                 if not isinstance(session_reviews.get("reviews"), list):
                     raise ContractUploadGateError("会话合同列表缺少 reviews 数组")
                 file_results.append(
@@ -397,7 +462,12 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
                         errors.append(f"{label} 删除回归失败：{error}")
 
         try:
-            history_after = _history_check(client, base_url, headers)
+            history_after = _history_check(
+                client,
+                base_url,
+                headers,
+                privacy_sentinels=args.privacy_sentinel,
+            )
         except ContractUploadGateError as error:
             history_after = {"status": "failed"}
             errors.append(f"迁移 API 回归：合同历史复查失败（{error}）")
@@ -412,6 +482,7 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
             "history_after": history_after,
             "deletion_checked": not args.keep_reviews,
             "privacy_sentinels_checked": len(args.privacy_sentinel),
+            "external_ocr_allowed": args.allow_external_ocr,
         },
         "files": file_results,
         "elapsed_seconds": round(time.monotonic() - started, 3),
