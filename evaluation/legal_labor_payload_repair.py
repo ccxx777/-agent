@@ -213,9 +213,18 @@ def repair(
             field
             for point in points
             for field in required
-            if field not in (point.get("payload") or {})
+            if field != "article_no"
+            and field not in (point.get("payload") or {})
         }
     )
+    missing_citation_article_no = sum(
+        1
+        for point in points
+        if (point.get("payload") or {}).get("citation_eligible") is True
+        and not (point.get("payload") or {}).get("article_no")
+    )
+    if missing_citation_article_no:
+        missing_fields.append(f"article_no(citation_eligible=true):{missing_citation_article_no}")
     if len(points) != len(point_ids) or missing_fields:
         raise PayloadRepairError(
             f"payload 恢复后校验失败：points={len(points)}，missing_fields={missing_fields}"
