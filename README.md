@@ -77,6 +77,18 @@
 
 复现命令和治理边界见 [`docs/contract-server-acceptance.md`](docs/contract-server-acceptance.md) 的“ A 级劳动合同法律检索门禁”一节。Smoke 输出只保存检索元数据和截断后的引用片段，不保存合同原文。
 
+## A 级法律资料正式激活
+
+`legal_labor_a_v1` 是独立的法律检索 Collection。当前资料已完成技术切片和 staging
+Smoke Test，但只有在完成人工治理确认、将 prepared artifact 与 Qdrant payload 一起改为
+`ACTIVE`，并在 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false` 下通过两个正式门禁后，才允许
+作为生产法律库使用。激活不会修改通用 `rag_chunks` 或评测 Collection。
+
+请按 [`docs/contract-server-acceptance.md`](docs/contract-server-acceptance.md) 的“6.2
+A 级法律资料从 PENDING 到 ACTIVE”执行。该 runbook 提供只读 preflight、无写入演练、带
+备份的 `--apply` 激活、Backend 配置重载，以及不带 `--allow-pending-*` 参数的正式法律
+检索和合同审查 E2E 命令。
+
 ## 合同上传与解析模块
 
 合同上传模块位于 `backend/app/api/contract_reviews.py`、`backend/app/services/contract_review_service.py` 和 `backend/app/infrastructure/` 下。当前模块只负责“安全接收合同并生成脱敏文本”，还不会给出法律风险结论。

@@ -138,7 +138,8 @@
 - [x] 生成 10 道劳动合同法律检索固定题集，并校验每题的预期法条、施行日期和官方来源元数据。
 - [x] 在服务器运行 `evaluation/legal_retrieval_smoke.py`，10 道固定法律问题均返回预期可引用条文；staging 结果为 Hit@1=80.00%、Hit@3=100.00%、0 失败（运行时显式允许 pending governance）。
 - [x] 为合同审查 Workflow E2E 增加 `--require-legal-citations` 回归模式，校验 A 级来源、官方 URL、生效日期、法条编号、引用片段和治理状态。
-- [ ] 完成法律专业复核后，才将已激活的 Collection 配置为 `LEGAL_A_COLLECTION`。
+- [x] 新增 `evaluation/legal_labor_activation.py`：提供只读 preflight、三项人工确认、备份、artifact/Qdrant 双写和逐点校验；尚未在服务器执行 `--apply`。
+- [ ] 完成法律专业复核并执行正式激活，将 manifest 与 Qdrant 状态统一改为 `ACTIVE`，再把 `LEGAL_A_ALLOW_PENDING_GOVERNANCE` 设为 `false`。
 - [ ] 导入 B 级官方案例并为规则卡片增加人工复核的适用前提和例外条件。
 - [x] 为报告增加 PostgreSQL 持久化、版本号、用户归属校验、JSON/PDF 查询和删除接口；人工复核状态与前端历史展示仍待补齐。
 
@@ -146,7 +147,7 @@
 
 - [x] 按 [`docs/labor-contract-legal-corpus-plan.md`](docs/labor-contract-legal-corpus-plan.md) 在本地收集 7 份 P0 法律最小包，建立版本 metadata、文档哈希和 prepared manifest。
 - [x] 生成法条级 `articles.jsonl` / `article_chunks.jsonl`，并校验条号、偏移、数量和文件哈希；前言/目录明确标记为不可作为正式法条引用。
-- [ ] 在服务器以只读法律资料挂载和独立状态卷执行 `legal_labor_a_v1` 隔离入库；不得使用 `rag_chunks` 或评测 Collection。
+- [x] 在服务器以只读法律资料挂载和独立状态卷执行 `legal_labor_a_v1` 隔离入库；不得使用 `rag_chunks` 或评测 Collection。
 - [ ] 收集并完成 A 级法律和司法解释的法律专业复核：全国适用范围、官方来源/公开可访问性记录、版本/废止衔接与激活记录；不把终端用户授权作为运行时门禁。
 - [ ] 收集 B 级官方案例，保留案号、法院、裁判日期、争议焦点和官方来源。
 - [ ] 为每条规则建立人工复核卡：适用前提、例外条件、证据需求和预期输出。
@@ -172,6 +173,8 @@
 
 - 不把 `watsonx_docsqa_colab_v2` 直接切成生产库。
 - 只有真实 `rag_chunks` 离线重建为 `rag_chunks_v2`、通过完整门禁并保留回滚快照后，才讨论生产切换。
+- 法律库必须先通过 `legal_labor_activation.py preflight` 和 `activate --apply`，再以 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false` 重载 Backend。
+- 正式法律检索 Smoke 与合同审查 E2E 必须去掉 `--allow-pending-governance` 和 `--allow-pending-legal-governance` 后均通过，才能将 `legal_labor_a_v1` 视为生产法律库。
 - Backend 和 Data Worker 切换时必须使用同一 `RAG_COLLECTION`，避免读新写旧。
 
 ## 六、暂不做

@@ -216,6 +216,111 @@ uv run --with httpx --with pypdf python evaluation/contract_review_e2e.py \
 如果去掉参数后仍能通过，才可以进入正式发布门禁。只修改 `.env` 时重启 Backend 即可，
 不需要重建镜像。
 
+### 6.2 A 级法律资料从 PENDING 到 ACTIVE
+
+法律资料的激活必须同时更新三处状态：prepared artifact、每个 Qdrant point 的
+`legal_activation_status`，以及 Backend 的治理开关。不要直接编辑 JSON 或 Qdrant；使用
+仓库提供的激活工具，它会做只读 preflight、要求三项人工确认、创建备份，并在写入后逐点验证。
+该工具应在服务器宿主机项目目录执行，不能在 `sentinel` 容器中执行（容器对
+`/app/data/legal` 是只读挂载）。
+
+先做只读门禁：
+
+```bash
+cd /root/my-ai-research
+uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
+  --with-requirements data_worker/requirements.txt \
+  python evaluation/legal_labor_activation.py preflight \
+  --base data/legal/labor_contract \
+  --qdrant-url http://127.0.0.1:6333 \
+  --collection legal_labor_a_v1
+```
+
+确认输出 `status=ready`、Point 数为 477，且没有 `static_errors` 后，再执行不写入的
+激活演练：
+
+```bash
+uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
+  --with-requirements data_worker/requirements.txt \
+  python evaluation/legal_labor_activation.py activate \
+  --base data/legal/labor_contract \
+  --qdrant-url http://127.0.0.1:6333 \
+  --collection legal_labor_a_v1 \
+  --reviewer ccxx \
+  --review-note "已核对国家法律法规数据库来源、全国适用范围、生效状态和正文一致性" \
+  --confirm-national-scope \
+  --confirm-effective-status \
+  --confirm-content-match
+```
+
+演练输出 `status=dry_run_ready` 后，才在维护窗口执行实际激活。`--apply` 是唯一会
+修改本地 artifact 和 Qdrant 的开关：
+
+```bash
+uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
+  --with-requirements data_worker/requirements.txt \
+  python evaluation/legal_labor_activation.py activate \
+  --base data/legal/labor_contract \
+  --qdrant-url http://127.0.0.1:6333 \
+  --collection legal_labor_a_v1 \
+  --reviewer ccxx \
+  --review-note "已核对国家法律法规数据库来源、全国适用范围、生效状态和正文一致性" \
+  --confirm-national-scope \
+  --confirm-effective-status \
+  --confirm-content-match \
+  --apply
+```
+
+成功后应看到 `status=activated` 和备份目录。随后检查 manifest 与 Qdrant：
+
+```bash
+python -c "import json; p='data/legal/labor_contract/prepared/a_level/manifest.json'; m=json.load(open(p, encoding='utf-8')); print(m['status'], m['governance']['legal_activation_status'], m['activation']['reviewer'])"
+curl --fail --silent --show-error -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"limit":1,"with_payload":["legal_activation_status"],"with_vector":false}' \
+  http://127.0.0.1:6333/collections/legal_labor_a_v1/points/scroll
+```
+
+在服务器 `.env` 中设置正式治理开关，然后强制重建容器配置（不需要重建镜像）：
+
+```env
+LEGAL_A_COLLECTION=legal_labor_a_v1
+LEGAL_A_ALLOW_PENDING_GOVERNANCE=false
+```
+
+```bash
+docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml \
+  up -d --no-build --force-recreate backend
+```
+
+最后运行两个正式门禁，命令中不要再出现 `--allow-pending-governance` 或
+`--allow-pending-legal-governance`：
+
+```bash
+uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
+  --with-requirements backend/requirements.txt \
+  python evaluation/legal_retrieval_smoke.py \
+  --collection legal_labor_a_v1 \
+  --qdrant-url http://127.0.0.1:6333 \
+  --embed-url http://127.0.0.1:8001/embed \
+  --output data/legal/labor_contract/results/legal_retrieval_smoke_active.json
+
+uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
+  --with httpx --with pypdf \
+  python evaluation/contract_review_e2e.py \
+  --file /root/my-ai-research/test_contract/劳动合同.docx \
+  --base-url http://127.0.0.1:8000 \
+  --token "$TOKEN" \
+  --resolution-policy supplement \
+  --ack-test-confirmation-writes \
+  --require-legal-citations \
+  --output data/contract_legal_workflow_e2e_active.json
+```
+
+法律检索 10/10 和合同审查 E2E 均通过后，才允许把 `legal_labor_a_v1` 视为生产法律库。
+任一门禁失败都应保持 `LEGAL_A_COLLECTION` 不变，并根据激活工具输出的备份目录恢复
+artifact；不要用 `--allow-pending-*` 绕过正式门禁。
+
 ## 通过标准
 
 迁移检查、三格式 API Smoke、端到端验收、法律检索门禁、隐私哨兵、删除验证均通过，且
