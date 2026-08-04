@@ -14,6 +14,7 @@ from evaluation.contract_review_e2e import (
     _require_test_confirmation_acknowledgement,
     _review_id_from_upload,
     summarize_report,
+    validate_legal_citations,
 )
 
 
@@ -145,6 +146,54 @@ def test_summarize_report_is_metadata_only() -> None:
     }
     assert "private finding" not in str(summary)
     assert "disclaimer" not in summary
+
+
+def _legal_report(*, activation_status: str = "ACTIVE") -> dict:
+    return {
+        "legal_sources": [
+            {
+                "source_level": "A",
+                "citation_eligible": True,
+                "rank": 1,
+                "official_url": "https://flk.npc.gov.cn/detail2.html?ZmY4MD",
+                "effective_date": "2013-07-01",
+                "citation_label": "《中华人民共和国劳动合同法》第十条",
+                "quote": "订立劳动合同应当遵循合法、公平、平等自愿的原则。",
+                "legal_activation_status": activation_status,
+            }
+        ]
+    }
+
+
+def test_validate_legal_citations_accepts_active_a_level_source() -> None:
+    assert validate_legal_citations(_legal_report()) == []
+
+
+def test_validate_legal_citations_allows_pending_only_in_staging() -> None:
+    report = _legal_report(activation_status="PENDING_LEGAL_REVIEW")
+
+    assert validate_legal_citations(report) == [
+        "legal_sources[1].legal_activation_status 仍为 PENDING_LEGAL_REVIEW，正式回归要求 ACTIVE"
+    ]
+    assert validate_legal_citations(report, allow_pending_governance=True) == []
+
+
+def test_validate_legal_citations_rejects_incomplete_public_citation() -> None:
+    report = _legal_report()
+    source = report["legal_sources"][0]
+    source["citation_eligible"] = False
+    source["official_url"] = "https://example.com/law"
+    source["effective_date"] = ""
+    source["citation_label"] = "劳动合同法"
+    source["quote"] = ""
+
+    errors = validate_legal_citations(report)
+
+    assert "legal_sources[1].citation_eligible 不是 true" in errors
+    assert "legal_sources[1].official_url 不是指定官方来源" in errors
+    assert "legal_sources[1].effective_date 缺失" in errors
+    assert "legal_sources[1].citation_label 缺少法条编号" in errors
+    assert "legal_sources[1].quote 缺失" in errors
 
 
 def test_privacy_errors_detect_private_fields_and_sentinels() -> None:

@@ -52,6 +52,7 @@ class ContractReviewE2EError(RuntimeError):
 # workflow.  ``partial`` is allowed because the legal corpus can be pending
 # activation while the report persistence and chat path still work.
 ALLOWED_WORKFLOW_STATUSES = {"completed", "partial"}
+ALLOWED_LEGAL_ACTIVATION_STATUSES = {"ACTIVE", "PENDING_LEGAL_REVIEW"}
 PRIVATE_KEYS = {
     "storage_path",
     "raw_text",
@@ -142,6 +143,27 @@ def _build_parser() -> argparse.ArgumentParser:
         "--keep-review",
         action="store_true",
         help="保留测试任务；默认删除并验证删除后的 404",
+    )
+    parser.add_argument(
+        "--require-legal-citations",
+        action="store_true",
+        help="要求报告包含可引用的法律来源；用于法律 Workflow 回归",
+    )
+    parser.add_argument(
+        "--legal-source-level",
+        choices=("A", "B"),
+        default="A",
+        help="法律引用回归要求的来源等级，默认 A",
+    )
+    parser.add_argument(
+        "--legal-official-url-prefix",
+        default="https://flk.npc.gov.cn/",
+        help="法律引用必须使用的官方来源 URL 前缀",
+    )
+    parser.add_argument(
+        "--allow-pending-legal-governance",
+        action="store_true",
+        help="staging 允许 PENDING_LEGAL_REVIEW；生产回归不要使用",
     )
     parser.add_argument("--output", type=Path)
     return parser
@@ -334,6 +356,75 @@ def summarize_report(report: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def validate_legal_citations(
+    report: dict[str, Any],
+    *,
+    source_level: str = "A",
+    official_url_prefix: str = "https://flk.npc.gov.cn/",
+    allow_pending_governance: bool = False,
+) -> list[str]:
+    """Validate legal citation fields without returning citation text.
+
+    The contract E2E gate normally checks persistence and chat only. When the
+    legal-citation mode is enabled, this helper verifies that the report came
+    from the isolated legal collection and that every source is usable for a
+    traceable citation. It deliberately reports only source indexes/field
+    names so a failed gate cannot leak legal document text into CI logs.
+    """
+
+    errors: list[str] = []
+    sources = report.get("legal_sources")
+    if not isinstance(sources, list) or not sources:
+        return ["报告没有 legal_sources，无法证明法律检索链路已接入"]
+
+    expected_prefix = official_url_prefix.strip()
+    if not expected_prefix:
+        return ["法律引用门禁缺少 official URL 前缀"]
+
+    for index, source in enumerate(sources, 1):
+        label = f"legal_sources[{index}]"
+        if not isinstance(source, dict):
+            errors.append(f"{label} 不是对象")
+            continue
+
+        if source.get("source_level") != source_level:
+            errors.append(f"{label}.source_level 不是 {source_level}")
+        if source.get("citation_eligible") is not True:
+            errors.append(f"{label}.citation_eligible 不是 true")
+
+        rank = source.get("rank")
+        if not isinstance(rank, int) or rank < 1:
+            errors.append(f"{label}.rank 无效")
+
+        official_url = str(source.get("official_url") or "").strip()
+        if not official_url.startswith(expected_prefix):
+            errors.append(f"{label}.official_url 不是指定官方来源")
+
+        if not str(source.get("effective_date") or "").strip():
+            errors.append(f"{label}.effective_date 缺失")
+
+        citation_label = str(source.get("citation_label") or "").strip()
+        if not citation_label:
+            errors.append(f"{label}.citation_label 缺失")
+        elif source_level == "A" and (
+            "第" not in citation_label or "条" not in citation_label
+        ):
+            errors.append(f"{label}.citation_label 缺少法条编号")
+
+        if not str(source.get("quote") or "").strip():
+            errors.append(f"{label}.quote 缺失")
+
+        activation_status = str(source.get("legal_activation_status") or "").strip()
+        if activation_status not in ALLOWED_LEGAL_ACTIVATION_STATUSES:
+            errors.append(f"{label}.legal_activation_status 无效")
+        elif not allow_pending_governance and activation_status != "ACTIVE":
+            errors.append(
+                f"{label}.legal_activation_status 仍为 {activation_status}，正式回归要求 ACTIVE"
+            )
+
+    return errors
+
+
 def _poll_review(
     client: httpx.Client,
     *,
@@ -419,6 +510,7 @@ def run_e2e(args: argparse.Namespace) -> dict[str, Any]:
     deleted = False
     action_counts: dict[str, int] = {}
     report_summary: dict[str, Any] = {}
+    legal_citation_summary: dict[str, Any] = {"required": False}
     chat_summary: dict[str, Any] = {}
     pdf_bytes = 0
     poll_count = 0
@@ -550,6 +642,32 @@ def run_e2e(args: argparse.Namespace) -> dict[str, Any]:
                 raise ContractReviewE2EError("报告 JSON 与 review_id 不一致")
             if persisted_report.get("session_id") != session_id:
                 raise ContractReviewE2EError("报告没有保持上传会话 session_id")
+            if args.require_legal_citations:
+                legal_errors = validate_legal_citations(
+                    persisted_report,
+                    source_level=args.legal_source_level,
+                    official_url_prefix=args.legal_official_url_prefix,
+                    allow_pending_governance=args.allow_pending_legal_governance,
+                )
+                if legal_errors:
+                    raise ContractReviewE2EError(
+                        "法律引用门禁失败：" + "; ".join(legal_errors)
+                    )
+                legal_sources = persisted_report.get("legal_sources") or []
+                legal_citation_summary = {
+                    "required": True,
+                    "source_level": args.legal_source_level,
+                    "sources": len(legal_sources),
+                    "activation_statuses": sorted(
+                        {
+                            str(source.get("legal_activation_status") or "")
+                            for source in legal_sources
+                            if isinstance(source, dict)
+                        }
+                    ),
+                    "official_url_prefix": args.legal_official_url_prefix,
+                    "all_fields_valid": True,
+                }
             report_summary = summarize_report(persisted_report)
 
             pdf_response = client.get(
@@ -664,6 +782,7 @@ def run_e2e(args: argparse.Namespace) -> dict[str, Any]:
             "ready_for_legal_review": True,
         },
         "workflow": report_summary,
+        "legal_citations": legal_citation_summary,
         "report_pdf_bytes": pdf_bytes,
         "report_chat": chat_summary,
         "deletion_checked": deleted,

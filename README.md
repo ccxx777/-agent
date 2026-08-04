@@ -323,6 +323,26 @@ uv run --with httpx python evaluation/contract_upload_api_smoke.py \
 
 先用 `evaluation/rag_smoke.py` 验证主链返回 `answer`、`contexts` 和 `documents`，再运行固定问题集和 RAGAS。RAGAS 依赖留在 `evaluation/requirements.txt`，不装进 Backend 镜像。
 
+### 合同审查 Workflow 法律引用回归
+
+在 A 级法律检索 Smoke Test 通过后，可用脱敏/自拟劳动合同运行完整法律引用回归：
+
+```bash
+uv run --with httpx --with pypdf python evaluation/contract_review_e2e.py \
+  --file /root/my-ai-research/test_contract/劳动合同.docx \
+  --base-url http://127.0.0.1:8000 --token "$TOKEN" \
+  --resolution-policy supplement \
+  --ack-test-confirmation-writes \
+  --require-legal-citations \
+  --allow-pending-legal-governance \
+  --output data/contract_legal_workflow_e2e.json
+```
+
+`--require-legal-citations` 会验证报告是否返回 A 级法律来源、国家法律文库官方 URL、
+生效日期、法条编号、可引用片段和治理状态。`--allow-pending-legal-governance` 仅适用于
+当前 `PENDING_LEGAL_REVIEW` 的 staging；法律资料改为 `ACTIVE` 后，正式回归必须去掉该参数。
+详细门禁和失败诊断见 [`docs/contract-server-acceptance.md`](docs/contract-server-acceptance.md)。
+
 ## 文档导航
 
 - [当前计划与验收门禁](PLAN.md)

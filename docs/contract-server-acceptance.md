@@ -168,7 +168,7 @@ uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
 | 引用与治理字段 | 10/10 均通过 `source_level=A`、`citation_eligible=true`、官方 URL、生效日期和引用片段检查 |
 | 运行参数 | `--allow-pending-governance`（仅 staging） |
 
-两道题（`labor_legal_03`、`labor_legal_08`）的预期法条位于第 2 名，但都在最终 Top-3 内，因此没有失败。这个结果说明“条文切片、向量检索、元数据和引用输出”已经通过技术门禁；它不等同于法律资料已经完成专家复核或可以直接生产激活。当前 manifest 仍为 `PENDING_LEGAL_REVIEW`，正式激活前还必须完成适用范围、授权状态、版本/废止衔接和正文一致性复核。
+两道题（`labor_legal_03`、`labor_legal_08`）的预期法条位于第 2 名，但都在最终 Top-3 内，因此没有失败。这个结果说明“条文切片、向量检索、元数据和引用输出”已经通过技术门禁；它不等同于法律资料已经完成专家复核或可以直接生产激活。当前 manifest 仍为 `PENDING_LEGAL_REVIEW`，正式激活前还必须完成适用范围、官方来源/公开可访问性记录、版本/废止衔接和正文一致性复核。这里的来源记录不是向终端用户索取额外授权。
 
 法律专业复核完成并将资料状态改为 `ACTIVE` 后，重新运行同一命令但去掉
 `--allow-pending-governance`；这一次才是正式激活前的门禁结果。任何题目失败都不能
@@ -176,6 +176,45 @@ uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
 
 脚本的纯函数测试位于 `evaluation/test_legal_retrieval_smoke.py`。输出 JSON 只保存问题、
 预期字段、检索元数据和截断后的法律引用片段，不保存合同原文。
+
+### 6.1 合同审查 Workflow 法律引用端到端回归
+
+法律检索题集通过后，再用一份脱敏或自拟劳动合同验证真实产品链路：
+上传 → 事实提取 → 确认门禁 → 合同审查 Workflow → 报告 JSON/PDF → 报告问答。
+这一步会额外检查报告中的每条 A 级法律来源是否包含可追溯引用字段，不会把合同正文或引用原文写入 Smoke 输出。
+
+先在 Backend 的 `.env` 中配置独立法律 Collection：
+
+```env
+LEGAL_A_COLLECTION=legal_labor_a_v1
+# 当前 manifest 仍为 PENDING_LEGAL_REVIEW 时，staging 才临时设为 true
+LEGAL_A_ALLOW_PENDING_GOVERNANCE=true
+```
+
+使用脱敏/自拟 DOCX 运行：
+
+```bash
+uv run --with httpx --with pypdf python evaluation/contract_review_e2e.py \
+  --file /root/my-ai-research/test_contract/劳动合同.docx \
+  --base-url http://127.0.0.1:8000 \
+  --token "$TOKEN" \
+  --resolution-policy supplement \
+  --ack-test-confirmation-writes \
+  --require-legal-citations \
+  --allow-pending-legal-governance \
+  --output data/contract_legal_workflow_e2e.json
+```
+
+通过标准：Workflow 返回 `completed` 或有明确警告的 `partial`；`legal_sources` 非空，
+每条来源均为 `source_level=A`、`citation_eligible=true`，官方 URL 以
+`https://flk.npc.gov.cn/` 开头，具有 `effective_date`、包含“第…条”的
+`citation_label`、非空 `quote`，且激活状态为 `ACTIVE` 或 staging 明确允许的
+`PENDING_LEGAL_REVIEW`。脚本输出中的 `legal_citations` 只包含计数和状态，不包含法条正文。
+
+法律资料完成治理复核并改为 `ACTIVE` 后，生产候选回归必须去掉
+`--allow-pending-legal-governance`，同时将 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false`；
+如果去掉参数后仍能通过，才可以进入正式发布门禁。只修改 `.env` 时重启 Backend 即可，
+不需要重建镜像。
 
 ## 通过标准
 
