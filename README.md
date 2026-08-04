@@ -293,12 +293,12 @@ docker exec backend python /app/evaluation/contract_migration_check.py \
   --host db_pg --port 5432 --user admin --database ai_assistant \
   --output /app/data/contract_migration_check.json
 
-docker exec backend python /app/evaluation/contract_upload_api_smoke.py \
-  --file pdf=/app/test_contract/劳动合同.pdf \
-  --file doc=/app/test_contract/劳动合同.doc \
-  --file docx=/app/test_contract/劳动合同.docx \
+uv run --with httpx python evaluation/contract_upload_api_smoke.py \
+  --file pdf=/root/my-ai-research/test_contract/劳动合同.pdf \
+  --file doc=/root/my-ai-research/test_contract/劳动合同.doc \
+  --file docx=/root/my-ai-research/test_contract/劳动合同.docx \
   --base-url http://127.0.0.1:8000 --token "$TOKEN" \
-  --require-extraction --output /app/data/contract_upload_api_smoke.json
+  --require-extraction --output data/contract_upload_api_smoke.json
 ```
 
 完整前置检查、隐私哨兵和失败诊断见 [`docs/contract-server-acceptance.md`](docs/contract-server-acceptance.md)。

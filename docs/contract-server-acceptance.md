@@ -43,13 +43,13 @@ docker exec backend python /app/evaluation/contract_migration_check.py \
 
 ## 3. PDF/DOC/DOCX API 回归与隐私门禁
 
-将三种脱敏测试样本放在服务器可读目录，例如 `/root/my-ai-research/test_contract/`。不要把真实合同放入 Git 或输出目录。然后运行：
+将三种脱敏测试样本放在服务器宿主机目录，例如 `/root/my-ai-research/test_contract/`。该目录默认没有挂载进 Backend 容器，因此上传 Smoke 要在服务器项目宿主机执行，而不是用 `docker exec backend` 访问 `/app/test_contract/`。不要把真实合同放入 Git 或输出目录。然后运行：
 
 ```bash
-docker exec backend python /app/evaluation/contract_upload_api_smoke.py \
-  --file pdf=/app/test_contract/劳动合同.pdf \
-  --file doc=/app/test_contract/劳动合同.doc \
-  --file docx=/app/test_contract/劳动合同.docx \
+uv run --with httpx python evaluation/contract_upload_api_smoke.py \
+  --file pdf=/root/my-ai-research/test_contract/劳动合同.pdf \
+  --file doc=/root/my-ai-research/test_contract/劳动合同.doc \
+  --file docx=/root/my-ai-research/test_contract/劳动合同.docx \
   --base-url http://127.0.0.1:8000 \
   --token "$TOKEN" \
   --require-extraction \
@@ -61,6 +61,8 @@ docker exec backend python /app/evaluation/contract_upload_api_smoke.py \
 ```
 
 `--privacy-sentinel` 必须替换为测试样本中实际出现的敏感值；脚本不会在结果中回显这些值。如果三份样本的敏感字段数量不同，不要使用全局 `--expect-redaction`，改为分别运行脚本，或先统一测试样本的脱敏字段。
+
+只有当 Backend 的 `CONTRACT_EXTRACTION_ENABLED=true` 时才添加 `--require-extraction`；如果只验收文件解析、脱敏和迁移 API，可暂时省略该参数。
 
 脚本会检查：
 
