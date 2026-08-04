@@ -53,6 +53,7 @@ DEFAULT_QUERIES = (
     "用人单位是否应当为劳动者缴纳社会保险",
     "解除劳动合同的经济补偿如何计算",
 )
+DEFAULT_QUESTION_FILE = Path(__file__).with_name("legal_labor_contract_questions.json")
 
 
 def _env(name: str, default: str) -> str:
@@ -88,14 +89,64 @@ def _build_parser() -> argparse.ArgumentParser:
         "--query",
         action="append",
         dest="queries",
-        help="覆盖默认问题；可重复传入",
+        help="覆盖固定题集；可重复传入（覆盖后不执行预期法条匹配）",
+    )
+    parser.add_argument(
+        "--questions",
+        type=Path,
+        default=DEFAULT_QUESTION_FILE,
+        help="固定题集 JSON；默认使用 evaluation/legal_labor_contract_questions.json",
     )
     parser.add_argument("--output", type=Path, help="可选 JSON 输出路径")
     return parser
 
 
+def _load_question_cases(path: Path) -> list[dict[str, Any]]:
+    if not path.is_file():
+        raise LegalRetrievalSmokeError(f"法律检索题集不存在：{path}")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise LegalRetrievalSmokeError(f"法律检索题集不是有效 JSON：{path}") from error
+    questions = payload.get("questions") if isinstance(payload, dict) else None
+    if not isinstance(questions, list) or not questions:
+        raise LegalRetrievalSmokeError("法律检索题集缺少非空 questions 数组")
+    cases: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for index, item in enumerate(questions, 1):
+        if not isinstance(item, dict):
+            raise LegalRetrievalSmokeError(f"题集第 {index} 项不是对象")
+        question_id = item.get("question_id")
+        query = item.get("query")
+        expected = item.get("expected")
+        if not isinstance(question_id, str) or not question_id.strip():
+            raise LegalRetrievalSmokeError(f"题集第 {index} 项缺少 question_id")
+        if question_id in seen_ids:
+            raise LegalRetrievalSmokeError(f"题集存在重复 question_id：{question_id}")
+        if not isinstance(query, str) or not query.strip():
+            raise LegalRetrievalSmokeError(f"题集 {question_id} 缺少 query")
+        if not isinstance(expected, dict):
+            raise LegalRetrievalSmokeError(f"题集 {question_id} 缺少 expected 对象")
+        for field in ("doc_id", "article_no", "effective_date", "official_url_prefix"):
+            if not isinstance(expected.get(field), str) or not expected[field].strip():
+                raise LegalRetrievalSmokeError(
+                    f"题集 {question_id} 的 expected.{field} 无效"
+                )
+        terms = expected.get("required_terms")
+        if not isinstance(terms, list) or not terms or not all(
+            isinstance(term, str) and term.strip() for term in terms
+        ):
+            raise LegalRetrievalSmokeError(
+                f"题集 {question_id} 的 expected.required_terms 无效"
+            )
+        seen_ids.add(question_id)
+        cases.append({"question_id": question_id, "query": query, "expected": expected})
+    return cases
+
+
 def _document_summary(document: Any) -> dict[str, Any]:
     metadata = document.metadata
+    citation_excerpt = str(document.context_text or document.text or "").strip()
     return {
         "rank": document.rank,
         "doc_id": document.doc_id,
@@ -107,10 +158,16 @@ def _document_summary(document: Any) -> dict[str, Any]:
         "effective_date": metadata.get("effective_date", ""),
         "official_url": metadata.get("official_url", document.source),
         "legal_activation_status": metadata.get("legal_activation_status", ""),
+        "citation_excerpt": citation_excerpt[:500],
     }
 
 
-def _validate_documents(documents: list[Any]) -> list[str]:
+def _validate_documents(
+    documents: list[Any],
+    *,
+    expected: dict[str, Any] | None = None,
+    allow_pending_governance: bool = False,
+) -> list[str]:
     errors: list[str] = []
     for document in documents:
         metadata = document.metadata
@@ -122,14 +179,71 @@ def _validate_documents(documents: list[Any]) -> list[str]:
             errors.append(f"{document.doc_id}: 缺少 article_no")
         if not (metadata.get("official_url") or document.source):
             errors.append(f"{document.doc_id}: 缺少 official_url")
+        if not metadata.get("effective_date"):
+            errors.append(f"{document.doc_id}: 缺少 effective_date")
+        excerpt = str(document.context_text or document.text or "").strip()
+        if not excerpt:
+            errors.append(f"{document.doc_id}: 缺少可引用片段")
+
+    if expected is None:
+        return errors
+
+    matches = [
+        document
+        for document in documents
+        if document.doc_id == expected["doc_id"]
+        and document.metadata.get("article_no") == expected["article_no"]
+    ]
+    if not matches:
+        errors.append(
+            "未命中预期法条："
+            f"{expected['doc_id']} {expected['article_no']}"
+        )
+        return errors
+
+    document = matches[0]
+    metadata = document.metadata
+    official_url = str(metadata.get("official_url") or document.source or "")
+    if not official_url.startswith(expected["official_url_prefix"]):
+        errors.append(
+            f"{document.doc_id} {expected['article_no']}: official_url 不是官方来源"
+        )
+    if metadata.get("effective_date") != expected["effective_date"]:
+        errors.append(
+            f"{document.doc_id} {expected['article_no']}: effective_date="
+            f"{metadata.get('effective_date')!r}，预期 {expected['effective_date']!r}"
+        )
+    if expected["article_no"] not in str(metadata.get("citation_label") or ""):
+        errors.append(
+            f"{document.doc_id} {expected['article_no']}: citation_label 未包含条号"
+        )
+    if metadata.get("citation_eligible") is not True:
+        errors.append(f"{document.doc_id} {expected['article_no']}: 不具备可引用资格")
+    activation_status = str(metadata.get("legal_activation_status") or "")
+    if activation_status != "ACTIVE" and not allow_pending_governance:
+        errors.append(
+            f"{document.doc_id} {expected['article_no']}: 法律资料尚未 ACTIVE"
+        )
+    excerpt = str(document.context_text or document.text or "")
+    for term in expected["required_terms"]:
+        if term not in excerpt:
+            errors.append(
+                f"{document.doc_id} {expected['article_no']}: 引用片段缺少关键词 {term!r}"
+            )
     return errors
 
 
 async def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
     if not args.collection.startswith("legal_"):
         raise LegalRetrievalSmokeError("Smoke Test 只允许查询 legal_ 前缀 Collection")
-    queries = tuple(args.queries or DEFAULT_QUERIES)
-    if not queries:
+    if args.queries:
+        cases = [
+            {"question_id": f"custom_{index:02d}", "query": query, "expected": None}
+            for index, query in enumerate(args.queries, 1)
+        ]
+    else:
+        cases = _load_question_cases(args.questions.resolve())
+    if not cases:
         raise LegalRetrievalSmokeError("至少需要一个测试问题")
 
     embedding_client = EmbeddingClient(args.embed_url, timeout=60.0)
@@ -150,16 +264,23 @@ async def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
 
     rows: list[dict[str, Any]] = []
     started = time.monotonic()
-    for index, query in enumerate(queries, 1):
+    for index, case in enumerate(cases, 1):
+        query = case["query"]
         question_started = time.monotonic()
         try:
             payload = await legal_retrieval.retrieve(query)
-            validation_errors = _validate_documents(payload.documents)
+            validation_errors = _validate_documents(
+                payload.documents,
+                expected=case["expected"],
+                allow_pending_governance=args.allow_pending_governance,
+            )
             if not payload.documents:
                 validation_errors.append("没有返回可引用 A 级法条")
             rows.append(
                 {
                     "query": query,
+                    "question_id": case["question_id"],
+                    "expected": case["expected"],
                     "status": "passed" if not validation_errors else "failed",
                     "latency_seconds": round(time.monotonic() - question_started, 3),
                     "documents": [_document_summary(document) for document in payload.documents],
@@ -167,7 +288,7 @@ async def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
                 }
             )
             print(
-                f"[{index}/{len(queries)}] {query} -> "
+                f"[{index}/{len(cases)}] {case['question_id']} {query} -> "
                 f"{len(payload.documents)} docs "
                 f"({'OK' if not validation_errors else 'FAIL'})",
                 flush=True,
@@ -176,13 +297,15 @@ async def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
             rows.append(
                 {
                     "query": query,
+                    "question_id": case["question_id"],
+                    "expected": case["expected"],
                     "status": "failed",
                     "latency_seconds": round(time.monotonic() - question_started, 3),
                     "documents": [],
                     "errors": [str(error)],
                 }
             )
-            print(f"[{index}/{len(queries)}] {query} -> ERROR: {error}", flush=True)
+            print(f"[{index}/{len(cases)}] {case['question_id']} {query} -> ERROR: {error}", flush=True)
 
     failed = [row for row in rows if row["status"] != "passed"]
     return {
@@ -191,6 +314,7 @@ async def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
         "collection": args.collection,
         "source_level": "A",
         "allow_pending_governance": args.allow_pending_governance,
+        "questions": len(rows),
         "queries": len(rows),
         "failed_queries": len(failed),
         "generated_at": datetime.now(UTC).isoformat(),

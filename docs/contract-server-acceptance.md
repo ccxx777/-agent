@@ -130,7 +130,40 @@ uv run --with httpx --with pypdf python evaluation/contract_review_e2e.py \
 脚本的纯函数测试位于 `evaluation/test_contract_review_e2e.py`，服务器实测前先在
 本地运行该测试，避免把真实合同发送到错误的环境。
 
+## 6. A 级劳动合同法律检索门禁
+
+固定题集位于 `evaluation/legal_labor_contract_questions.json`，共 10 道问题，覆盖书面
+合同、必备条款、试用期、工资、解除、经济补偿、双倍工资、加班和社会保险等主题。脚本
+不仅检查“有返回”，还要求每道题在最终结果中命中预期的 `doc_id + article_no`，并验证：
+
+- `source_level=A` 且 `citation_eligible=true`；
+- `official_url` 以 `https://flk.npc.gov.cn/` 开头；
+- `effective_date` 与题集期望日期一致；
+- `citation_label` 包含预期条号；
+- 实际返回的可引用片段包含题集要求的法律关键词；
+- 法律资料状态为 `ACTIVE`，或仅在 staging 阶段显式使用 `--allow-pending-governance`。
+
+当前服务器资料 manifest 仍是 `PENDING_LEGAL_REVIEW` 时，使用：
+
+```bash
+uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
+  --with-requirements backend/requirements.txt \
+  python evaluation/legal_retrieval_smoke.py \
+  --collection legal_labor_a_v1 \
+  --qdrant-url http://127.0.0.1:6333 \
+  --embed-url http://127.0.0.1:8001/embed \
+  --allow-pending-governance \
+  --output data/legal/labor_contract/results/legal_retrieval_smoke_v1.json
+```
+
+法律专业复核完成并将资料状态改为 `ACTIVE` 后，重新运行同一命令但去掉
+`--allow-pending-governance`；这一次才是正式激活前的门禁结果。任何题目失败都不能
+把 `LEGAL_A_COLLECTION` 直接切成生产配置。
+
+脚本的纯函数测试位于 `evaluation/test_legal_retrieval_smoke.py`。输出 JSON 只保存问题、
+预期字段、检索元数据和截断后的法律引用片段，不保存合同原文。
+
 ## 通过标准
 
-迁移检查、三格式 API Smoke、端到端验收、隐私哨兵、删除验证均通过，且
+迁移检查、三格式 API Smoke、端到端验收、法律检索门禁、隐私哨兵、删除验证均通过，且
 Backend/Embedding/Qdrant/PostgreSQL 健康检查正常，才可把 PLAN 中对应门禁标记为完成。

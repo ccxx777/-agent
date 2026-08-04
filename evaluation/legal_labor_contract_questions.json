@@ -1,0 +1,118 @@
+{
+  "format_version": 1,
+  "dataset": "labor_contract_legal_retrieval_v1",
+  "description": "劳动合同 A 级法律资料检索门禁固定题集；每题要求命中指定法条并验证来源、施行日期和可引用片段。",
+  "source_scope": "legal_labor_a_v1",
+  "questions": [
+    {
+      "question_id": "labor_legal_01",
+      "query": "建立劳动关系后最迟多久应当签订书面劳动合同？",
+      "expected": {
+        "doc_id": "labor_contract_law_20121228",
+        "article_no": "第十条",
+        "effective_date": "2013-07-01",
+        "official_url_prefix": "https://flk.npc.gov.cn/",
+        "required_terms": ["书面劳动合同", "一个月"]
+      }
+    },
+    {
+      "question_id": "labor_legal_02",
+      "query": "劳动合同必须具备哪些主要条款？",
+      "expected": {
+        "doc_id": "labor_contract_law_20121228",
+        "article_no": "第十七条",
+        "effective_date": "2013-07-01",
+        "official_url_prefix": "https://flk.npc.gov.cn/",
+        "required_terms": ["用人单位", "劳动者", "劳动报酬", "社会保险"]
+      }
+    },
+    {
+      "question_id": "labor_legal_03",
+      "query": "三年以上固定期限劳动合同的试用期最长可以约定多久？",
+      "expected": {
+        "doc_id": "labor_contract_law_20121228",
+        "article_no": "第十九条",
+        "effective_date": "2013-07-01",
+        "official_url_prefix": "https://flk.npc.gov.cn/",
+        "required_terms": ["三年以上固定期限", "六个月"]
+      }
+    },
+    {
+      "question_id": "labor_legal_04",
+      "query": "用人单位应当如何支付劳动者的劳动报酬？",
+      "expected": {
+        "doc_id": "labor_contract_law_20121228",
+        "article_no": "第三十条",
+        "effective_date": "2013-07-01",
+        "official_url_prefix": "https://flk.npc.gov.cn/",
+        "required_terms": ["及时足额支付劳动报酬"]
+      }
+    },
+    {
+      "question_id": "labor_legal_05",
+      "query": "用人单位拖欠工资或没有依法缴纳社会保险费，劳动者可以解除劳动合同吗？",
+      "expected": {
+        "doc_id": "labor_contract_law_20121228",
+        "article_no": "第三十八条",
+        "effective_date": "2013-07-01",
+        "official_url_prefix": "https://flk.npc.gov.cn/",
+        "required_terms": ["未及时足额支付劳动报酬", "未依法为劳动者缴纳社会保险费"]
+      }
+    },
+    {
+      "question_id": "labor_legal_06",
+      "query": "哪些情形下用人单位应当向劳动者支付经济补偿？",
+      "expected": {
+        "doc_id": "labor_contract_law_20121228",
+        "article_no": "第四十六条",
+        "effective_date": "2013-07-01",
+        "official_url_prefix": "https://flk.npc.gov.cn/",
+        "required_terms": ["支付经济补偿", "第三十八条"]
+      }
+    },
+    {
+      "question_id": "labor_legal_07",
+      "query": "劳动合同解除或终止后，用人单位多少日内应办理档案和社会保险关系转移？",
+      "expected": {
+        "doc_id": "labor_contract_law_20121228",
+        "article_no": "第五十条",
+        "effective_date": "2013-07-01",
+        "official_url_prefix": "https://flk.npc.gov.cn/",
+        "required_terms": ["十五日内", "社会保险关系转移"]
+      }
+    },
+    {
+      "question_id": "labor_legal_08",
+      "query": "超过一个月不满一年没有签书面劳动合同，双倍工资如何支付？",
+      "expected": {
+        "doc_id": "labor_contract_law_20121228",
+        "article_no": "第八十二条",
+        "effective_date": "2013-07-01",
+        "official_url_prefix": "https://flk.npc.gov.cn/",
+        "required_terms": ["超过一个月不满一年", "每月支付二倍的工资"]
+      }
+    },
+    {
+      "question_id": "labor_legal_09",
+      "query": "法定休假日安排劳动者加班，工资报酬不得低于多少？",
+      "expected": {
+        "doc_id": "labor_law_20181229",
+        "article_no": "第四十四条",
+        "effective_date": "2018-12-29",
+        "official_url_prefix": "https://flk.npc.gov.cn/",
+        "required_terms": ["法定休假日", "百分之三百"]
+      }
+    },
+    {
+      "question_id": "labor_legal_10",
+      "query": "用人单位应当在用工之日起多久内办理职工社会保险登记？",
+      "expected": {
+        "doc_id": "social_insurance_law_20181229",
+        "article_no": "第五十八条",
+        "effective_date": "2018-12-29",
+        "official_url_prefix": "https://flk.npc.gov.cn/",
+        "required_terms": ["三十日内", "社会保险登记"]
+      }
+    }
+  ]
+}
