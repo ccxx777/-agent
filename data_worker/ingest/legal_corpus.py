@@ -904,6 +904,7 @@ def _build_qdrant_point(
         "chunk_text": chunk_text,
         "title": record["title"],
         "source": record["official_url"],
+        "official_url": record["official_url"],
         "source_file": record["raw_file"],
         "sha256": record["raw_sha256"],
         "user_id": "public_legal",

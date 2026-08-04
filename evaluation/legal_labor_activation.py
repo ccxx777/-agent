@@ -203,8 +203,11 @@ def _update_qdrant_activation(
 ) -> None:
     if not point_ids:
         raise ActivationError("没有可更新的法律 Point")
+    # Qdrant 1.10 distinguishes set/merge (POST) from overwrite (PUT).  The
+    # latter would delete every existing citation field when changing only the
+    # activation flag.
     _qdrant_result(
-        client.put(
+        client.post(
             f"{qdrant_url.rstrip('/')}/collections/{collection}/points/payload",
             params={"wait": "true"},
             json={

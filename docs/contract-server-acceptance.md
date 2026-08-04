@@ -273,6 +273,22 @@ uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
 
 成功后应看到 `status=activated` 和备份目录。随后检查 manifest 与 Qdrant：
 
+如果激活后检查发现 Qdrant Point 只剩 `legal_activation_status`、缺少
+`source_level`/`citation_eligible`/法条号等字段，不要重新计算 Embedding，也不要删除
+Collection；使用 payload 修复工具。该工具会先创建 Qdrant snapshot，再从 ACTIVE
+prepared artifact 逐 Point 使用合并接口恢复引用元数据和 fulltext 字段：
+
+```bash
+uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
+  --with-requirements data_worker/requirements.txt \
+  python evaluation/legal_labor_payload_repair.py \
+  --base data/legal/labor_contract \
+  --qdrant-url http://127.0.0.1:6333 \
+  --collection legal_labor_a_v1
+```
+
+输出必须为 `status=repaired`，并显示 `payload_fields_verified`。修复后再运行两个正式门禁。
+
 ```bash
 python -c "import json; p='data/legal/labor_contract/prepared/a_level/manifest.json'; m=json.load(open(p, encoding='utf-8')); print(m['status'], m['governance']['legal_activation_status'], m['activation']['reviewer'])"
 curl --fail --silent --show-error -X POST \

@@ -139,6 +139,7 @@
 - [x] 在服务器运行 `evaluation/legal_retrieval_smoke.py`，10 道固定法律问题均返回预期可引用条文；staging 结果为 Hit@1=80.00%、Hit@3=100.00%、0 失败（运行时显式允许 pending governance）。
 - [x] 为合同审查 Workflow E2E 增加 `--require-legal-citations` 回归模式，校验 A 级来源、官方 URL、生效日期、法条编号、引用片段和治理状态。
 - [x] 新增 `evaluation/legal_labor_activation.py`：提供只读 preflight、三项人工确认、备份、artifact/Qdrant 双写和逐点校验；尚未在服务器执行 `--apply`。
+- [x] 修正 Qdrant 激活写入使用 merge 接口，并新增 `evaluation/legal_labor_payload_repair.py`，可在不重算向量的情况下恢复引用元数据和 fulltext payload。
 - [ ] 完成法律专业复核并执行正式激活，将 manifest 与 Qdrant 状态统一改为 `ACTIVE`，再把 `LEGAL_A_ALLOW_PENDING_GOVERNANCE` 设为 `false`。
 - [ ] 导入 B 级官方案例并为规则卡片增加人工复核的适用前提和例外条件。
 - [x] 为报告增加 PostgreSQL 持久化、版本号、用户归属校验、JSON/PDF 查询和删除接口；人工复核状态与前端历史展示仍待补齐。
