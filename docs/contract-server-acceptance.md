@@ -146,12 +146,10 @@ uv run --with httpx --with pypdf python evaluation/contract_review_e2e.py \
 当前服务器资料 manifest 仍是 `PENDING_LEGAL_REVIEW` 时，使用：
 
 ```bash
-uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with-requirements backend/requirements.txt \
-  python evaluation/legal_retrieval_smoke.py \
+docker exec backend python /app/evaluation/legal_retrieval_smoke.py \
   --collection legal_labor_a_v1 \
-  --qdrant-url http://127.0.0.1:6333 \
-  --embed-url http://127.0.0.1:8001/embed \
+  --qdrant-url http://db_qdrant:6333 \
+  --embed-url http://embedding_service:8001/embed \
   --allow-pending-governance \
   --output data/legal/labor_contract/results/legal_retrieval_smoke_v1.json
 ```
@@ -313,13 +311,11 @@ docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml \
 `--allow-pending-legal-governance`：
 
 ```bash
-uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with-requirements backend/requirements.txt \
-  python evaluation/legal_retrieval_smoke.py \
+docker exec backend python /app/evaluation/legal_retrieval_smoke.py \
   --collection legal_labor_a_v1 \
-  --qdrant-url http://127.0.0.1:6333 \
-  --embed-url http://127.0.0.1:8001/embed \
-  --output data/legal/labor_contract/results/legal_retrieval_smoke_active.json
+  --qdrant-url http://db_qdrant:6333 \
+  --embed-url http://embedding_service:8001/embed \
+  --output /app/data/legal/labor_contract/results/legal_retrieval_smoke_active.json
 
 uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
   --with httpx --with pypdf \
