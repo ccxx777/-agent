@@ -87,6 +87,50 @@ docker exec backend sh -lc 'command -v antiword && antiword --version || true'
 
 DOC 失败通常是容器内缺少 `antiword` 或文档本身损坏；不要因为单个 DOC 失败而重建 embedding 镜像。只在 Backend 依赖或 Dockerfile 变更时重建 Backend。
 
+## 5. 合同审查端到端验收
+
+上传 Smoke 只证明文件解析、隐私边界和删除闭环；它不会执行事实确认、法律审查
+Workflow、报告持久化或报告问答。需要用一份脱敏/自拟劳动合同单独运行端到端门禁：
+
+```bash
+uv run --with httpx --with pypdf python evaluation/contract_review_e2e.py \
+  --file /root/my-ai-research/test_contract/劳动合同.docx \
+  --base-url http://127.0.0.1:8000 \
+  --token "$TOKEN" \
+  --resolution-policy supplement \
+  --ack-test-confirmation-writes \
+  --privacy-sentinel "测试手机号" \
+  --privacy-sentinel "测试身份证号" \
+  --output data/contract_review_e2e.json
+```
+
+运行端到端门禁前必须确认 Backend 已启用 `CONTRACT_EXTRACTION_ENABLED=true`，并且
+`MAIN_MODEL`/模型服务配置可用；否则脚本会在文件解析完成且提取仍为 `not_started`
+时快速失败，而不是等待完整超时。`--resolution-policy supplement` 只向测试合同的
+未确认事实写入固定的非敏感测试值，因此必须显式传入 `--ack-test-confirmation-writes`。
+该参数代表你确认本次只使用脱敏/自拟合同；绝不能把它用于真实用户合同。
+
+如果使用 PDF 且该 PDF 触发外部 OCR，必须显式增加 `--allow-external-ocr`；若还要验证
+外部 OCR 审计确实发生，再增加 `--expect-external-ocr`，脚本会严格要求
+`external_raw_image_sent=true`；DOC/DOCX 测试不需要这两个参数。默认行为会在验收结束
+后删除测试任务；如需人工查看可临时使用 `--keep-review`，查看后必须手动删除。
+
+端到端脚本只输出元数据摘要，不输出报告正文、合同原文、证据引文或模型答案。它按
+顺序检查：
+
+- 提取终态和公开响应隐私边界；
+- 确认快照的 revision、自动确认/补充动作和 `ready_for_legal_review` 门禁；
+- Workflow 返回 `completed` 或 `partial`，并返回持久化 `report_id`；
+- 报告 JSON 可按 `review_id` 查询，且保持同一 `session_id`；
+- 报告 PDF 的内容类型、`%PDF` 文件头，并检查隐私哨兵未写入 PDF 字节；
+- `contract_review` 模式报告问答返回非空答案并保持会话；
+- 会话历史与会话合同列表包含当前任务；
+- 删除后查询返回 404。
+
+脚本的纯函数测试位于 `evaluation/test_contract_review_e2e.py`，服务器实测前先在
+本地运行该测试，避免把真实合同发送到错误的环境。
+
 ## 通过标准
 
-迁移检查、三格式 API Smoke、隐私哨兵、删除验证均通过，且 Backend/Embedding/Qdrant/PostgreSQL 健康检查正常，才可把 PLAN 中对应门禁标记为完成。
+迁移检查、三格式 API Smoke、端到端验收、隐私哨兵、删除验证均通过，且
+Backend/Embedding/Qdrant/PostgreSQL 健康检查正常，才可把 PLAN 中对应门禁标记为完成。

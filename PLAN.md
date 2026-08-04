@@ -95,11 +95,13 @@
 - [x] Smoke 在 `--require-extraction` 下等待文件解析与事实提取两个独立状态机都进入终态。
 - [x] DOCX 解析兼容 Transitional/Strict OOXML namespace；OCR 外发审计在请求失败时也保留真实尝试记录。
 - [x] Smoke 的隐私哨兵覆盖合同历史、聊天历史和会话合同列表接口；外部 OCR 必须显式 `--allow-external-ocr`。
-- [ ] 在服务器重建/重启 Backend 后，用真实 PDF、DOC、DOCX 分别上传。
-- [ ] 验证 `queued → extracting → ready` 和异常时的 `failed` 路径。
-- [ ] 验证 DOC 容器内 `antiword` 可执行；若本机 Windows 没有该运行时，先转换为 PDF/DOCX。
-- [ ] 检查真实合同不会进入 `data_worker`、Qdrant 或公开评测结果。
-- [ ] 检查脱敏前后字段、零宽字符计数、日志和 API 响应均不泄露原始敏感值。
+- [x] 在服务器重建/重启 Backend 后，用脱敏 PDF、DOC、DOCX 分别上传。
+- [x] 验证三种格式进入文件解析和事实提取终态。
+- [ ] 使用损坏/不支持样本验证并记录异常时的 `failed` 路径。
+- [x] 验证 DOC 容器内 `antiword` 可执行；若本机 Windows 没有该运行时，使用服务器样本。
+- [x] 检查测试合同不会进入 `data_worker`、Qdrant 或公开评测结果。
+- [x] 检查脱敏前后字段、零宽字符计数、日志和 API 响应均不泄露原始敏感值。
+- [ ] 用 `evaluation/contract_review_e2e.py` 完成上传、确认、Workflow、报告 JSON/PDF、报告问答、历史和删除的端到端门禁。
 
 ### 3.6 事实确认基础模块
 
