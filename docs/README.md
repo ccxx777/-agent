@@ -1,6 +1,6 @@
 # 项目文档索引
 
-> 更新时间：2026-08-02
+> 更新时间：2026-08-04
 >
 > 本目录区分当前实现、可执行 Runbook、评测记录和历史经验。文档中的“已完成”必须能在当前源码、Compose 配置或评测 `summary.json` 中找到证据。
 >
@@ -12,7 +12,8 @@
 |---|---|---|
 | [`../README.md`](../README.md) | 项目定位、当前能力、启动方式和安全边界 | 当前总览 |
 | [`../PLAN.md`](../PLAN.md) | 开发阶段、完成项、下一步和验收门禁 | 当前计划 |
-| [`contract-review-workflow-status.png`](contract-review-workflow-status.png) | 已完成能力、统一会话与待治理工作的总览图 | 当前状态 |
+| [`contract-review-workflow-status.png`](contract-review-workflow-status.png) | 已完成能力、统一会话、正式门禁与待治理工作的总览图 | 当前状态 |
+| [`contract-e2e-flow.png`](contract-e2e-flow.png) | 服务器真实 API 回归：上传、事实确认、ACTIVE 法律检索、报告、回问、删除和隐私校验 | 正式 E2E 门禁 |
 | [`contract-review-workflow.png`](contract-review-workflow.png) | v0.1 事实确认、法律检索、规则卡片、报告持久化和回问节点 | Workflow 详细流程 |
 | [`contract-upload-module.png`](contract-upload-module.png) | PDF/DOC/DOCX 上传、解析、脱敏、质量门禁和会话承接 | 已实现基础模块 |
 | [`contract-extraction-module.png`](contract-extraction-module.png) | 条款切分、结构化事实提取、证据定位、结果持久化和 Workflow 边界 | 已实现基础模块 |
@@ -42,9 +43,9 @@
 
 ![合同审查 Workflow 当前状态](contract-review-workflow-status.png)
 
-当前已落地的是合同上传、文件格式解析、私有存储、页级质量判断、隐私脱敏、条款切分、结构化事实提取、证据定位、事实确认和 Workflow v0.1 基础编排。报告已经持久化到 PostgreSQL，并通过统一 `session_id` 接入报告问答和前端恢复。A 级法律资料已经支持从本地官方 Word 生成可复现的法条级 artifact，并已导入独立的 `legal_labor_a_v1` Collection；`LegalRetrievalService` 的 A 级引用过滤已经接入，正式法律激活、专家复核和 B 级案例治理仍待完成。
+当前已落地的是合同上传、文件格式解析、私有存储、页级质量判断、隐私脱敏、条款切分、结构化事实提取、证据定位、事实确认和 Workflow v0.1 基础编排。报告已经持久化到 PostgreSQL，并通过统一 `session_id` 接入报告问答和前端恢复。A 级法律资料已经支持从本地官方 Word 生成可复现的法条级 artifact，并已导入独立的 `legal_labor_a_v1` Collection；`LegalRetrievalService` 的 A 级引用过滤、治理激活和正式法律检索/合同 E2E 门禁均已通过。专家复核、B 级案例治理和组织级能力仍待完成。
 
-法律资料的具体收集范围、官方来源、版本核验、法条切片、数据目录和入库前清单见 [`labor-contract-legal-corpus-plan.md`](labor-contract-legal-corpus-plan.md)。真实法律原文、案例、prepared artifact 和合同测试样本放在被 Git 忽略的 `data/legal/labor_contract/`，不提交到公开仓库。
+法律资料的具体收集范围、官方来源、版本核验、法条切片、数据目录和入库前清单见 [`labor-contract-legal-corpus-plan.md`](labor-contract-legal-corpus-plan.md)。当前 A 级 Collection 为 `ACTIVE`；以后新增或替换资料仍需重新做治理复核与门禁。真实法律原文、案例、prepared artifact 和合同测试样本放在被 Git 忽略的 `data/legal/labor_contract/`，不提交到公开仓库。
 
 ![合同条款与事实提取模块](contract-extraction-module.png)
 
@@ -67,6 +68,8 @@
 这张图按当前代码区分三类入口，但它们最终共享同一个 `session_id`：合同上传完成解析、事实确认和审查 Workflow 后，会从 PostgreSQL 读取脱敏正文、结构化事实和风险报告，组装为该会话的 `contract_context`；它不是一个额外的 JSON 文件。用户可以先文字提问，再上传合同后继续追问，也可以直接从合同页面进入问答。合同问答需要法律依据时才调用治理后的法律 RAG，不把私有合同写入共享知识库。没有合同绑定时，直接聊天仍只使用普通/法律知识库检索。
 
 ![合同审查 Workflow v0.1](contract-review-workflow.png)
+
+![合同审查 E2E 正式门禁流程](contract-e2e-flow.png)
 
 事实确认模块使用 `GET/PUT /api/contract-reviews/{review_id}/confirmation`。它把 `original_value`、`user_value`、`effective_value` 和 `evidence` 分层保存；用户无法直接编辑页码、引用或字符偏移。`correct` 必须通过本地 `EvidenceLocator` 找到脱敏合同证据，`supplement` 则明确标记为用户来源。
 

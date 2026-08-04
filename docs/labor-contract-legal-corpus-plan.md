@@ -1,8 +1,12 @@
 # 劳动合同法律知识库采集计划与执行清单
 
-> 文档状态：首版采集计划
+> 文档状态：首版采集计划（A 级首批资料已完成治理激活；B 级与规则卡仍在扩展）
 >
-> 更新时间：2026-07-31
+> 更新时间：2026-08-04
+
+> 当前执行结果：首批 7 份 A 级资料已经生成条级 artifact、导入独立 `legal_labor_a_v1`
+> 并统一为 `ACTIVE`；10 道法律检索 Smoke 和合同审查法律引用 E2E 均已通过。本文中带有
+> `--allow-pending-*` 的命令仅作为未来新资料的 staging Runbook，不能用于绕过正式门禁。
 >
 > 适用范围：中国大陆、全国通用规则、个人用户劳动合同签署前辅助审查
 
@@ -36,28 +40,28 @@
 
 这些文件直接覆盖劳动合同的订立、履行、解除、争议和社会保险基础问题：
 
-- [ ] 《中华人民共和国劳动合同法》
+- [x] 《中华人民共和国劳动合同法》
   - 重点覆盖：合同必备事项、合同期限、试用期、变更、解除/终止、经济补偿、违约金、竞业限制、劳务派遣。
   - 官方来源建议：人力资源和社会保障部法规页面。
   - [官方全文](https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394622.html)
-- [ ] 《中华人民共和国劳动合同法实施条例》
+- [x] 《中华人民共和国劳动合同法实施条例》
   - 重点覆盖：劳动合同法中需要具体解释和执行的事项。
   - [国家行政法规库](https://xzfg.moj.gov.cn/mobile/law/detail?LawID=284)
-- [ ] 《中华人民共和国劳动法》
+- [x] 《中华人民共和国劳动法》
   - 重点覆盖：工作时间、休息休假、工资、劳动保护和劳动关系基本原则。
   - [中国政府网全文](https://www.gov.cn/banshi/2005-05/25/content_905.htm)
-- [ ] 《中华人民共和国劳动争议调解仲裁法》
+- [x] 《中华人民共和国劳动争议调解仲裁法》
   - 重点覆盖：争议范围、举证、调解、仲裁和诉讼衔接。
   - [中国人大网全文](https://www.npc.gov.cn/WZWSREL3pncmR3L25wYy8vLy94aW53ZW4vbGZnei96eGZsLzIwMDctMTIvMjkvY29udGVudF8xMzg3ODA5Lmh0bQ%3D%3D)
-- [ ] 《中华人民共和国社会保险法》
+- [x] 《中华人民共和国社会保险法》
   - 重点覆盖：社会保险缴纳、保险关系和基本待遇相关事实。
   - [中国人大网全文](https://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm)
 
 ### 3.2 最高人民法院司法解释（P0）
 
-- [ ] 《最高人民法院关于审理劳动争议案件适用法律问题的解释（一）》
+- [x] 《最高人民法院关于审理劳动争议案件适用法律问题的解释（一）》
   - [最高人民法院全文](https://www.court.gov.cn/zixun/xiangqing/282121.html)
-- [ ] 《最高人民法院关于审理劳动争议案件适用法律问题的解释（二）》
+- [x] 《最高人民法院关于审理劳动争议案件适用法律问题的解释（二）》
   - [最高人民法院公报全文](https://gongbao.court.gov.cn/Details/bb72019c45453f84d920bd6375573e.html)
   - 该解释自 2025 年 9 月 1 日起施行；采集时必须同时记录施行日期、与解释（一）的衔接关系以及被废止或调整的条款，不能只保存一份旧版解释。
 
@@ -323,14 +327,15 @@ docker exec sentinel python -m data_worker.legal_cli ingest \
 
 通过 dry-run 后才执行同一命令（去掉 `--dry-run`）。该 CLI 只允许目标为 `legal_labor_a_v1`，拒绝写入 `rag_chunks` 和 watsonxDocsQA Collection；Collection 已存在时必须显式 `--resume`，并要求 manifest 签名一致。
 
-即使导入完成，`legal_activation_status=PENDING_LEGAL_REVIEW` 时也只能作为隔离检索测试资料，不能切换 `LEGAL_A_COLLECTION` 或支持正式高风险结论。
+历史上，`legal_activation_status=PENDING_LEGAL_REVIEW` 的资料只能作为隔离检索测试资料；当前首批 artifact 已完成治理激活并统一为 `ACTIVE`，后续新资料仍必须遵守同一门禁。
 
 #### 3.3 法律检索适配与 Smoke Test
 
 Backend 的 `LegalRetrievalService` 复用现有 Cascade Funnel，但在结果适配层执行
 法律门禁：只保留 `source_level=A`、`citation_eligible=true` 的条文，并保留
-`article_no`、`citation_label`、生效日期和官方链接。法律 Collection 默认不启用；
-staging 读取待复核资料时必须显式设置 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=true`。
+`article_no`、`citation_label`、生效日期和官方链接。当前生产候选配置为
+`LEGAL_A_COLLECTION=legal_labor_a_v1`、`LEGAL_A_ALLOW_PENDING_GOVERNANCE=false`；
+只有未来新资料处于待复核状态时，staging 才临时打开治理开关。
 
 服务器端 Smoke Test：
 
@@ -339,7 +344,6 @@ docker exec backend python /app/evaluation/legal_retrieval_smoke.py \
   --collection legal_labor_a_v1 \
   --qdrant-url http://db_qdrant:6333 \
   --embed-url http://embedding_service:8001/embed \
-  --allow-pending-governance \
   --output /app/data/legal/legal_retrieval_smoke_v1.json
 ```
 
@@ -369,11 +373,11 @@ Workflow 的推荐顺序是：
 
 只有满足以下条件，才算“劳动合同法律资料准备完成”，而不是简单地把文件放进文件夹：
 
-- [ ] P0 法律资料全部有官方来源和版本元数据。
-- [ ] 每份资料都通过效力状态和文本质量核验。
-- [ ] A 级检索问题集达到预设 Hit@3 门槛，且引用条款可定位。
-- [ ] 服务器法律检索 Smoke Test 通过，且记录 Collection 点数、查询结果和回滚信息。
-- [ ] 法律专业复核完成后，才把激活状态改为 `ACTIVE` 并配置 `LEGAL_A_COLLECTION`。
+- [x] 当前 P0 法律资料全部有官方来源和版本元数据。
+- [x] 当前 P0 资料都通过效力状态和文本质量核验。
+- [x] A 级检索问题集达到预设 Hit@3 门槛，且引用条款可定位。
+- [x] 服务器法律检索 Smoke Test 通过，且记录 Collection 点数、查询结果、快照和回滚信息。
+- [x] 当前 A 级资料已完成治理复核，激活状态为 `ACTIVE`，并配置 `LEGAL_A_COLLECTION`。
 - [ ] 规则卡片全部绑定法律来源，至少经过一次人工复核。
 - [ ] 5～10 份脱敏合同完成事实提取、确认和风险报告验收。
 - [ ] 未确认事实不会产生确定性高风险结论。
@@ -382,12 +386,9 @@ Workflow 的推荐顺序是：
 
 ## 十一、你现在可以立即做的事情
 
-先不要收集海量案例。当前最有效的动作是：
+先不要收集海量案例。当前最有效的下一步是：
 
-1. 按“第九节第一步”下载 7 份 P0 法律资料；
-2. 保留原始文件，不要改写原文；
-3. 将每份文件的来源 URL、日期、效力状态和 SHA-256 填入 metadata；
-4. 先不要上传真实劳动合同作为法律资料；
-5. 把资料放到 `data/legal/labor_contract/raw/a_level/`，完成后再进入清洗、切分和导入步骤。
-
-这批资料准备好后，就可以开始编写合同审查 Workflow 的第一个可运行纵向切片。
+1. 对现有规则卡片逐条补充适用前提、例外条件和证据需求，形成专家复核清单；
+2. 收集少量最高人民法院官方 B 级案例，单独建库，不与 A 级法条混合；
+3. 为新增资料重复执行 prepared artifact、治理激活、法律 Smoke 和合同 E2E 双门禁；
+4. 保持真实合同、原始法律文件和 prepared 数据在 Git 忽略的 `data/` 边界内。

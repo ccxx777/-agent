@@ -141,9 +141,9 @@ uv run --with httpx --with pypdf python evaluation/contract_review_e2e.py \
 - `effective_date` 与题集期望日期一致；
 - `citation_label` 包含预期条号；
 - 实际返回的可引用片段包含题集要求的法律关键词；
-- 法律资料状态为 `ACTIVE`，或仅在 staging 阶段显式使用 `--allow-pending-governance`。
+- 法律资料状态必须为 `ACTIVE`；只有临时 staging 才允许显式使用 `--allow-pending-governance`。
 
-当前服务器资料 manifest 仍是 `PENDING_LEGAL_REVIEW` 时，使用：
+如果未来新建的资料仍是 `PENDING_LEGAL_REVIEW`，只能使用以下 staging 命令，不能切换生产配置：
 
 ```bash
 docker exec backend python /app/evaluation/legal_retrieval_smoke.py \
@@ -154,7 +154,7 @@ docker exec backend python /app/evaluation/legal_retrieval_smoke.py \
   --output data/legal/labor_contract/results/legal_retrieval_smoke_v1.json
 ```
 
-### 最近一次服务器实测（staging）
+### 历史 staging 实测（已归档）
 
 2026-08-04 在服务器上对 `legal_labor_a_v1` 执行上述固定题集，结果为：
 
@@ -166,11 +166,13 @@ docker exec backend python /app/evaluation/legal_retrieval_smoke.py \
 | 引用与治理字段 | 10/10 均通过 `source_level=A`、`citation_eligible=true`、官方 URL、生效日期和引用片段检查 |
 | 运行参数 | `--allow-pending-governance`（仅 staging） |
 
-两道题（`labor_legal_03`、`labor_legal_08`）的预期法条位于第 2 名，但都在最终 Top-3 内，因此没有失败。这个结果说明“条文切片、向量检索、元数据和引用输出”已经通过技术门禁；它不等同于法律资料已经完成专家复核或可以直接生产激活。当前 manifest 仍为 `PENDING_LEGAL_REVIEW`，正式激活前还必须完成适用范围、官方来源/公开可访问性记录、版本/废止衔接和正文一致性复核。这里的来源记录不是向终端用户索取额外授权。
+两道题（`labor_legal_03`、`labor_legal_08`）的预期法条位于第 2 名，但都在最终 Top-3 内，因此没有失败。该结果仅代表当时 staging 的技术检索通过；随后已完成治理确认、payload 修复和正式激活。
 
-法律专业复核完成并将资料状态改为 `ACTIVE` 后，重新运行同一命令但去掉
-`--allow-pending-governance`；这一次才是正式激活前的门禁结果。任何题目失败都不能
-把 `LEGAL_A_COLLECTION` 直接切成生产配置。
+### 最近一次服务器实测（正式 ACTIVE）
+
+法律资料已统一为 `ACTIVE`，Backend 使用 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false`，
+命令不再携带 `--allow-pending-governance`。正式结果为：10/10 通过、Gold Hit@1=80.00%、
+Gold Hit@3=100.00%、0 失败；每题均通过 A 级来源、官方 URL、生效日期和可引用片段检查。
 
 脚本的纯函数测试位于 `evaluation/test_legal_retrieval_smoke.py`。输出 JSON 只保存问题、
 预期字段、检索元数据和截断后的法律引用片段，不保存合同原文。
@@ -185,8 +187,7 @@ docker exec backend python /app/evaluation/legal_retrieval_smoke.py \
 
 ```env
 LEGAL_A_COLLECTION=legal_labor_a_v1
-# 当前 manifest 仍为 PENDING_LEGAL_REVIEW 时，staging 才临时设为 true
-LEGAL_A_ALLOW_PENDING_GOVERNANCE=true
+LEGAL_A_ALLOW_PENDING_GOVERNANCE=false
 ```
 
 使用脱敏/自拟 DOCX 运行：
@@ -199,24 +200,23 @@ uv run --with httpx --with pypdf python evaluation/contract_review_e2e.py \
   --resolution-policy supplement \
   --ack-test-confirmation-writes \
   --require-legal-citations \
-  --allow-pending-legal-governance \
   --output data/contract_legal_workflow_e2e.json
 ```
 
 通过标准：Workflow 返回 `completed` 或有明确警告的 `partial`；`legal_sources` 非空，
 每条来源均为 `source_level=A`、`citation_eligible=true`，官方 URL 以
 `https://flk.npc.gov.cn/` 开头，具有 `effective_date`、包含“第…条”的
-`citation_label`、非空 `quote`，且激活状态为 `ACTIVE` 或 staging 明确允许的
-`PENDING_LEGAL_REVIEW`。脚本输出中的 `legal_citations` 只包含计数和状态，不包含法条正文。
+`citation_label`、非空 `quote`，且激活状态为 `ACTIVE`。脚本输出中的 `legal_citations`
+只包含计数和状态，不包含法条正文。
 
-法律资料完成治理复核并改为 `ACTIVE` 后，生产候选回归必须去掉
-`--allow-pending-legal-governance`，同时将 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false`；
-如果去掉参数后仍能通过，才可以进入正式发布门禁。只修改 `.env` 时重启 Backend 即可，
-不需要重建镜像。
+正式回归已经去掉 `--allow-pending-legal-governance`，并确认
+`LEGAL_A_ALLOW_PENDING_GOVERNANCE=false`；只修改 `.env` 时重启 Backend 即可，不需要重建镜像。
+最近一次 E2E 结果为 `workflow_status=completed`、`findings=2`、`legal_sources=6`、
+报告问答通过、删除后 404、隐私哨兵 0、`external_ocr=false`，总耗时约 103.99 秒。
 
-### 6.2 A 级法律资料从 PENDING 到 ACTIVE
+### 6.2 A 级法律资料从 PENDING 到 ACTIVE（已执行；后续替换资料可复用）
 
-法律资料的激活必须同时更新三处状态：prepared artifact、每个 Qdrant point 的
+本节记录已完成的激活与 payload 修复过程；以后替换资料时仍必须同时更新三处状态：prepared artifact、每个 Qdrant point 的
 `legal_activation_status`，以及 Backend 的治理开关。不要直接编辑 JSON 或 Qdrant；使用
 仓库提供的激活工具，它会做只读 preflight、要求三项人工确认、创建备份，并在写入后逐点验证。
 该工具应在服务器宿主机项目目录执行，不能在 `sentinel` 容器中执行（容器对
@@ -329,9 +329,10 @@ uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
   --output data/contract_legal_workflow_e2e_active.json
 ```
 
-法律检索 10/10 和合同审查 E2E 均通过后，才允许把 `legal_labor_a_v1` 视为生产法律库。
-任一门禁失败都应保持 `LEGAL_A_COLLECTION` 不变，并根据激活工具输出的备份目录恢复
-artifact；不要用 `--allow-pending-*` 绕过正式门禁。
+最近一次执行结果：法律检索 10/10、合同审查 E2E 通过，`legal_labor_a_v1` 的
+artifact/Qdrant/Backend 治理状态均为 `ACTIVE`。任一后续资料替换门禁失败，都应保持
+`LEGAL_A_COLLECTION` 不变，并根据激活工具输出的备份目录恢复 artifact；不要用
+`--allow-pending-*` 绕过正式门禁。
 
 ## 通过标准
 

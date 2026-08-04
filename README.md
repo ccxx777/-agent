@@ -1,12 +1,14 @@
 # 劳动合同风险审查助手（Agent + RAG）
 
-这是一个面向中国大陆劳动合同场景的 Agent + RAG 项目。当前仓库已经完成通用 RAG 主链、检索评测闭环、合同文件上传/解析、事实提取/确认，以及可运行的劳动合同审查 Workflow v0.1；A 级法律资料已经完成隔离入库和 10 题法律检索 Smoke Test，法律资料的治理激活和规则卡片专家复核仍在进行中。
+这是一个面向中国大陆劳动合同场景的 Agent + RAG 项目。当前仓库已经完成通用 RAG 主链、检索评测闭环、合同文件上传/解析、事实提取/确认，以及可运行的劳动合同审查 Workflow v0.1；A 级法律资料已经完成隔离入库、治理激活和 10 题正式法律检索 Smoke Test，合同审查法律引用 E2E 也已通过。
 
 > 当前产品定位：给用户提供可追溯的风险事实、法律依据、修改建议和待确认问题，**不替用户决定是否签署，也不构成律师意见或结果保证**。
 
 ![当前架构与开发状态](docs/contract-review-workflow-status.png)
 
-当前实现的三张总图分别回答三个问题：Workflow 如何审查合同、聊天与合同如何共享会话、JSON/数据库/私有文件/Qdrant 的边界在哪里。
+当前实现的总图分别回答四个问题：Workflow 如何审查合同、正式 E2E 门禁如何验证闭环、聊天与合同如何共享会话、JSON/数据库/私有文件/Qdrant 的边界在哪里。
+
+![合同审查 E2E 正式门禁](docs/contract-e2e-flow.png)
 
 > 图中 PNG 均按 SVG 原始画布尺寸以 2x 分辨率导出，避免 README 预览出现底部裁剪；需要放大查看时，可打开文档目录中同名的 `.svg` 源图。
 
@@ -26,7 +28,7 @@
 | 合同审查 Workflow v0.1 | 已实现骨架 | 事实确认门禁、劳动合同范围检查、A 级法律检索、规则卡片、B 级案例补充和结构化报告；资料库未配置时安全降级 |
 | 扫描 PDF OCR | 接口已预留 | 默认关闭，需配置 OCR 服务后启用 |
 | 劳动法规则卡片与风险分级 | v0.1 已接入 | 规则节点只输出“可能冲突/待确认/观察”，不替代律师作最终法律结论 |
-| A 级法律法条切片与隔离入库 | 技术门禁已通过，治理待激活 | 从官方 Word 派生条级 artifact；保留章节、节、条号、原文、哈希和生效时间；已写入独立 `legal_labor_a_v1`，尚未切换为生产法律库 |
+| A 级法律法条切片与隔离入库 | ACTIVE，正式门禁已通过 | 从官方 Word 派生条级 artifact；保留章节、节、条号、原文、哈希和生效时间；独立 `legal_labor_a_v1` 已通过法律 Smoke 与合同审查 E2E |
 | Web 合同审查前端 | 已接入基础闭环 | 上传、事实确认、报告展示、报告问答和会话恢复已接入；视觉与专家验收继续迭代 |
 
 ## 已验证的通用 RAG 能力
@@ -60,11 +62,11 @@
 
 这些结果证明的是通用 RAG 链路的可复现性和输出稳定性，不是法律审查的正确率。法律产品上线前仍需要独立的法律专家复核集和规则级验收。
 
-### A 级劳动法律检索 Smoke Test（staging）
+### A 级劳动法律检索 Smoke Test（正式）
 
 服务器上的 `legal_labor_a_v1` 已完成 10 道固定法律问题的技术验收。每道题不仅检查是否有结果，还检查预期法条、官方来源、施行日期和可引用片段是否同时满足：
 
-| 指标 | 最近一次服务器结果 |
+| 指标 | 10 题基线记录 |
 |---|---:|
 | 题目数 / 通过数 | 10 / 10 |
 | 失败题数 | 0 |
@@ -73,21 +75,19 @@
 | 总耗时 / 平均耗时 | 24.729 秒 / 约 2.47 秒/题 |
 | 来源与引用门禁 | 10/10 均为 `source_level=A`、官方 URL、正确生效日期和可引用片段 |
 
-其中 `labor_legal_03` 和 `labor_legal_08` 的预期法条排在第 2 位，但仍在 Top-3 内，属于通过而不是漏召回。该次运行显式使用了 `--allow-pending-governance`，因此结论是“staging 技术检索通过”，不是“法律资料已获准生产使用”。在法律专业复核完成、manifest 状态变为 `ACTIVE` 后，必须去掉该参数再跑一次正式门禁；在此之前不要把 `LEGAL_A_COLLECTION` 切入生产配置。
+其中 `labor_legal_03` 和 `labor_legal_08` 的预期法条排在第 2 位，但仍在 Top-3 内，属于通过而不是漏召回。最近一次正式运行已去掉 `--allow-pending-governance`，并在 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false` 下完成；10/10 题均返回 `source_level=A`、官方 URL、生效日期和可引用片段。
 
 复现命令和治理边界见 [`docs/contract-server-acceptance.md`](docs/contract-server-acceptance.md) 的“ A 级劳动合同法律检索门禁”一节。Smoke 输出只保存检索元数据和截断后的引用片段，不保存合同原文。
 
-## A 级法律资料正式激活
+## A 级法律资料正式激活（已完成）
 
-`legal_labor_a_v1` 是独立的法律检索 Collection。当前资料已完成技术切片和 staging
-Smoke Test，但只有在完成人工治理确认、将 prepared artifact 与 Qdrant payload 一起改为
-`ACTIVE`，并在 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false` 下通过两个正式门禁后，才允许
-作为生产法律库使用。激活不会修改通用 `rag_chunks` 或评测 Collection。
+`legal_labor_a_v1` 是独立的法律检索 Collection。prepared artifact、Qdrant payload 和
+Backend 治理开关已经统一为 `ACTIVE`，并在 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false` 下
+通过法律检索 Smoke 与合同审查 E2E。激活不会修改通用 `rag_chunks` 或评测 Collection。
 
-请按 [`docs/contract-server-acceptance.md`](docs/contract-server-acceptance.md) 的“6.2
-A 级法律资料从 PENDING 到 ACTIVE”执行。该 runbook 提供只读 preflight、无写入演练、带
-备份的 `--apply` 激活、Backend 配置重载，以及不带 `--allow-pending-*` 参数的正式法律
-检索和合同审查 E2E 命令。
+激活与恢复过程见 [`docs/contract-server-acceptance.md`](docs/contract-server-acceptance.md) 的
+“6.2 A 级法律资料从 PENDING 到 ACTIVE”。该 runbook 同时记录了 Qdrant payload 合并修复、
+快照和正式门禁命令；以后替换法律资料仍必须先做备份和双门禁回归。
 
 ## 合同上传与解析模块
 
@@ -256,7 +256,7 @@ uv run python -m data_worker.legal_cli validate \
   --base data/legal/labor_contract
 ```
 
-输出位于 Git 忽略的 `data/legal/labor_contract/prepared/a_level/`，包含 `articles.jsonl`、`article_chunks.jsonl`、`manifest.json` 与 `validation.json`。当前 artifact 可以上传到服务器并进行隔离 Collection 的导入测试，但 `legal_activation_status=PENDING_LEGAL_REVIEW` 时不能切换 `LEGAL_A_COLLECTION`，也不能作为正式高风险结论的唯一法律依据。
+输出位于 Git 忽略的 `data/legal/labor_contract/prepared/a_level/`，包含 `articles.jsonl`、`article_chunks.jsonl`、`manifest.json` 与 `validation.json`。当前 artifact 已与服务器 `legal_labor_a_v1` 的 `ACTIVE` 状态一致；后续替换资料时仍必须重新走治理复核，不能直接覆盖生产 Collection。
 
 服务器只需重建 **Data Worker** 镜像；不需要重建 Backend 或 Embedding Service。上传 `data/legal/` 后，先执行 dry-run：
 
@@ -269,16 +269,15 @@ docker exec sentinel python -m data_worker.legal_cli ingest \
   --dry-run
 ```
 
-实际导入会新建或续传 `legal_labor_a_v1`，并明确拒绝写入 `rag_chunks` 与 watsonxDocsQA Collection。完成法律复核和检索门禁前，不能修改 Backend 的 `LEGAL_A_COLLECTION`。
+实际导入会新建或续传 `legal_labor_a_v1`，并明确拒绝写入 `rag_chunks` 与 watsonxDocsQA Collection。后续替换法律资料时，必须重新完成治理复核和双门禁，不能直接覆盖 Backend 的 `LEGAL_A_COLLECTION`。
 
-服务器入库完成后，先用独立 Smoke Test 验证 A 级法条过滤、引用资格、条号和官方链接。当前资料仍处于 staging，因此必须显式加 `--allow-pending-governance`：
+服务器入库完成后，先用独立 Smoke Test 验证 A 级法条过滤、引用资格、条号和官方链接。当前正式资料已激活，命令不再携带 `--allow-pending-governance`：
 
 ```bash
 docker exec backend python /app/evaluation/legal_retrieval_smoke.py \
   --collection legal_labor_a_v1 \
   --qdrant-url http://db_qdrant:6333 \
   --embed-url http://embedding_service:8001/embed \
-  --allow-pending-governance \
   --output /app/data/legal/legal_retrieval_smoke_v1.json
 ```
 
@@ -346,13 +345,15 @@ uv run --with httpx --with pypdf python evaluation/contract_review_e2e.py \
   --resolution-policy supplement \
   --ack-test-confirmation-writes \
   --require-legal-citations \
-  --allow-pending-legal-governance \
   --output data/contract_legal_workflow_e2e.json
 ```
 
 `--require-legal-citations` 会验证报告是否返回 A 级法律来源、国家法律文库官方 URL、
-生效日期、法条编号、可引用片段和治理状态。`--allow-pending-legal-governance` 仅适用于
-当前 `PENDING_LEGAL_REVIEW` 的 staging；法律资料改为 `ACTIVE` 后，正式回归必须去掉该参数。
+生效日期、法条编号、可引用片段和治理状态。当前资料为 `ACTIVE`，正式回归必须去掉
+`--allow-pending-legal-governance`，并确认 Backend 环境中的 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false`。
+
+最近一次服务器 E2E 结果：`workflow_status=completed`、`findings=2`、`legal_sources=6`、
+`report_chat=passed`、删除后 `404`、隐私哨兵 `0`、`external_ocr=false`，总耗时约 `103.99s`。
 详细门禁和失败诊断见 [`docs/contract-server-acceptance.md`](docs/contract-server-acceptance.md)。
 
 ## 文档导航
@@ -366,6 +367,7 @@ uv run --with httpx --with pypdf python evaluation/contract_review_e2e.py \
 - [事实确认模块流程](docs/contract-fact-confirmation-flow.png)
 - [合同审查 Workflow v0.1](docs/contract-review-workflow.png)
 - [整体开发状态流程图](docs/contract-review-workflow-status.png)
+- [合同审查 E2E 正式门禁流程图](docs/contract-e2e-flow.png)
 - [统一会话数据流图](docs/chat-route-data-flow.png)
 - [JSON、PostgreSQL、私有文件与 Qdrant 存储边界图](docs/storage-boundary.png)
 - [存储边界文字说明](docs/storage-boundary.md)
@@ -431,4 +433,4 @@ printf 'AUTH_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
 
 ### 尚未完成的产品任务
 
-邀请制访客 token、删除审计事件、组织级权限/RLS、A/B 法律资料正式激活和 B 级指导案例专家复核仍是后续开发项。它们不能在当前版本中被当作已上线能力。
+邀请制访客 token、删除审计事件、组织级权限/RLS、B 级指导案例专家复核和规则卡专家审批仍是后续开发项。A 级法律库的技术激活与正式 E2E 门禁已经完成，但不等同于法律责任担保或替代专业意见。

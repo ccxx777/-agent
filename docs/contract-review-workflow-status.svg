@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1030" viewBox="0 0 1600 1030" role="img" aria-labelledby="title desc">
 <title id="title">劳动合同风险审查助手：当前状态与近期开发工作</title>
-<desc id="desc">上方为已经完成的通用 RAG 能力；下方展示劳动合同审查 Workflow v0.1，其中合同上传、解析、隐私脱敏、事实提取、事实确认门禁、A/B 检索适配、确定性规则、报告持久化、统一会话和 Web 前端已经接入；法律资料治理、专家复核和组织级能力仍待补齐。</desc>
+<desc id="desc">上方为已经完成并通过基线的通用 RAG 能力；下方展示劳动合同审查 Workflow v0.1，其中合同上传、解析、隐私脱敏、事实提取、事实确认门禁、ACTIVE A 级法律检索、确定性规则、报告持久化、统一会话和 Web 前端已经接入；B 级案例治理、专家复核和组织级能力仍待补齐。</desc>
 <style>text{font-family:'Helvetica Neue',Helvetica,Arial,'PingFang SC','Microsoft YaHei','Microsoft JhengHei','SimHei',sans-serif;} </style>
 <defs>
 <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
@@ -10,7 +10,7 @@
 </defs>
 <rect data-graph-role="background" width="1600" height="1030" fill="#ffffff"/>
 <text x="60" y="48" font-size="26px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">劳动合同风险审查助手：当前状态与近期开发工作</text>
-<text x="60" y="78" font-size="14px" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">先把可暂停、可追溯的审查任务骨架跑通；法律资料与人工复核作为并行输入接入。</text>
+<text x="60" y="78" font-size="14px" fill="#6b7280" font-weight="400" text-anchor="start" opacity="1.0">上传、确认、法律引用、报告问答和删除隐私门禁已通过服务器 E2E。</text>
 <text x="1125" y="38" font-size="12px" fill="#6b7280" font-weight="600" text-anchor="start" opacity="1.0">图例</text>
 <rect x="1125" y="49" width="14" height="14" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
 <text x="1147" y="61" font-size="12px" fill="#374151" font-weight="400" text-anchor="start" opacity="1.0">已完成</text>
@@ -23,9 +23,9 @@
 <rect data-graph-role="container" x="50" y="112" width="1500" height="290" rx="14" fill="#f8fbff" stroke="#bfdbfe" stroke-width="1.4"/>
 <rect data-graph-role="container" x="50" y="430" width="1500" height="500" rx="14" fill="#fafafa" stroke="#d1d5db" stroke-width="1.4"/>
 <text x="76" y="144" font-size="16px" fill="#1d4ed8" font-weight="600" text-anchor="start" opacity="1.0">当前已完成 / 已验证：通用 Agent + RAG 主链</text>
-<text x="76" y="470" font-size="16px" fill="#374151" font-weight="600" text-anchor="start" opacity="1.0">当前状态：劳动合同审查 Workflow v0.1 与治理边界</text>
+<text x="76" y="470" font-size="16px" fill="#374151" font-weight="600" text-anchor="start" opacity="1.0">当前状态：劳动合同审查 Workflow v0.1 与正式 E2E 门禁</text>
 <text x="1320" y="144" font-size="12px" fill="#2563eb" font-weight="600" text-anchor="end" opacity="1.0">当前线上能力</text>
-<text x="1475" y="470" font-size="12px" fill="#6b7280" font-weight="600" text-anchor="end" opacity="1.0">灰色 = 治理/后续能力</text>
+<text x="1475" y="470" font-size="12px" fill="#6b7280" font-weight="600" text-anchor="end" opacity="1.0">灰色 = 后续治理/产品能力</text>
 <path id="e-query-api" data-graph-role="edge" data-source="generic-query" data-target="fastapi" d="M260 238 H300" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
 <path id="e-api-graph" data-graph-role="edge" data-source="fastapi" data-target="langgraph" d="M490 238 H530" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
 <path id="e-graph-retrieval" data-graph-role="edge" data-source="langgraph" data-target="retrieval" d="M720 238 H760" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
@@ -117,6 +117,9 @@
 <rect x="320" y="322" width="650" height="44" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="1.2"/>
 <text x="342" y="340" font-size="11px" fill="#1e40af" font-weight="400" text-anchor="start" opacity="1.0">30题基线：Hit@1 83.33%  ·  Hit@3 90.00%  ·  MRR@3 86.67%</text>
 <text x="342" y="357" font-size="11px" fill="#1e40af" font-weight="400" text-anchor="start" opacity="1.0">v2检索约 1.04s  ·  RAGAS Faithfulness 0.908  ·  Context Relevance 0.892</text>
+<rect x="1000" y="322" width="490" height="44" rx="8" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.2"/>
+<text x="1022" y="340" font-size="11px" fill="#047857" font-weight="700" text-anchor="start" opacity="1.0">法律检索 Smoke 10/10  ·  合同审查 E2E passed</text>
+<text x="1022" y="357" font-size="11px" fill="#047857" font-weight="400" text-anchor="start" opacity="1.0">ACTIVE  ·  无 --allow-pending-*  ·  deletion=404  ·  privacy=0</text>
 <g id="contract-upload" data-graph-role="node"><rect x="80" y="510" width="190" height="96" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
 <circle cx="108" cy="540" r="17" fill="#2563eb"/>
 <text x="108" y="545" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">DOC</text>
@@ -198,10 +201,10 @@
 <text x="398" y="800" font-size="11px" fill="#ffffff" font-weight="700" text-anchor="middle" opacity="1.0">R</text>
 <text x="424" y="794" font-size="15px" fill="#111827" font-weight="600" text-anchor="start" opacity="1.0">法律检索适配</text>
 <text x="424" y="818" font-size="12px" fill="#4b5563" font-weight="400" text-anchor="start">
-<tspan x="424" dy="0px">A 级法律 / B 级案例 Collection</tspan>
+<tspan x="424" dy="0px">A ACTIVE / B 案例待治理</tspan>
 </text>
 <rect x="516" y="830" width="78" height="22" rx="11" fill="#ccfbf1" stroke="none"/>
-<text x="555.0" y="845" font-size="11px" fill="#0f766e" font-weight="600" text-anchor="middle" opacity="1.0">已接入</text>
+<text x="555.0" y="845" font-size="11px" fill="#0f766e" font-weight="600" text-anchor="middle" opacity="1.0">已激活</text>
 </g>
 <g id="rule-engine" data-graph-role="node"><rect x="660" y="765" width="240" height="96" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
 <circle cx="688" cy="795" r="17" fill="#2563eb"/>
@@ -234,7 +237,7 @@
 <text x="1425.0" y="845" font-size="11px" fill="#1d4ed8" font-weight="600" text-anchor="middle" opacity="1.0">已接入</text>
 </g>
 <rect x="80" y="875" width="700" height="42" rx="9" fill="#ffffff" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="7,5"/>
-<text x="102" y="901" font-size="12px" fill="#4b5563" font-weight="600" text-anchor="start" opacity="1.0">后续治理：A/B 法律资料正式激活、规则卡专家复核、访客 token 与组织级权限</text>
+<text x="102" y="901" font-size="12px" fill="#4b5563" font-weight="600" text-anchor="start" opacity="1.0">后续治理：B 级案例、规则卡专家复核、访客 token 与组织级权限</text>
 <rect x="830" y="875" width="680" height="42" rx="9" fill="#ffffff" stroke="#d1d5db" stroke-width="1.3"/>
-<text x="852" y="901" font-size="12px" fill="#374151" font-weight="600" text-anchor="start" opacity="1.0">v0.1 已交付：上传 → 解析 → 脱敏 → 条款/事实 → 确认 → A/B 检索 → 规则 → 报告 → 同 session 追问</text>
+<text x="852" y="901" font-size="12px" fill="#374151" font-weight="600" text-anchor="start" opacity="1.0">v0.1 已交付：上传 → 解析 → 脱敏 → 确认 → ACTIVE A 检索 → 规则 → 报告 → 同 session 追问 → 删除校验</text>
 </svg>

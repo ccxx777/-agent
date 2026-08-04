@@ -1,8 +1,8 @@
 # 劳动合同风险审查助手：开发计划与验收门禁
 
-> 更新日期：2026-07-31
+> 更新日期：2026-08-04
 >
-> 当前阶段：通用 RAG 已完成 v2 检索门禁和端到端基线；合同上传（PDF/DOC/DOCX）、私有存储、异步任务、质量状态、隐私脱敏、条款切分、事实提取/确认和合同审查 Workflow v0.1 已实现。7 份 A 级法律资料已完成本地法条切片，并已导入服务器独立 `legal_labor_a_v1` Collection；当前进行法律检索 Smoke Test 和法律治理验证。
+> 当前阶段：通用 RAG 已完成 v2 检索门禁和端到端基线；合同上传（PDF/DOC/DOCX）、私有存储、异步任务、质量状态、隐私脱敏、条款切分、事实提取/确认和合同审查 Workflow v0.1 已实现。7 份 A 级法律资料已完成本地法条切片，服务器独立 `legal_labor_a_v1` 已激活为 `ACTIVE`，法律检索 Smoke 与合同审查法律引用 E2E 正式门禁均已通过。
 
 ## 一、产品目标与边界
 
@@ -101,7 +101,7 @@
 - [x] 验证 DOC 容器内 `antiword` 可执行；若本机 Windows 没有该运行时，使用服务器样本。
 - [x] 检查测试合同不会进入 `data_worker`、Qdrant 或公开评测结果。
 - [x] 检查脱敏前后字段、零宽字符计数、日志和 API 响应均不泄露原始敏感值。
-- [ ] 用 `evaluation/contract_review_e2e.py` 完成上传、确认、Workflow、报告 JSON/PDF、报告问答、历史和删除的端到端门禁。
+- [x] 用 `evaluation/contract_review_e2e.py` 完成上传、确认、Workflow、报告 JSON/PDF、报告问答、历史和删除的端到端门禁。
 
 ### 3.6 事实确认基础模块
 
@@ -136,11 +136,11 @@
 - [x] 将已收集的 A 级法律 artifact 导入隔离的 `legal_labor_a_v1`，完成服务器 Qdrant schema；Collection 当前为 477 points，保留独立断点状态。
 - [x] 新增 `LegalRetrievalService`：只允许 `legal_` Collection，并过滤非 A 级、不可引用前言和未激活资料；默认不启用法律 Collection。
 - [x] 生成 10 道劳动合同法律检索固定题集，并校验每题的预期法条、施行日期和官方来源元数据。
-- [x] 在服务器运行 `evaluation/legal_retrieval_smoke.py`，10 道固定法律问题均返回预期可引用条文；staging 结果为 Hit@1=80.00%、Hit@3=100.00%、0 失败（运行时显式允许 pending governance）。
+- [x] 在服务器运行 `evaluation/legal_retrieval_smoke.py`，10 道固定法律问题均返回预期可引用条文；正式结果为 Hit@1=80.00%、Hit@3=100.00%、0 失败，且不使用 pending governance 绕过参数。
 - [x] 为合同审查 Workflow E2E 增加 `--require-legal-citations` 回归模式，校验 A 级来源、官方 URL、生效日期、法条编号、引用片段和治理状态。
-- [x] 新增 `evaluation/legal_labor_activation.py`：提供只读 preflight、三项人工确认、备份、artifact/Qdrant 双写和逐点校验；尚未在服务器执行 `--apply`。
+- [x] 新增并执行 `evaluation/legal_labor_activation.py`：提供只读 preflight、三项人工确认、备份、artifact/Qdrant 双写和逐点校验；服务器状态已统一为 `ACTIVE`。
 - [x] 修正 Qdrant 激活写入使用 merge 接口，并新增 `evaluation/legal_labor_payload_repair.py`，可在不重算向量的情况下恢复引用元数据和 fulltext payload。
-- [ ] 完成法律专业复核并执行正式激活，将 manifest 与 Qdrant 状态统一改为 `ACTIVE`，再把 `LEGAL_A_ALLOW_PENDING_GOVERNANCE` 设为 `false`。
+- [x] 完成 A 级资料治理确认并执行正式激活，manifest 与 Qdrant 状态统一为 `ACTIVE`，`LEGAL_A_ALLOW_PENDING_GOVERNANCE=false`。
 - [ ] 导入 B 级官方案例并为规则卡片增加人工复核的适用前提和例外条件。
 - [x] 为报告增加 PostgreSQL 持久化、版本号、用户归属校验、JSON/PDF 查询和删除接口；人工复核状态与前端历史展示仍待补齐。
 
@@ -149,7 +149,7 @@
 - [x] 按 [`docs/labor-contract-legal-corpus-plan.md`](docs/labor-contract-legal-corpus-plan.md) 在本地收集 7 份 P0 法律最小包，建立版本 metadata、文档哈希和 prepared manifest。
 - [x] 生成法条级 `articles.jsonl` / `article_chunks.jsonl`，并校验条号、偏移、数量和文件哈希；前言/目录明确标记为不可作为正式法条引用。
 - [x] 在服务器以只读法律资料挂载和独立状态卷执行 `legal_labor_a_v1` 隔离入库；不得使用 `rag_chunks` 或评测 Collection。
-- [ ] 收集并完成 A 级法律和司法解释的法律专业复核：全国适用范围、官方来源/公开可访问性记录、版本/废止衔接与激活记录；不把终端用户授权作为运行时门禁。
+- [x] 完成当前 A 级法律和司法解释的治理确认：全国适用范围、官方来源/公开可访问性记录、版本/生效状态、正文一致性与激活记录；不把终端用户授权作为运行时门禁。
 - [ ] 收集 B 级官方案例，保留案号、法院、裁判日期、争议焦点和官方来源。
 - [ ] 为每条规则建立人工复核卡：适用前提、例外条件、证据需求和预期输出。
 - [ ] 数据入库前做版权、授权、转载限制和个人信息检查。
@@ -174,8 +174,8 @@
 
 - 不把 `watsonx_docsqa_colab_v2` 直接切成生产库。
 - 只有真实 `rag_chunks` 离线重建为 `rag_chunks_v2`、通过完整门禁并保留回滚快照后，才讨论生产切换。
-- 法律库必须先通过 `legal_labor_activation.py preflight` 和 `activate --apply`，再以 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false` 重载 Backend。
-- 正式法律检索 Smoke 与合同审查 E2E 必须去掉 `--allow-pending-governance` 和 `--allow-pending-legal-governance` 后均通过，才能将 `legal_labor_a_v1` 视为生产法律库。
+- 法律库已通过 `legal_labor_activation.py preflight` 和 `activate --apply`，并以 `LEGAL_A_ALLOW_PENDING_GOVERNANCE=false` 重载 Backend。
+- 正式法律检索 Smoke 与合同审查 E2E 已去掉 `--allow-pending-governance` 和 `--allow-pending-legal-governance` 并通过；`legal_labor_a_v1` 达到技术生产候选状态。
 - Backend 和 Data Worker 切换时必须使用同一 `RAG_COLLECTION`，避免读新写旧。
 
 ## 六、暂不做
@@ -205,13 +205,13 @@
 
 后续任务：
 
-- [ ] 完成服务器端 `005-session-contract-report.sql` 与 `006-contract-retention.sql` 迁移并做真实 API 回归。
+- [x] 完成服务器端 `005-session-contract-report.sql` 与 `006-contract-retention.sql` 迁移并做真实 API 回归。
 - [x] 把当前法律问答 Smoke 接入前端会话，验证上传前提问、上传后报告提问均保持同一 `session_id`；报告问答现在强制绑定报告和会话。
 - [ ] 增加邀请制访客 Token，仅可查看指定报告，不能读取其他会话或修改事实。
 - [ ] 增加审查历史列表、报告版本切换和到期时间展示。
 - [x] 将启动时留存清理升级为 Backend 周期任务，并增加存量任务到期时间回填；删除审计事件仍待补充。
-- [ ] 完成 A 级法律资料人工复核、B 级案例库接入和专家题集 `APPROVED` 审批。
-- [ ] 在服务器完成法律检索 Smoke、安全 Smoke、合同端到端 Smoke 与发布门禁，门禁通过后再开放生产配置。
+- [ ] 完成 B 级案例库接入、规则卡专家复核和专家题集 `APPROVED` 审批；A 级当前资料治理和技术激活已完成。
+- [x] 在服务器完成法律检索 Smoke、合同端到端 Smoke、删除/隐私检查与正式发布门禁；安全 Smoke 的扩展场景和删除审计仍需补齐。
 
 详细接口、迁移与命令见 [`docs/contract-conversation-and-governance.md`](docs/contract-conversation-and-governance.md)。
 
