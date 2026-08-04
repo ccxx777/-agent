@@ -91,6 +91,7 @@
 
 ### P0：完成上传模块的服务器验收
 
+- [x] 新增 `evaluation/contract_migration_check.py` 和 `evaluation/contract_upload_api_smoke.py`，覆盖迁移 schema、三种格式、会话/历史/留存和隐私边界；仍需在服务器执行并保留结果。
 - [ ] 在服务器重建/重启 Backend 后，用真实 PDF、DOC、DOCX 分别上传。
 - [ ] 验证 `queued → extracting → ready` 和异常时的 `failed` 路径。
 - [ ] 验证 DOC 容器内 `antiword` 可执行；若本机 Windows 没有该运行时，先转换为 PDF/DOCX。

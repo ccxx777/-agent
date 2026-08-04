@@ -27,6 +27,7 @@
 | [`retrieval-v2-migration.md`](retrieval-v2-migration.md) | Qdrant 升级、离线迁移、门禁和回滚 | 已执行，可复用 |
 | [`watsonx-docsqa-full-baseline.md`](watsonx-docsqa-full-baseline.md) | 30 题检索、生成、人工抽查和 RAGAS 结果 | v2 完整基线 |
 | [`labor-contract-legal-corpus-plan.md`](labor-contract-legal-corpus-plan.md) | 劳动合同法律知识库的资料分层、来源核验、法条切片、隔离入库和激活门禁 | 当前采集计划 |
+| [`contract-server-acceptance.md`](contract-server-acceptance.md) | 005/006/007 迁移检查、PDF/DOC/DOCX API 回归、隐私门禁和删除验证 | 服务端验收 Runbook |
 | [`pitfall-guide.md`](pitfall-guide.md) | Docker、依赖、评测和历史迁移中的常见问题 | 历史经验 |
 
 ## API 与基础设施

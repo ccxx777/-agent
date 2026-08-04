@@ -283,6 +283,26 @@ uv run \
 `CONTRACT_EXTRACTION_SINGLE_PASS_MAX_CHARS` 后预期为 `batch`。`needs_confirmation` 是正常的
 人工确认状态，不代表上传或提取失败；只有 `failed` 或超时才算 Smoke Test 失败。
 
+### 服务端迁移与三格式上传门禁
+
+服务器端需要先按顺序执行 `005/006/007` 数据库迁移，再运行只读 schema 检查和 PDF/DOC/DOCX
+真实 API 回归。新工具不会输出合同正文或敏感哨兵值，并默认在验证后删除 Smoke 任务：
+
+```bash
+docker exec backend python /app/evaluation/contract_migration_check.py \
+  --host db_pg --port 5432 --user admin --database ai_assistant \
+  --output /app/data/contract_migration_check.json
+
+docker exec backend python /app/evaluation/contract_upload_api_smoke.py \
+  --file pdf=/app/test_contract/劳动合同.pdf \
+  --file doc=/app/test_contract/劳动合同.doc \
+  --file docx=/app/test_contract/劳动合同.docx \
+  --base-url http://127.0.0.1:8000 --token "$TOKEN" \
+  --require-extraction --output /app/data/contract_upload_api_smoke.json
+```
+
+完整前置检查、隐私哨兵和失败诊断见 [`docs/contract-server-acceptance.md`](docs/contract-server-acceptance.md)。
+
 先用 `evaluation/rag_smoke.py` 验证主链返回 `answer`、`contexts` 和 `documents`，再运行固定问题集和 RAGAS。RAGAS 依赖留在 `evaluation/requirements.txt`，不装进 Backend 镜像。
 
 ## 文档导航
@@ -300,6 +320,7 @@ uv run \
 - [JSON、PostgreSQL、私有文件与 Qdrant 存储边界图](docs/storage-boundary.png)
 - [存储边界文字说明](docs/storage-boundary.md)
 - [劳动合同法律语料计划](docs/labor-contract-legal-corpus-plan.md)
+- [合同服务端迁移与上传验收 Runbook](docs/contract-server-acceptance.md)
 - [自研三层检索算法](docs/self-developed-retrieval-algorithm.md)
 - [Qdrant v2 迁移记录](docs/retrieval-v2-migration.md)
 - [watsonxDocsQA 完整基线](docs/watsonx-docsqa-full-baseline.md)
