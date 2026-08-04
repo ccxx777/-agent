@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from hashlib import sha256
 from typing import Any
 from uuid import uuid4
@@ -18,6 +19,17 @@ class ConfirmationRevisionConflict(RuntimeError):
 
 class SessionOwnershipError(RuntimeError):
     """会话已属于其他用户，不能被合同任务接管。"""
+
+
+def _normalize_review_summary_row(row: Mapping[str, Any]) -> dict[str, Any]:
+    """Normalize PostgreSQL UUIDs before review summaries cross the API boundary."""
+
+    normalized = dict(row)
+    for field in ("review_id", "session_id", "report_id"):
+        value = normalized.get(field)
+        if value is not None:
+            normalized[field] = str(value)
+    return normalized
 
 
 class ContractReviewRepository:
@@ -425,7 +437,7 @@ class ContractReviewRepository:
                 """,
                 (session_id, user_id),
             )
-            return [dict(row) for row in await cur.fetchall()]
+            return [_normalize_review_summary_row(row) for row in await cur.fetchall()]
 
     async def list_user_reviews(
         self,
@@ -462,7 +474,7 @@ class ContractReviewRepository:
                 """,
                 (user_id, safe_limit),
             )
-            return [dict(row) for row in await cur.fetchall()]
+            return [_normalize_review_summary_row(row) for row in await cur.fetchall()]
 
     async def get_confirmation_request(
         self,

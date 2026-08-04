@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -58,14 +59,14 @@ def create_sessions_router(
 
     @router.get("/sessions/{session_id}/reviews", response_model=SessionReviewsResponse)
     async def session_reviews(
-        session_id: str,
+        session_id: UUID,
         user: dict = Depends(get_current_user),  # noqa: B008 - FastAPI dependency declaration
     ) -> SessionReviewsResponse:
         """返回当前用户会话绑定的合同任务和最新报告标识。"""
 
         if review_repository is None or not hasattr(review_repository, "list_session_reviews"):
-            return SessionReviewsResponse(session_id=session_id, reviews=[])
-        result = await review_repository.list_session_reviews(session_id, user["user_id"])
-        return SessionReviewsResponse(session_id=session_id, reviews=result)
+            return SessionReviewsResponse(session_id=str(session_id), reviews=[])
+        result = await review_repository.list_session_reviews(str(session_id), user["user_id"])
+        return SessionReviewsResponse(session_id=str(session_id), reviews=result)
 
     return router

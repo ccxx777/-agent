@@ -103,6 +103,12 @@ def _headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _progress(message: str) -> None:
+    """Write human-readable progress to stderr without corrupting JSON stdout."""
+
+    print(message, file=sys.stderr, flush=True)
+
+
 def _parse_files(raw_files: list[str]) -> list[tuple[str, Path]]:
     cases: list[tuple[str, Path]] = []
     seen_labels: set[str] = set()
@@ -317,6 +323,7 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
     created_ids: list[tuple[str, str]] = []
 
     with httpx.Client(timeout=60.0) as client:
+        _progress("[gate] checking contract history")
         try:
             history_before = _history_check(
                 client,
@@ -331,6 +338,7 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
         for label, path in cases:
             case_started = time.monotonic()
             review_id: str | None = None
+            _progress(f"[{label}] uploading {path.name}")
             try:
                 data = {"retention_policy": "short"}
                 if args.session_id:
@@ -344,6 +352,7 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
                     )
                 created = _json_response(response)
                 review_id = created.get("review_id")
+                _progress(f"[{label}] review_id={review_id}; waiting for extraction")
                 if not isinstance(review_id, str) or not review_id:
                     raise ContractUploadGateError("上传响应缺少 review_id")
                 created_errors = validate_public_detail(
@@ -392,7 +401,16 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
                     if boundary_errors:
                         raise ContractUploadGateError("任务查询响应越过隐私边界")
                     if review_is_terminal(detail, require_extraction=args.require_extraction):
+                        _progress(
+                            f"[{label}] terminal status={detail.get('status')} "
+                            f"extraction={detail.get('extraction_status')} polls={poll_count}"
+                        )
                         break
+                    if poll_count == 1 or poll_count % 5 == 0:
+                        _progress(
+                            f"[{label}] poll={poll_count} status={detail.get('status')} "
+                            f"extraction={detail.get('extraction_status')}"
+                        )
                     time.sleep(max(0.1, args.poll_seconds))
                 else:
                     raise ContractUploadGateError("等待文件解析超时")
@@ -434,8 +452,10 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
                     _safe_file_result(label, detail, time.monotonic() - case_started)
                     | {"poll_count": poll_count, "deleted": False}
                 )
+                _progress(f"[{label}] API regression checks passed")
             except (ContractUploadGateError, OSError, httpx.HTTPError) as error:
                 errors.append(f"{label} 回归失败：{error}")
+                _progress(f"[{label}] failed: {error}")
                 file_results.append(
                     {"format": label, "status": "failed", "deleted": False}
                 )
@@ -458,9 +478,11 @@ def run_gate(args: argparse.Namespace) -> dict[str, Any]:
                             if item.get("format") == label:
                                 item["deleted"] = True
                                 break
+                        _progress(f"[{label}] deleted and verified")
                     except (ContractUploadGateError, httpx.HTTPError) as error:
                         errors.append(f"{label} 删除回归失败：{error}")
 
+        _progress("[gate] checking contract history after cleanup")
         try:
             history_after = _history_check(
                 client,
