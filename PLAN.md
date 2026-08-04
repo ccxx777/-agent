@@ -136,7 +136,7 @@
 - [x] 将已收集的 A 级法律 artifact 导入隔离的 `legal_labor_a_v1`，完成服务器 Qdrant schema；Collection 当前为 477 points，保留独立断点状态。
 - [x] 新增 `LegalRetrievalService`：只允许 `legal_` Collection，并过滤非 A 级、不可引用前言和未激活资料；默认不启用法律 Collection。
 - [x] 生成 10 道劳动合同法律检索固定题集，并校验每题的预期法条、施行日期和官方来源元数据。
-- [ ] 在服务器运行 `evaluation/legal_retrieval_smoke.py`，确认 10 道固定法律问题均返回预期可引用条文并记录回滚证据。
+- [x] 在服务器运行 `evaluation/legal_retrieval_smoke.py`，10 道固定法律问题均返回预期可引用条文；staging 结果为 Hit@1=80.00%、Hit@3=100.00%、0 失败（运行时显式允许 pending governance）。
 - [ ] 完成法律专业复核后，才将已激活的 Collection 配置为 `LEGAL_A_COLLECTION`。
 - [ ] 导入 B 级官方案例并为规则卡片增加人工复核的适用前提和例外条件。
 - [x] 为报告增加 PostgreSQL 持久化、版本号、用户归属校验、JSON/PDF 查询和删除接口；人工复核状态与前端历史展示仍待补齐。

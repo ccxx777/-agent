@@ -156,6 +156,20 @@ uv run --index https://pypi.tuna.tsinghua.edu.cn/simple \
   --output data/legal/labor_contract/results/legal_retrieval_smoke_v1.json
 ```
 
+### 最近一次服务器实测（staging）
+
+2026-08-04 在服务器上对 `legal_labor_a_v1` 执行上述固定题集，结果为：
+
+| 项目 | 结果 |
+|---|---:|
+| 固定问题 / 通过 / 失败 | 10 / 10 / 0 |
+| Gold Hit@1 / Hit@3 | 80.00% / 100.00% |
+| 总耗时 / 平均耗时 | 24.729 秒 / 约 2.47 秒/题 |
+| 引用与治理字段 | 10/10 均通过 `source_level=A`、`citation_eligible=true`、官方 URL、生效日期和引用片段检查 |
+| 运行参数 | `--allow-pending-governance`（仅 staging） |
+
+两道题（`labor_legal_03`、`labor_legal_08`）的预期法条位于第 2 名，但都在最终 Top-3 内，因此没有失败。这个结果说明“条文切片、向量检索、元数据和引用输出”已经通过技术门禁；它不等同于法律资料已经完成专家复核或可以直接生产激活。当前 manifest 仍为 `PENDING_LEGAL_REVIEW`，正式激活前还必须完成适用范围、授权状态、版本/废止衔接和正文一致性复核。
+
 法律专业复核完成并将资料状态改为 `ACTIVE` 后，重新运行同一命令但去掉
 `--allow-pending-governance`；这一次才是正式激活前的门禁结果。任何题目失败都不能
 把 `LEGAL_A_COLLECTION` 直接切成生产配置。
